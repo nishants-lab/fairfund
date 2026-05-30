@@ -1,6 +1,6 @@
 # FairFund — QA Results
 
-Run date: 2026-05-30
+Run date: 2026-05-31
 Build: production (`npm run build`) served via `npm run preview` (localhost:4173)
 Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 
@@ -8,12 +8,45 @@ Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 
 | Suite | Result |
 |-------|--------|
-| A. Data integrity (`scripts/qa_data.py`) | **19/19 PASS** |
+| Metrics evaluation (`scripts/qa_metrics.mjs`) | **18/18 PASS** |
+| A. Data integrity (`scripts/qa_data.py`) | **21/21 PASS** |
 | B. Build & bundle | **PASS** (tsc 0 errors, 869 modules, dist + nav/ emitted) |
-| C+D+E. Functional UI, API-UP (`qa_ui.mjs`) | **27/27 PASS** |
-| C+D+E. Functional UI, API-DOWN | **26/26 PASS** |
-| **Total desktop UI** | **53/53 PASS** |
-| M. Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **20/20 PASS** |
+| Desktop UI (`qa_ui.mjs`, API-UP + API-DOWN) | **68/68 PASS** |
+| Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **39/39 PASS** |
+
+## Metrics evaluation harness (added 2026-05-31 — value correctness, not just rendering)
+
+`scripts/qa_metrics.mjs` transpiles `src/lib/metrics.ts` (via esbuild, no new deps)
+and verifies the COMPUTED VALUES of the pure-math engine - the gap that existed
+when drawdown/best/worst date-ranges were added (UI tests only checked rendering):
+- **Known-answer synthetic cases:** monotonic riser → 0 drawdown; a clean 30% drop
+  → -30% drawdown with peak-date ≤ trough-date; doubling over 1y → CAGR ≈ 100%;
+  best-month ≥ worst-month; tiny slice → null.
+- **Invariants across 120 real funds:** drawdown ≤ 0; peak date ≤ trough date; all
+  drawdown/month window dates within the slice; best ≥ worst; volatility ≥ 0;
+  all ratios finite.
+
+## "Renders, but renders wrong" class — expanded UI/mobile QA (added 2026-05-31)
+
+A semantic-color bug (negative drawdown shown green; negative ratios black/amber)
+prompted broadening QA beyond any single defect to the whole class:
+- **Semantic colors:** drawdown is never green; negative Sharpe/Sortino/Calmar are
+  red (checked by computed color, forcing negatives with a short YTD range).
+- **No broken value artifacts** (`NaN`, `undefined`, `Invalid Date`, `[object Object]`,
+  `₹NaN`, `NaN%`, unrendered `${...}`) scanned on every page, desktop and mobile.
+- **Date sub-lines** (`Mon YYYY → Mon YYYY`) render on FundDetail and Compare.
+- **Volatility** shows a category-median comparison line.
+- **Compare with 5 funds:** all 5 columns render, chart draws 5 lines, overlap
+  populates, no broken artifacts.
+- **Sticky columns (mobile + desktop):** the metric column stays pinned to the left
+  edge after horizontal scroll (verified by scrolling and re-measuring); the
+  fund-name header row is sticky on vertical scroll - name + parameter stay in view
+  with 5 funds and many rows. No horizontal PAGE scroll on mobile.
+
+## Compare now supports up to 5 funds (was 3)
+
+5 distinct series colors; sticky metric column + sticky header; Max Drawdown / Best /
+Worst Month rows carry compact period sub-lines; consistent semantic value colors.
 
 ## Mobile QA harness (added 2026-05-31)
 
@@ -23,18 +56,15 @@ viewport under both API-UP and API-DOWN and asserts small-screen invariants that
 desktop tests cannot catch:
 
 - **No unexpected horizontal page scroll** on Home, Explore, FundDetail, Compare,
-  Planner, Methodology (the exact class of bug that previously slipped through —
-  the un-scrollable Compare table that scrolled the whole page). When it fails it
-  reports the offending elements. The detector was self-tested by injecting a
-  deliberately 900px-wide block and confirming it fires (overflow 0 → 510px,
-  offender identified), so a green result is meaningful, not vacuous.
+  Compare-5, Planner, Methodology (the exact class of bug that previously slipped
+  through - the un-scrollable Compare table that scrolled the whole page). When it
+  fails it reports the offending elements. The detector was self-tested by injecting
+  a deliberately 900px-wide block and confirming it fires.
 - Compare table scrolls **inside its own wrapper**, not the page.
 - Mobile nav present with tap targets ≥ 32px tall.
 - Search dropdown fits within the viewport width and scrolls.
 - Onboarding modal fits within the viewport.
 - No text rendered under 10px; no uncaught app errors.
-
-All 20 mobile checks pass under both API states.
 
 ## v3 forward-looking analytics QA (added 2026-05-30)
 
