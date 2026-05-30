@@ -102,7 +102,7 @@ export default function FundDetail() {
             <RiskBadge level={fund.riskLevel} />
             {fund.metrics['3Y'] && (
               <span className="pill bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-                Rank #{fund.metrics['3Y'].catRank} of {fund.categorySize} (3Y)
+                Rank #{fund.metrics['3Y'].catRank} of {fund.metrics['3Y'].catSize ?? fund.categorySize} (3Y)
               </span>
             )}
           </div>
@@ -193,7 +193,7 @@ export default function FundDetail() {
             <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves." />
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} hint="Return relative to the worst drawdown." />
             <MetricCard label="Volatility" value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
-            <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
+            <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
           <p className="mt-2 text-xs text-faint">
             ↑ Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}

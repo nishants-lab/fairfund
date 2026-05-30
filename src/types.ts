@@ -7,6 +7,7 @@ export interface WindowMetrics {
   calmar: number
   volatility: number
   catRank: number
+  catSize?: number
   catMedianCagr: number
   score: number
 }

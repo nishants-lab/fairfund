@@ -22,15 +22,21 @@ export default function Compare() {
   const [end, setEnd] = useState('')
   const [preset, setPreset] = useState<Preset>('3Y')
 
-  // Load funds from URL on mount
+  // Load funds from URL whenever the `codes` param changes (mount, link nav,
+  // or fund-detail "Compare" button). Only reset when the URL actually differs
+  // from what's shown, so in-page add/remove isn't clobbered.
+  const codesParam = params.get('codes') ?? ''
   useEffect(() => {
-    const codes = (params.get('codes') ?? '')
+    const codes = codesParam
       .split(',')
       .map((c) => Number(c))
       .filter((c) => !isNaN(c) && c > 0)
+    const current = funds.map((f) => f.code).join(',')
+    const desired = codes.join(',')
+    if (current === desired) return // already in sync (e.g. our own setParams)
     const loaded = codes.map((c) => getFund(c)).filter(Boolean) as Fund[]
     setFunds(loaded)
-  }, [])
+  }, [codesParam])
 
   // Fetch NAV for any newly added fund
   useEffect(() => {
