@@ -67,15 +67,34 @@ export default function CompareChart({ funds, navData, start, end, colors, loadi
         <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} minTickGap={40} />
         <YAxis tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `₹${v}`} width={50} domain={['auto', 'auto']} />
         <Tooltip
-          contentStyle={{
-            background: theme === 'dark' ? '#0f172a' : '#fff',
-            border: `1px solid ${grid}`,
-            borderRadius: 12,
-            fontSize: 12,
-          }}
-          formatter={(v: number, name: string) => {
-            const idx = Number(name.replace('f', ''))
-            return [`₹${v}`, funds[idx]?.name ?? name]
+          content={({ active, payload, label }) => {
+            if (!active || !payload || !payload.length) return null
+            // Sort entries descending by value so the top fund is listed first.
+            const items = [...payload]
+              .filter((p) => p.value != null)
+              .sort((a, b) => (b.value as number) - (a.value as number))
+            return (
+              <div
+                style={{
+                  background: theme === 'dark' ? '#0f172a' : '#fff',
+                  border: `1px solid ${grid}`,
+                  borderRadius: 12,
+                  fontSize: 12,
+                  padding: '8px 12px',
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 4, color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>{label}</div>
+                {items.map((p) => {
+                  const idx = Number(String(p.dataKey).replace('f', ''))
+                  return (
+                    <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6, color: p.color }}>
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 9999, background: p.color }} />
+                      <span>{funds[idx]?.name ?? p.dataKey} : ₹{p.value as number}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
           }}
         />
         <Legend formatter={(value: string) => funds[Number(value.replace('f', ''))]?.name ?? value} />
