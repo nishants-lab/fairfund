@@ -29,6 +29,17 @@ function shortName(f: Fund): string {
   return f.name.length > 30 ? f.name.slice(0, 29) + '…' : f.name
 }
 
+/** Plain-English gloss for a mean-reversion z-score, so users needn't know stats.
+ *  z = how many standard deviations the recent 1Y sits from the fund's own norm. */
+function zWords(z: number): string {
+  const a = Math.abs(z)
+  if (a < 0.5) return 'about normal'
+  const dir = z > 0 ? 'above' : 'below'
+  if (a < 1) return `a bit ${dir} normal`
+  if (a < 2) return `clearly ${dir} normal`
+  return `far ${dir} normal`
+}
+
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
     <div className="rounded-xl border border-line bg-surface2/40 p-3">
@@ -247,13 +258,14 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 <strong>Is the fund's recent year unusually strong (or weak) versus its own
                 normal?</strong>
                 <br /><br />Unlike the other signals, this compares the fund only to <strong>itself</strong>
-                — not to peers. We take its last-1-year return and measure how far it sits from its own
-                typical 1-year return, in standard deviations (a “z-score”).
-                <br />🔥 Hot = more than 1 SD above its norm. ❄️ Cold = more than 1 SD below. Otherwise
-                in line.
+                - not to peers. We take its last-1-year return and measure how far it sits from its own
+                typical 1-year return, in standard deviations - a “z-score”.
+                <br /><br /><strong>Reading the z-score:</strong> 0 = right at its normal. +1 / -1 = one
+                standard deviation above / below normal (notably hot / cold). Beyond ±2 is extreme.
+                We flag 🔥 hot above +1 and ❄️ cold below -1; in between is “in line”.
                 <br /><br /><em>This fund:</em> recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its
                 usual {signedPct(a.meanReversion.norm1Y)} (z = {num(a.meanReversion.z)}). Hot streaks
-                tend to cool off (mean-reversion), so it's a caution against chasing — not a prediction.
+                tend to cool off (mean-reversion), so it's a caution against chasing - not a prediction.
               </InfoTip>
             </h4>
             <div className="mt-1">
@@ -262,9 +274,10 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               {a.meanReversion.state === 'normal' && <span className="text-lg font-bold text-muted">In line with its norm</span>}
             </div>
             <p className="mt-1 text-xs text-muted">
-              Recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its typical {signedPct(a.meanReversion.norm1Y)} (z={num(a.meanReversion.z)}).
-              {a.meanReversion.state === 'hot' && ' Far above norm — be cautious chasing it; returns tend to revert.'}
-              {a.meanReversion.state === 'cold' && ' Below its norm — not a guarantee, but mean-reversion can cut both ways.'}
+              Recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its typical {signedPct(a.meanReversion.norm1Y)}{' '}
+              (z = {num(a.meanReversion.z)} - {zWords(a.meanReversion.z)}).
+              {a.meanReversion.state === 'hot' && ' Far above norm - be cautious chasing it; returns tend to revert.'}
+              {a.meanReversion.state === 'cold' && ' Below its norm - not a guarantee, but mean-reversion can cut both ways.'}
             </p>
           </div>
         )}

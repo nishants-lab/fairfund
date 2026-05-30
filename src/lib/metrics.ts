@@ -10,9 +10,15 @@ export interface ComputedMetrics {
   sharpe: number
   sortino: number
   maxDrawdown: number // % (negative)
+  maxDrawdownStart: string // ISO date of the peak before the worst fall
+  maxDrawdownEnd: string // ISO date of the trough
   calmar: number
   best1M: number // %
+  best1MStart: string // ISO date — start of the best rolling 1M window
+  best1MEnd: string // ISO date — end of the best rolling 1M window
   worst1M: number // %
+  worst1MStart: string
+  worst1MEnd: string
   startDate: string
   endDate: string
   startNav: number
@@ -81,35 +87,76 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
   const dDev = downside.length > 5 ? std(downside) * Math.sqrt(252) : 0.0001
   const sortino = dDev > 0 ? (cagr / 100 - RF_ANNUAL) / dDev : 0
 
-  // Max drawdown
-  let peak = -Infinity
-  let maxDd = 0
+  // Max drawdown — track the peak (start) and trough (end) dates of the worst fall.
+  // cumSeries[i] corresponds to slice[i] (cumSeries[0] = 1 at slice[0]; each
+  // subsequent point multiplies by that day's return).
   let cum = 1
   const cumSeries = [1]
   for (const r of rets) {
     cum *= 1 + r
     cumSeries.push(cum)
   }
-  for (const c of cumSeries) {
-    peak = Math.max(peak, c)
-    const dd = (c - peak) / peak
-    maxDd = Math.min(maxDd, dd)
+  let peak = cumSeries[0]
+  let peakIdx = 0
+  let maxDd = 0
+  let ddPeakIdx = 0
+  let ddTroughIdx = 0
+  for (let i = 0; i < cumSeries.length; i++) {
+    if (cumSeries[i] > peak) {
+      peak = cumSeries[i]
+      peakIdx = i
+    }
+    const dd = (cumSeries[i] - peak) / peak
+    if (dd < maxDd) {
+      maxDd = dd
+      ddPeakIdx = peakIdx
+      ddTroughIdx = i
+    }
   }
   const maxDrawdown = maxDd * 100
+  // Map cumSeries indices back to slice dates (cumSeries length == slice length
+  // when all daily returns passed the guard; clamp to be safe).
+  const idxToDate = (i: number) => slice[Math.min(i, slice.length - 1)].date
+  const maxDrawdownStart = idxToDate(ddPeakIdx)
+  const maxDrawdownEnd = idxToDate(ddTroughIdx)
 
   const calmar = maxDrawdown !== 0 ? (cagr / 100 - RF_ANNUAL) / Math.abs(maxDrawdown / 100) : 0
 
-  // Best / worst rolling 1-month (21 trading days)
+  // Best / worst rolling 1-month (21 trading days) — track the window endpoints.
   let best1M = -Infinity
   let worst1M = Infinity
+  let bestStartIdx = 0
+  let bestEndIdx = 0
+  let worstStartIdx = 0
+  let worstEndIdx = 0
   const navs = slice.map((p) => p.nav)
   for (let i = 21; i < navs.length; i++) {
     const r = (navs[i] / navs[i - 21] - 1) * 100
-    best1M = Math.max(best1M, r)
-    worst1M = Math.min(worst1M, r)
+    if (r > best1M) {
+      best1M = r
+      bestStartIdx = i - 21
+      bestEndIdx = i
+    }
+    if (r < worst1M) {
+      worst1M = r
+      worstStartIdx = i - 21
+      worstEndIdx = i
+    }
   }
-  if (!isFinite(best1M)) best1M = totalReturn
-  if (!isFinite(worst1M)) worst1M = totalReturn
+  let best1MStart = slice[bestStartIdx]?.date ?? startDate
+  let best1MEnd = slice[bestEndIdx]?.date ?? endDate
+  let worst1MStart = slice[worstStartIdx]?.date ?? startDate
+  let worst1MEnd = slice[worstEndIdx]?.date ?? endDate
+  if (!isFinite(best1M)) {
+    best1M = totalReturn
+    best1MStart = startDate
+    best1MEnd = endDate
+  }
+  if (!isFinite(worst1M)) {
+    worst1M = totalReturn
+    worst1MStart = startDate
+    worst1MEnd = endDate
+  }
 
   return {
     cagr,
@@ -118,9 +165,15 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
     sharpe,
     sortino,
     maxDrawdown,
+    maxDrawdownStart,
+    maxDrawdownEnd,
     calmar,
     best1M,
+    best1MStart,
+    best1MEnd,
     worst1M,
+    worst1MStart,
+    worst1MEnd,
     startDate,
     endDate,
     startNav,
@@ -170,4 +223,10 @@ export function presetRange(
 export function fmtDate(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/** Compact month-year, e.g. "Mar 2020" — for tight metric sub-lines. */
+export function fmtMonth(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
 }
