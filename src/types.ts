@@ -30,6 +30,7 @@ export interface Fund {
   holdings?: Holding[]
   holdingsMeta?: HoldingsMeta
   management?: Management
+  analytics?: Analytics
 }
 
 export interface ManagerInfo {
@@ -57,6 +58,56 @@ export interface Management {
   trackRecord?: ManagerTrackRecord | null
   signal?: 'Strong' | 'Solid' | 'Mixed' | 'Limited evidence' | 'No data'
   note?: string
+}
+
+// ---- Forward-looking analytics (precomputed build-time, in funds.json) ----
+export interface RankTrajectory {
+  spark: number[] // percentile (0-100) series, oldest->newest, for the sparkline
+  currentRank: number
+  currentPeers: number
+  priorRank: number
+  priorPeers: number
+  direction: 'climbing' | 'fading' | 'steady'
+  limited: boolean
+}
+export interface BattingAverage {
+  pct: number
+  n: number
+  windowM: number
+  limited: boolean
+}
+export interface CaptureRatios {
+  up: number | null
+  down: number | null
+  upMonths: number
+  downMonths: number
+}
+export interface AlphaSignificance {
+  tStat?: number
+  confidence?: number
+  n: number
+  couldBeLuck?: boolean
+  insufficient?: boolean
+}
+export interface MeanReversion {
+  z: number
+  state: 'hot' | 'cold' | 'normal'
+  recent1Y: number
+  norm1Y: number
+}
+export interface RegimePerf {
+  name: string
+  active: boolean
+  ret?: number
+  alpha?: number | null
+}
+export interface Analytics {
+  rankTrajectory?: RankTrajectory
+  battingAverage?: BattingAverage
+  capture?: CaptureRatios
+  alpha?: AlphaSignificance
+  meanReversion?: MeanReversion
+  regimes?: RegimePerf[]
 }
 
 export interface Holding {

@@ -3,21 +3,58 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { data, fundsByCategory, categoryOrder } from '../lib/data'
 import { pct, signedPct, num, riskColor, alphaColor } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
+import InfoTip from '../components/InfoTip'
 import type { Horizon, Fund } from '../types'
 
-type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score'
+type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting'
 type SortDir = 'asc' | 'desc'
 
-// For each sortable key: default direction when first clicked, and whether higher is "better"
-const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDir: SortDir }[] = [
+// For each sortable key: default direction when first clicked, and whether higher is "better".
+// `tip` (optional) renders an info tooltip next to the header label.
+const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDir: SortDir; tip?: React.ReactNode }[] = [
   { key: 'rank', label: '#', align: 'left', defaultDir: 'asc' },
   { key: 'name', label: 'Fund', align: 'left', defaultDir: 'asc' },
   { key: 'cagr', label: 'CAGR', align: 'right', defaultDir: 'desc' },
   { key: 'alpha', label: 'Alpha', align: 'right', defaultDir: 'desc' },
   { key: 'sharpe', label: 'Sharpe', align: 'right', defaultDir: 'desc' },
   { key: 'maxDrawdown', label: 'Max DD', align: 'right', defaultDir: 'desc' }, // less negative = better
-  { key: 'score', label: 'Score', align: 'right', defaultDir: 'desc' },
+  {
+    key: 'batting',
+    label: 'Consistency',
+    align: 'right',
+    defaultDir: 'desc',
+    tip: (
+      <>
+        <strong>How often the fund beat its category's median over rolling 3-year windows.</strong>
+        <br /><br />The arrow shows recent form: ↑ climbing the rankings, ↓ fading, → steady. The %
+        is the share of 3-year windows it finished in the better half — higher means more repeatable
+        skill, less luck. Full explanation on each fund's page.
+      </>
+    ),
+  },
+  {
+    key: 'score',
+    label: 'Score',
+    align: 'right',
+    defaultDir: 'desc',
+    tip: (
+      <>
+        <strong>Our overall risk-adjusted rank within the category (0–100 bar).</strong>
+        <br /><br />It's the geometric mean of the fund's within-category percentile ranks across
+        Sharpe, Sortino, Calmar, drawdown protection, peer-relative alpha, and CAGR — over identical
+        fixed windows. We use a geometric mean so a fund can't hide one terrible weakness behind
+        strong other numbers. Higher = better all-round, not just high returns.
+      </>
+    ),
+  },
 ]
+
+const TREND: Record<string, string> = { climbing: '↑', fading: '↓', steady: '→' }
+const TREND_TONE: Record<string, string> = {
+  climbing: 'text-emerald-600 dark:text-emerald-400',
+  fading: 'text-rose-600 dark:text-rose-400',
+  steady: 'text-faint',
+}
 
 export default function Explore() {
   const [params, setParams] = useSearchParams()
@@ -63,6 +100,8 @@ export default function Explore() {
           return m?.maxDrawdown ?? -Infinity
         case 'score':
           return m?.score ?? -Infinity
+        case 'batting':
+          return f.analytics?.battingAverage?.pct ?? -Infinity
         default:
           return 0
       }
@@ -143,7 +182,18 @@ export default function Explore() {
       )}
 
       {/* Fund table */}
-      <div className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface">
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
+        <span className="font-semibold uppercase tracking-wide">What the columns mean:</span>
+        {COLUMNS.filter((c) => c.tip).map((c) => (
+          <span key={c.key} className="inline-flex items-center gap-1 text-muted">
+            {c.label}
+            <InfoTip align="left" width={290} label={`What ${c.label} means`}>
+              {c.tip}
+            </InfoTip>
+          </span>
+        ))}
+      </div>
+      <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-surface">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -181,7 +231,7 @@ export default function Explore() {
                         </button>
                         <div className="text-xs text-faint">No full {horizon} history</div>
                       </td>
-                      <td colSpan={5} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
+                      <td colSpan={6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
                     </tr>
                   )
                 return (
@@ -205,6 +255,18 @@ export default function Explore() {
                     <td className={`px-4 py-3 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>
                     <td className="px-4 py-3 text-right text-muted">{num(m.sharpe)}</td>
                     <td className="px-4 py-3 text-right text-rose-500">{pct(m.maxDrawdown)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {f.analytics?.battingAverage ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className={`text-xs font-bold ${TREND_TONE[f.analytics.rankTrajectory?.direction ?? 'steady']}`}>
+                            {TREND[f.analytics.rankTrajectory?.direction ?? 'steady']}
+                          </span>
+                          <span className="font-semibold text-fg">{f.analytics.battingAverage.pct}%</span>
+                        </span>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="ml-auto h-1.5 w-16 overflow-hidden rounded-full bg-surface2">
                         <div className="h-full rounded-full bg-brand-500" style={{ width: `${m.score * 100}%` }} />
