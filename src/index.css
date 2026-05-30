@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ Theme tokens (RGB triplets for Tailwind alpha) ============ */
+:root {
+  --canvas: 248 250 252;     /* slate-50  */
+  --surface: 255 255 255;    /* white     */
+  --surface2: 241 245 249;   /* slate-100 */
+  --text-base: 15 23 42;     /* slate-900 */
+  --text-muted: 71 85 105;   /* slate-600 */
+  --text-faint: 148 163 184; /* slate-400 */
+  --line: 226 232 240;       /* slate-200 */
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: 9 13 24;         /* near-black navy */
+  --surface: 17 24 39;       /* slate-900-ish  */
+  --surface2: 30 41 59;      /* slate-800      */
+  --text-base: 241 245 249;  /* slate-100      */
+  --text-muted: 148 163 184; /* slate-400      */
+  --text-faint: 100 116 139; /* slate-500      */
+  --line: 51 65 85;          /* slate-700      */
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-canvas text-base antialiased;
+  margin: 0;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--canvas));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--text-faint));
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-2xl border border-line shadow-sm;
+  }
+  .pill {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-line text-muted font-medium hover:bg-surface2 transition-colors;
+  }
+}
+
+/* Range slider styling that works in both themes */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(var(--surface2));
+  outline: none;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #2563eb;
+  cursor: pointer;
+  border: 2px solid rgb(var(--surface));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #2563eb;
+  cursor: pointer;
+  border: 2px solid rgb(var(--surface));
+}
