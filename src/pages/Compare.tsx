@@ -6,11 +6,13 @@ import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
 import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
-import { computeMetrics, sliceByRange, presetRange, fmtDate, type ComputedMetrics } from '../lib/metrics'
+import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
 import type { Fund, NavPoint } from '../types'
 
-const COLORS = ['#2563eb', '#10b981', '#f59e0b']
+// Up to 5 funds — 5 distinct, theme-safe series colors.
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+const MAX_FUNDS = 5
 
 export default function Compare() {
   const [params, setParams] = useSearchParams()
@@ -85,7 +87,7 @@ export default function Compare() {
     setParams({ codes: next.map((f) => f.code).join(',') }, { replace: true })
   }
   function add(fund: Fund) {
-    if (funds.find((f) => f.code === fund.code) || funds.length >= 3) return
+    if (funds.find((f) => f.code === fund.code) || funds.length >= MAX_FUNDS) return
     sync([...funds, fund])
   }
   function remove(code: number) {
@@ -137,19 +139,40 @@ export default function Compare() {
     }
   }
 
+  // Compact "Mon YYYY → Mon YYYY" period for a metric, only when live metrics
+  // (which carry the dates) are available. Returns '' otherwise.
+  function periodFor(f: Fund, key: keyof ComputedMetrics): string {
+    const lm = liveMetrics[f.code]
+    if (!lm) return ''
+    if (key === 'maxDrawdown') return `${fmtMonth(lm.maxDrawdownStart)} → ${fmtMonth(lm.maxDrawdownEnd)}`
+    if (key === 'best1M') return `${fmtMonth(lm.best1MStart)} → ${fmtMonth(lm.best1MEnd)}`
+    if (key === 'worst1M') return `${fmtMonth(lm.worst1MStart)} → ${fmtMonth(lm.worst1MEnd)}`
+    return ''
+  }
+
   // True only once every fund has live metrics for the chosen custom range.
   const allLive = funds.length > 0 && funds.every((f) => liveMetrics[f.code])
 
-  const rows: { label: string; key: keyof ComputedMetrics; fmt: (v: number) => string; better: 'high' | 'low' }[] = [
+  const rows: { label: string; key: keyof ComputedMetrics; fmt: (v: number) => string; better: 'high' | 'low'; sub?: 'maxDrawdown' | 'best1M' | 'worst1M' }[] = [
     { label: 'CAGR', key: 'cagr', fmt: (v) => pct(v), better: 'high' },
     { label: 'Total Return', key: 'totalReturn', fmt: (v) => pct(v), better: 'high' },
     { label: 'Sharpe Ratio', key: 'sharpe', fmt: (v) => num(v), better: 'high' },
     { label: 'Sortino Ratio', key: 'sortino', fmt: (v) => num(v), better: 'high' },
-    { label: 'Max Drawdown', key: 'maxDrawdown', fmt: (v) => pct(v), better: 'high' },
+    { label: 'Max Drawdown', key: 'maxDrawdown', fmt: (v) => pct(v), better: 'high', sub: 'maxDrawdown' },
     { label: 'Calmar Ratio', key: 'calmar', fmt: (v) => num(v), better: 'high' },
     { label: 'Volatility', key: 'volatility', fmt: (v) => pct(v), better: 'low' },
-    { label: 'Worst Month', key: 'worst1M', fmt: (v) => signedPct(v), better: 'high' },
+    { label: 'Best Month', key: 'best1M', fmt: (v) => signedPct(v), better: 'high', sub: 'best1M' },
+    { label: 'Worst Month', key: 'worst1M', fmt: (v) => signedPct(v), better: 'high', sub: 'worst1M' },
   ]
+
+  // Semantic tone for a metric value (consistent with FundDetail):
+  // drawdown never green; negative ratios always red; returns/months by sign.
+  function valueToneClass(key: keyof ComputedMetrics, v: number): string {
+    if (key === 'maxDrawdown') return v <= -25 ? 'text-rose-600 dark:text-rose-400' : v <= -10 ? 'text-amber-600 dark:text-amber-400' : 'text-fg'
+    if (key === 'sharpe' || key === 'sortino' || key === 'calmar') return v < 0 ? 'text-rose-600 dark:text-rose-400' : v >= 1 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
+    if (key === 'cagr' || key === 'totalReturn' || key === 'best1M' || key === 'worst1M') return v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-fg'
+    return 'text-fg'
+  }
 
   function bestIdx(key: keyof ComputedMetrics, better: 'high' | 'low'): number {
     let best = -1
@@ -171,12 +194,12 @@ export default function Compare() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-bold text-fg">Compare Funds</h1>
       <p className="mt-1 text-sm text-muted">
-        Add up to 3 funds and compare them over <strong>any time period you choose</strong>. Metrics
-        recompute live. Same category gives the cleanest comparison; mixing categories is allowed —
-        we’ll flag it.
+        Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
+        recompute live. Same category gives the cleanest comparison; mixing categories is allowed -
+        we'll flag it.
       </p>
 
-      {funds.length < 3 && (
+      {funds.length < MAX_FUNDS && (
         <div className="mt-5 max-w-xl">
           <SearchBox placeholder="Add a fund to compare…" onPick={add} />
         </div>
@@ -255,22 +278,24 @@ export default function Compare() {
             </p>
           )}
 
-          {/* Comparison table */}
-          <div
-            className="mt-5 overflow-x-auto rounded-2xl border border-line bg-surface"
-            style={{ maxWidth: 240 + funds.length * 200 }}
-          >
-            <table className="w-full text-sm" style={{ minWidth: 160 + funds.length * 130 }}>
+          {/* Comparison table — sticky first column (metric) stays in view on
+              horizontal scroll; sticky header (fund names) stays on vertical
+              scroll. The wrapper scrolls internally so the PAGE never scrolls
+              horizontally on mobile (the bug class we guard against). */}
+          <div className="mt-5 max-h-[70vh] overflow-auto rounded-2xl border border-line bg-surface">
+            <table className="border-collapse text-sm" style={{ minWidth: 200 + funds.length * 150 }}>
               <thead>
-                <tr className="border-b border-line bg-surface2">
-                  <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-faint">Metric</th>
+                <tr className="bg-surface2">
+                  <th className="sticky left-0 top-0 z-30 min-w-[140px] border-b border-r border-line bg-surface2 px-4 py-3 text-left text-xs uppercase tracking-wide text-faint">
+                    Metric
+                  </th>
                   {funds.map((f, i) => (
-                    <th key={f.code} className="px-4 py-3 text-right">
+                    <th key={f.code} className="sticky top-0 z-20 min-w-[130px] border-b border-line bg-surface2 px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                         <Link
                           to={`/fund/${f.code}`}
-                          className="max-w-[120px] truncate text-xs font-semibold text-fg hover:text-brand-600 hover:underline"
+                          className="max-w-[110px] truncate text-xs font-semibold text-fg hover:text-brand-600 hover:underline"
                           title={`Open ${f.name}`}
                         >
                           {f.name}
@@ -285,23 +310,27 @@ export default function Compare() {
                   const winner = bestIdx(row.key, row.better)
                   return (
                     <tr key={row.label} className="border-b border-line">
-                      <td className="px-4 py-3 text-muted">{row.label}</td>
+                      <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">{row.label}</td>
                       {funds.map((f, i) => {
                         const m = effective(f).m
                         const v = m ? (m[row.key] as number | undefined) : undefined
                         const isWinner = i === winner && funds.length > 1 && !crossCategory
+                        const period = row.sub ? periodFor(f, row.key) : ''
                         return (
-                          <td key={f.code} className="px-4 py-3 text-right">
+                          <td key={f.code} className="px-4 py-3 text-right align-top">
                             {v === undefined || isNaN(v as number) ? (
                               <span className="text-faint">—</span>
                             ) : (
-                              <span
-                                className={`font-semibold text-fg ${
-                                  isWinner ? 'rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : ''
-                                }`}
-                              >
-                                {row.fmt(v as number)}
-                              </span>
+                              <>
+                                <span
+                                  className={`font-semibold ${valueToneClass(row.key, v as number)} ${
+                                    isWinner ? 'rounded-md bg-emerald-50 px-2 py-0.5 dark:bg-emerald-900/30' : ''
+                                  }`}
+                                >
+                                  {row.fmt(v as number)}
+                                </span>
+                                {period && <div className="mt-0.5 text-[10px] leading-tight text-faint">{period}</div>}
+                              </>
                             )}
                           </td>
                         )
@@ -310,8 +339,8 @@ export default function Compare() {
                   )
                 })}
                 {/* Static category rank row from baseline analysis */}
-                <tr className="bg-surface2/50">
-                  <td className="px-4 py-3 text-muted">
+                <tr className="border-b border-line">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">
                     Category Rank <span className="text-xs text-faint">(3Y baseline)</span>
                   </td>
                   {funds.map((f) => (
@@ -322,7 +351,7 @@ export default function Compare() {
                 </tr>
                 {/* Manager tenure */}
                 <tr className="border-b border-line">
-                  <td className="px-4 py-3 text-muted">Manager tenure</td>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Manager tenure</td>
                   {funds.map((f) => (
                     <td key={f.code} className="px-4 py-3 text-right text-fg">
                       {f.management?.avgTenureYears != null ? `${f.management.avgTenureYears} yrs` : '—'}
@@ -330,8 +359,8 @@ export default function Compare() {
                   ))}
                 </tr>
                 {/* Management quality signal */}
-                <tr className="bg-surface2/50">
-                  <td className="px-4 py-3 text-muted">
+                <tr className="border-b border-line">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">
                     Management quality <span className="text-xs text-faint">(manager track record)</span>
                   </td>
                   {funds.map((f) => {
@@ -350,7 +379,7 @@ export default function Compare() {
                 </tr>
                 {/* Consistency (batting average) */}
                 <tr className="border-b border-line">
-                  <td className="px-4 py-3 text-muted">Consistency <span className="text-xs text-faint">(% 3Y windows beat peers)</span></td>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Consistency <span className="text-xs text-faint">(% 3Y windows beat peers)</span></td>
                   {funds.map((f) => (
                     <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
                       {f.analytics?.battingAverage ? `${f.analytics.battingAverage.pct}%` : '—'}
@@ -358,8 +387,8 @@ export default function Compare() {
                   ))}
                 </tr>
                 {/* Form / trajectory */}
-                <tr className="bg-surface2/50">
-                  <td className="px-4 py-3 text-muted">Form <span className="text-xs text-faint">(rank trend)</span></td>
+                <tr className="border-b border-line">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Form <span className="text-xs text-faint">(rank trend)</span></td>
                   {funds.map((f) => {
                     const dir = f.analytics?.rankTrajectory?.direction
                     const tone = dir === 'climbing' ? 'text-emerald-600 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
@@ -369,7 +398,7 @@ export default function Compare() {
                 </tr>
                 {/* Skill confidence */}
                 <tr className="border-b border-line">
-                  <td className="px-4 py-3 text-muted">Skill confidence <span className="text-xs text-faint">(alpha vs luck)</span></td>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Skill confidence <span className="text-xs text-faint">(alpha vs luck)</span></td>
                   {funds.map((f) => {
                     const al = f.analytics?.alpha
                     if (!al || al.confidence == null) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
@@ -378,8 +407,8 @@ export default function Compare() {
                   })}
                 </tr>
                 {/* Down-capture */}
-                <tr className="bg-surface2/50">
-                  <td className="px-4 py-3 text-muted">Down-capture <span className="text-xs text-faint">(lower = better)</span></td>
+                <tr className="border-b border-line">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Down-capture <span className="text-xs text-faint">(lower = better)</span></td>
                   {funds.map((f) => (
                     <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
                       {f.analytics?.capture?.down != null ? `${f.analytics.capture.down}%` : '—'}
@@ -387,8 +416,8 @@ export default function Compare() {
                   ))}
                 </tr>
                 {/* Running hot/cold */}
-                <tr className="border-b border-line">
-                  <td className="px-4 py-3 text-muted">Momentum state</td>
+                <tr>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Momentum state</td>
                   {funds.map((f) => {
                     const mr = f.analytics?.meanReversion
                     if (!mr) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>

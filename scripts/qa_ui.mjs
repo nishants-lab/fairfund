@@ -38,11 +38,41 @@ const unresolved = byCov('unresolved')
 // two same-category stock funds for overlap
 const flexi = funds.filter((f) => f.category === 'Flexi Cap' && f.holdingsMeta?.coverage === 'stock_level')
 const pairA = flexi[0], pairB = flexi[1]
+// five same-category funds for the Compare-5 test (fall back to any funds if <5 flexi)
+const five = (flexi.length >= 5 ? flexi : funds.filter((f) => f.metrics['3Y'])).slice(0, 5)
 // cross-category pair
 const largeCap = funds.find((f) => f.category === 'Large Cap' && f.holdingsMeta?.coverage === 'stock_level')
 
 async function getConsoleErrors(page) {
   return page.__errors || []
+}
+
+// Scan the rendered page for broken value artifacts — the general class of
+// "a value rendered, but rendered wrong" (NaN, undefined, Invalid Date, etc.).
+// Returns the list of artifacts found in visible text (empty = clean).
+async function brokenContent(page) {
+  return page.evaluate(() => {
+    const txt = document.body.innerText
+    const patterns = [
+      /\bNaN\b/, /\bundefined\b/, /\bnull\b/, /Invalid Date/i,
+      /\[object Object\]/, /₹\s*NaN/, /NaN\s*%/, /\$\{/,
+    ]
+    const hits = []
+    for (const p of patterns) {
+      const m = txt.match(p)
+      if (m) hits.push(m[0])
+    }
+    return hits
+  })
+}
+
+// Read computed color of the first element matching a text within a region.
+async function colorOfValue(page, text) {
+  return page.evaluate((text) => {
+    const els = [...document.querySelectorAll('div,span,td')]
+    const el = els.find((e) => e.children.length === 0 && e.textContent && e.textContent.trim() === text)
+    return el ? getComputedStyle(el).color : null
+  }, text)
 }
 
 function attachConsole(page) {
@@ -109,6 +139,50 @@ async function run(apiDown) {
   const fdHasMgmt = /Management quality|Management/.test(fdBody) &&
     /(Strong|Solid|Mixed|Limited evidence|not available)/.test(fdBody)
   check(`C4 Fund detail management section (${label})`, fdHasMgmt)
+
+  // C4-broken: no NaN/undefined/Invalid Date artifacts on the fund page
+  check(`C4 no broken value artifacts (${label})`, (await brokenContent(page)).length === 0,
+    (await brokenContent(page)).join(', '))
+
+  // C4-dates: drawdown/best/worst sub-lines render as "Mon YYYY → Mon YYYY"
+  // (only under API-UP where live NAV → live metrics carry the dates)
+  if (!apiDown) {
+    const hasPeriods = /[A-Z][a-z]{2} \d{4} → [A-Z][a-z]{2} \d{4}/.test(fdBody)
+    check('C4 drawdown/month date sub-lines render', hasPeriods)
+    // volatility shows a category-median comparison line
+    check('C4 volatility shows category median', /Category median \d+\.\d+%/.test(fdBody))
+  }
+
+  // C4-color: semantic-color correctness (the bug class the user caught).
+  // Set a short YTD range so ratios/returns can go negative, then verify:
+  //   - Max Drawdown value is never green (it's always a loss)
+  //   - any negative Sharpe/Sortino/Calmar is red, never black/amber
+  if (!apiDown) {
+    await goto(`fund/${stockFund.code}`)
+    await page.getByRole('button', { name: 'YTD', exact: true }).first().click().catch(() => {})
+    await page.waitForTimeout(1200)
+    const colorCheck = await page.evaluate(() => {
+      const GREEN = /rgb\(5, 150, 105\)|rgb\(16, 185, 129\)|rgb\(52, 211, 153\)/ // emerald shades
+      const RED = /rgb\(225, 29, 72\)|rgb\(220, 38, 38\)|rgb\(244, 63, 94\)|rgb\(251, 113, 133\)/ // rose
+      const cards = [...document.querySelectorAll('.card')]
+      const valueEl = (labelStarts) => {
+        const c = cards.find((el) => el.innerText.toUpperCase().startsWith(labelStarts))
+        if (!c) return null
+        // the big value is the 2xl font div
+        const v = [...c.querySelectorAll('div')].find((d) => /text-2xl|font-bold/.test(d.className) && /[\d.-]/.test(d.textContent))
+        return v ? { text: v.textContent.trim(), color: getComputedStyle(v).color } : null
+      }
+      const dd = valueEl('MAX DRAWDOWN')
+      const issues = []
+      if (dd && GREEN.test(dd.color)) issues.push(`drawdown green: ${dd.text}`)
+      for (const lbl of ['SHARPE RATIO', 'SORTINO RATIO', 'CALMAR RATIO']) {
+        const r = valueEl(lbl)
+        if (r && r.text.includes('-') && !RED.test(r.color)) issues.push(`${lbl} negative not red: ${r.text} (${r.color})`)
+      }
+      return issues
+    })
+    check('C4 semantic colors (drawdown not green; negative ratios red)', colorCheck.length === 0, colorCheck.join(' | '))
+  }
 
   // C4d Forward-looking analytics section (v3) — uses a fund with the full build-time signal set.
   // Both build-time (funds.json) and client-side (self-hosted NAV) parts must render under API-UP and API-DOWN.
@@ -199,6 +273,40 @@ async function run(apiDown) {
     /Down-capture/i.test(cmpBody) &&
     /Momentum state/i.test(cmpBody)
   check(`C8 Compare forward-looking rows present (${label})`, cmpFwdRows)
+
+  // C8d Compare no broken value artifacts
+  check(`C8 Compare no broken value artifacts (${label})`, (await brokenContent(page)).length === 0,
+    (await brokenContent(page)).join(', '))
+
+  // C9 Compare with FIVE funds (new max). Verify all 5 columns + 5 chart lines.
+  const fiveCodes = five.map((f) => f.code).join(',')
+  await goto(`compare?codes=${fiveCodes}`)
+  await page.waitForTimeout(apiDown ? 6500 : 4000)
+  const five5 = await page.evaluate(() => {
+    const firstTable = document.querySelector('table')
+    const headers = firstTable ? firstTable.querySelectorAll('thead th').length : 0 // 1 metric + N funds
+    return { headerCols: headers }
+  })
+  check(`C9 Compare renders 5 fund columns (${label})`, five5.headerCols === 6, `headerCols=${five5.headerCols} (expect 6)`)
+  if (!apiDown) {
+    const lines = await page.locator('.recharts-line path').count()
+    check('C9 Compare chart draws 5 lines', lines >= 5, `lines=${lines}`)
+  }
+  // date sub-lines present in the table (Max Drawdown / Best / Worst Month rows)
+  if (!apiDown) {
+    const cmp5 = await bodyText()
+    check('C9 Compare table shows period sub-lines', /[A-Z][a-z]{2} \d{4} → [A-Z][a-z]{2} \d{4}/.test(cmp5))
+  }
+  check(`C9 Compare-5 no broken artifacts (${label})`, (await brokenContent(page)).length === 0,
+    (await brokenContent(page)).join(', '))
+  // C9b sticky first column: the metric cell stays at the left edge after scrolling right
+  const sticky = await page.evaluate(() => {
+    const firstMetricCell = document.querySelector('tbody tr td')
+    if (!firstMetricCell) return null
+    const pos = getComputedStyle(firstMetricCell).position
+    return { position: pos }
+  })
+  check(`C9 Compare metric column is sticky (${label})`, sticky?.position === 'sticky', JSON.stringify(sticky))
 
   // C10 cross-category warning
   if (largeCap) {

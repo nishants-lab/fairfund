@@ -26,6 +26,7 @@ const fwdFund =
   funds.find((f) => f.analytics?.rankTrajectory && f.analytics?.regimes?.length && f.metrics['3Y']) || stockFund
 const flexi = funds.filter((f) => f.category === 'Flexi Cap' && f.holdingsMeta?.coverage === 'stock_level')
 const pairA = flexi[0], pairB = flexi[1]
+const five = (flexi.length >= 5 ? flexi : funds.filter((f) => f.metrics['3Y'])).slice(0, 5)
 
 const VIEWPORT = { width: 390, height: 844 } // iPhone 12/13/14 logical size
 const SLOP = 2 // px tolerance for sub-pixel rounding
@@ -39,6 +40,15 @@ function attachConsole(page) {
     page.__errors.push(t)
   })
   page.on('pageerror', (e) => page.__errors.push('PAGEERROR: ' + e.message))
+}
+
+// Broken-value artifact scan (NaN/undefined/Invalid Date/etc.) on rendered text.
+async function brokenContent(page) {
+  return page.evaluate(() => {
+    const txt = document.body.innerText
+    const pats = [/\bNaN\b/, /\bundefined\b/, /Invalid Date/i, /\[object Object\]/, /₹\s*NaN/, /NaN\s*%/, /\$\{/]
+    return pats.filter((p) => p.test(txt)).map((p) => (txt.match(p) || [''])[0])
+  })
 }
 
 /** Measure horizontal overflow of the document at the current viewport. */
@@ -99,12 +109,14 @@ async function run(apiDown) {
     ['Explore', 'explore?cat=Flexi+Cap'],
     ['FundDetail', `fund/${fwdFund.code}`],
     ['Compare', `compare?codes=${pairA.code},${pairB.code}`],
+    ['Compare-5', `compare?codes=${five.map((f) => f.code).join(',')}`],
     ['Planner', 'planner'],
     ['Methodology', 'methodology'],
   ]
 
   for (const [name, hash] of pages) {
     await goto(hash)
+    if (name.startsWith('Compare')) await page.waitForTimeout(apiDown ? 4000 : 2500) // let NAV/table settle
     const o = await pageOverflow(page)
     const overflow = o.scrollW - o.clientW
     const ok = overflow <= SLOP
@@ -114,6 +126,9 @@ async function run(apiDown) {
       detail += ` offenders: ${offenders.join(' | ')}`
     }
     check(`M·no horizontal scroll — ${name} (${label})`, ok, detail)
+    // Broken-value artifact scan on every swept page.
+    const broken = await brokenContent(page)
+    check(`M·no broken value artifacts — ${name} (${label})`, broken.length === 0, broken.join(', '))
   }
 
   // --- Mobile-specific functional checks (run once, under API-UP) ---
@@ -167,6 +182,36 @@ async function run(apiDown) {
       return { wrapperScrollable: false, note: 'no scroll wrapper' }
     })
     check('M·Compare table scrolls inside its own wrapper', !!tblScroll && tblScroll.wrapperClientW <= VIEWPORT.width + SLOP, JSON.stringify(tblScroll))
+
+    // M4b Compare-5 on mobile: the sticky first column (metric name) must stay
+    // pinned to the left edge after scrolling the table horizontally. This is
+    // the small-screen guarantee the user asked for with 5 funds + many rows.
+    await goto(`compare?codes=${five.map((f) => f.code).join(',')}`)
+    await page.waitForTimeout(3000)
+    const stick = await page.evaluate(() => {
+      const tbl = document.querySelector('table')
+      if (!tbl) return null
+      let wrap = tbl.parentElement
+      while (wrap && !/auto|scroll/.test(getComputedStyle(wrap).overflowX) && !/auto|scroll/.test(getComputedStyle(wrap).overflow)) wrap = wrap.parentElement
+      if (!wrap) return { note: 'no wrapper' }
+      const cell = tbl.querySelector('tbody tr td') // first metric cell
+      const beforeLeft = cell.getBoundingClientRect().left
+      wrap.scrollLeft = 300 // scroll right
+      const afterLeft = cell.getBoundingClientRect().left
+      const headerCols = tbl.querySelectorAll('thead th').length
+      const pos = getComputedStyle(cell).position
+      return { beforeLeft: Math.round(beforeLeft), afterLeft: Math.round(afterLeft), pos, headerCols, scrolled: wrap.scrollLeft }
+    })
+    // sticky => the metric cell's left position barely moves after scrolling right
+    const stuck = stick && stick.pos === 'sticky' && Math.abs(stick.beforeLeft - stick.afterLeft) <= 3 && stick.scrolled > 0
+    check('M·Compare-5 metric column stays pinned on h-scroll', !!stuck, JSON.stringify(stick))
+    check('M·Compare-5 shows all 5 fund columns', stick?.headerCols === 6, `headerCols=${stick?.headerCols}`)
+    // header row should also stay pinned on vertical scroll (sticky top)
+    const headerSticky = await page.evaluate(() => {
+      const th = document.querySelector('thead th')
+      return th ? getComputedStyle(th).position : null
+    })
+    check('M·Compare-5 header row is sticky (top)', headerSticky === 'sticky', `pos=${headerSticky}`)
 
     // M5 fund-detail forward-looking section: regime table scrolls in-wrapper, not page
     await goto(`fund/${fwdFund.code}`)
