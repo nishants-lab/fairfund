@@ -7,9 +7,13 @@ function coverageLabel(cov?: string): { text: string; tone: string } {
     case 'stock_level':
       return { text: 'Stock-level disclosure', tone: 'text-emerald-600 dark:text-emerald-400' }
     case 'lookthrough_domestic':
+    case 'lookthrough_etf':
       return { text: 'Look-through via underlying fund', tone: 'text-emerald-600 dark:text-emerald-400' }
+    case 'feeder_domestic':
+      return { text: 'Fund-of-fund (tracks an Indian ETF)', tone: 'text-amber-600 dark:text-amber-400' }
+    case 'feeder_foreign':
     case 'feeder_unresolved':
-      return { text: 'Feeder fund — underlying not disclosed', tone: 'text-amber-600 dark:text-amber-400' }
+      return { text: 'Overseas feeder fund', tone: 'text-amber-600 dark:text-amber-400' }
     case 'no_disclosure':
     case 'unresolved':
     default:
@@ -23,7 +27,8 @@ export default function HoldingsTable({ fund }: { fund: Fund }) {
   const holdings = fund.holdings ?? []
   const cov = coverageLabel(meta?.coverage)
 
-  const usable = holdings.length > 0 && meta?.coverage !== 'unresolved' && meta?.coverage !== 'no_disclosure'
+  const NON_TABLE = ['unresolved', 'no_disclosure', 'feeder_domestic', 'feeder_foreign', 'feeder_unresolved']
+  const usable = holdings.length > 0 && !NON_TABLE.includes(meta?.coverage ?? '')
 
   if (!usable) {
     return (
@@ -47,7 +52,6 @@ export default function HoldingsTable({ fund }: { fund: Fund }) {
 
   const shown = expanded ? holdings : holdings.slice(0, 10)
   const topSum = holdings.slice(0, 10).reduce((s, h) => s + h.pct, 0)
-  const isFeederNote = meta?.coverage === 'feeder_unresolved'
 
   return (
     <div className="mt-6 card p-5">
@@ -65,12 +69,6 @@ export default function HoldingsTable({ fund }: { fund: Fund }) {
         Top {Math.min(10, holdings.length)} positions are {topSum.toFixed(1)}% of the portfolio.
         {meta?.count ? ` ${meta.count} holdings disclosed in total.` : ''}
       </p>
-
-      {isFeederNote && (
-        <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-          This fund feeds into another fund; the line below is its disclosed underlying, not individual stocks.
-        </p>
-      )}
 
       <div className="mt-3 overflow-hidden rounded-xl border border-line">
         <table className="w-full text-sm">

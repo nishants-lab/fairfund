@@ -1,0 +1,45 @@
+name: Daily NAV refresh
+
+# Appends the latest market-day NAV to the self-hosted public/nav files using
+# AMFI's consolidated NAVAll.txt, then commits. The push triggers the existing
+# Deploy workflow, so the live site always serves fresh NAV without depending
+# on any third-party API at view time.
+
+on:
+  schedule:
+    # AMFI publishes ~11pm IST (17:30 UTC) on market days. Run a bit after, and
+    # again later as a safety retry. Mon-Sat (NAV is published for weekdays;
+    # Saturday catches any late Friday updates).
+    - cron: '0 19 * * 1-6'
+    - cron: '0 1 * * 2-6'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nav-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Update NAV from AMFI
+        run: python scripts/update_nav_daily.py
+      - name: Commit if changed
+        run: |
+          git config user.name "fairfund-bot"
+          git config user.email "fairfund-bot@users.noreply.github.com"
+          if [ -n "$(git status --porcelain public/nav)" ]; then
+            git add public/nav
+            git commit -m "chore(nav): daily NAV refresh from AMFI"
+            git push
+            echo "NAV updated and pushed (triggers deploy)."
+          else
+            echo "No NAV changes today."
+          fi
