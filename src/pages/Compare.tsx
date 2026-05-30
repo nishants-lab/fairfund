@@ -185,7 +185,10 @@ export default function Compare() {
           )}
 
           {/* Comparison table */}
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-line bg-surface">
+          <div
+            className="mt-5 overflow-x-auto rounded-2xl border border-line bg-surface"
+            style={{ maxWidth: 240 + funds.length * 200 }}
+          >
             <table className="w-full text-sm" style={{ minWidth: 160 + funds.length * 130 }}>
               <thead>
                 <tr className="border-b border-line bg-surface2">
