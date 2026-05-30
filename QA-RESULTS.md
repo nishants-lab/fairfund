@@ -8,11 +8,11 @@ Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 
 | Suite | Result |
 |-------|--------|
-| A. Data integrity (`scripts/qa_data.py`) | **10/10 PASS** |
+| A. Data integrity (`scripts/qa_data.py`) | **11/11 PASS** |
 | B. Build & bundle | **PASS** (tsc 0 errors, dist + nav/ emitted) |
-| C+D+E. Functional UI, API-UP (`qa_ui.mjs`) | **15/15 PASS** |
-| C+D+E. Functional UI, API-DOWN | **14/14 PASS** |
-| **Total automated UI** | **29/29 PASS** |
+| C+D+E. Functional UI, API-UP (`qa_ui.mjs`) | **17/17 PASS** |
+| C+D+E. Functional UI, API-DOWN | **16/16 PASS** |
+| **Total automated UI** | **33/33 PASS** |
 
 ## Bugs found and fixed during QA
 
@@ -57,6 +57,17 @@ re-tested:
 - Self-hosted NAV: 993 funds (28.7 MB, per-fund avg ~30 KB).
 - Holdings: 706/838 (84%) with real stock-level holdings; remainder are
   honestly labeled (overseas feeders, domestic-ETF feeders, or undisclosed).
+- Management quality: 747/838 (89%) with manager data + cross-fund track record;
+  signals — 146 Strong, 195 Solid, 288 Mixed, 118 Limited evidence, 91 No data.
+
+## Management quality (forward-looking parameter)
+
+Added per fund: manager name(s), tenure on the fund, education/experience, and a
+cross-fund track-record signal (median peer-relative alpha + category beat-rate
+across the OTHER funds each manager runs). Surfaced on Fund Detail (full card)
+and Compare (tenure + signal rows). Honest about thin samples ("Limited
+evidence" when a manager runs <3 funds in our universe). Documented in
+Methodology with a past-performance caveat.
 
 ## Daily freshness
 
