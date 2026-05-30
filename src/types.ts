@@ -26,6 +26,24 @@ export interface Fund {
     '5Y'?: WindowMetrics
   }
   verdict: string
+  holdings?: Holding[]
+  holdingsMeta?: HoldingsMeta
+}
+
+export interface Holding {
+  name: string
+  pct: number
+  sector?: string | null
+  instrument?: string | null
+  key?: string | null
+}
+
+export interface HoldingsMeta {
+  coverage: string // stock_level | lookthrough_domestic | feeder_unresolved | no_disclosure | unresolved | fetch_failed | unknown
+  portfolioDate?: string | null
+  note?: string
+  underlying?: string | null
+  count?: number
 }
 
 export interface CategorySummary {

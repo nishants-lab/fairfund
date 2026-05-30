@@ -8,7 +8,8 @@ import MetricCard from '../components/MetricCard'
 import RangeChart from '../components/RangeChart'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import RiskBadge from '../components/RiskBadge'
-import type { Fund, NavPoint } from '../types'
+import HoldingsTable from '../components/HoldingsTable'
+import type { NavPoint } from '../types'
 
 export default function FundDetail() {
   const { code } = useParams()
@@ -205,6 +206,9 @@ export default function FundDetail() {
         <h3 className="font-bold text-fg">Our take (3-year fixed-window basis)</h3>
         <p className="mt-2 text-muted">{fund.verdict}</p>
       </div>
+
+      {/* Portfolio holdings */}
+      <HoldingsTable fund={fund} />
 
       {/* Peers */}
       {peers.length > 0 && (

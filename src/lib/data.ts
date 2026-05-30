@@ -63,11 +63,14 @@ export const categoryOrder = [
   'Value/Contra',
   'Focused',
   'ELSS',
+  'Dividend Yield',
   'Sectoral/Thematic',
   'International',
+  'FoF-Equity (Domestic)',
   'Index-LargeCap',
   'Index-MidCap',
   'Index-SmallCap',
+  'Index-Sectoral/Thematic',
   'Index-Other',
 ]
 
