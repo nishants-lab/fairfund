@@ -68,6 +68,34 @@ body {
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-line text-muted font-medium hover:bg-surface2 transition-colors;
   }
+  /* Shimmer skeleton — a moving sheen over a muted block, calmer than a hard pulse.
+     Used for loading placeholders while live NAV is being fetched. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-xl bg-surface2;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--text-faint) / 0.12),
+      transparent
+    );
+    animation: ff-shimmer 1.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+      animation: none;
+    }
+  }
+}
+
+@keyframes ff-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Range slider styling that works in both themes */

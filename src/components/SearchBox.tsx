@@ -17,12 +17,21 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const boxRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     setResults(searchFunds(query, 10))
     setActiveIdx(0)
   }, [query])
+
+  // Keep the keyboard-highlighted result scrolled into view in the dropdown.
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const el = list.children[activeIdx] as HTMLElement | undefined
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [activeIdx])
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -80,24 +89,24 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           className={`w-full rounded-2xl border border-line bg-surface text-fg pl-12 pr-4 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900 outline-none transition ${
-            large ? 'py-4 text-lg' : 'py-3 text-fg'
+            large ? 'py-4 text-lg' : 'py-3 text-sm'
           }`}
         />
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-line bg-surface shadow-xl overflow-hidden">
+        <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl" ref={listRef}>
           {results.map((f, i) => (
             <button
               key={f.code}
               onMouseEnter={() => setActiveIdx(i)}
               onClick={() => pick(f)}
-              className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition ${
+              className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition ${
                 i === activeIdx ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-surface2'
               }`}
             >
               <div className="min-w-0">
-                <div className="truncate font-semibold text-fg">{f.name}</div>
+                <div className="truncate text-sm font-semibold text-fg">{f.name}</div>
                 <div className="text-xs text-faint">{f.amc}</div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
