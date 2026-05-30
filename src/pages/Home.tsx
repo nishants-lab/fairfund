@@ -25,18 +25,17 @@ export default function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-brand-50 to-canvas dark:from-brand-900/20 dark:to-canvas">
         <div className="mx-auto max-w-4xl px-4 py-16 text-center md:py-24">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-surface px-4 py-1.5 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:text-brand-300">
-            <span className="h-2 w-2 rounded-full bg-accent"></span>
-            Every major Indian equity fund, compared fairly
-          </div>
-          <h1 className="text-4xl font-extrabold leading-tight text-fg md:text-5xl">
-            Mutual fund research that’s
-            <span className="text-brand-600 dark:text-brand-400"> actually honest</span>
+          <h1 className="text-center text-3xl font-extrabold leading-tight text-fg md:text-4xl">
+            <span className="block">Mutual Fund Research</span>
+            <span className="mt-1 block text-brand-600 dark:text-brand-400">
+              Backward-tested and Forward-looking
+            </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted">
-            Picking a fund shouldn’t feel like a gamble. We compare every fund on a level playing
-            field and let you check how it performed over <strong>any time period you choose</strong> —
-            so you see the real story, not a flattering one.
+            Most fund tools are a rear-view mirror - trailing returns and a point-in-time rank. We add
+            scientific, <strong>forward-looking signals</strong> - consistency, skill-vs-luck, downside
+            protection, and probability-based outlooks - across 838 funds, over <strong>any time period
+            you choose</strong>. Evidence and probabilities, never advice.
           </p>
 
           <div className="mx-auto mt-8 max-w-2xl">
@@ -75,7 +74,7 @@ export default function Home() {
             <div className="text-3xl">⚖️</div>
             <div className="mt-3 font-bold text-fg">Compare Funds</div>
             <p className="mt-1 text-sm text-muted">
-              Put 2–3 funds side by side over any period. Same category or across — we’ll flag it.
+              Put 2-3 funds side by side over any period. Same category or across - we'll flag it.
             </p>
             <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
               Compare now →
@@ -137,8 +136,21 @@ export default function Home() {
       {/* Why different */}
       <section className="border-y border-line bg-surface">
         <div className="mx-auto max-w-5xl px-4 py-12">
-          <h2 className="text-xl font-bold text-fg">Why FairFund is different</h2>
-          <div className="mt-6 grid gap-6 md:grid-cols-4">
+          <h2 className="text-xl font-bold text-fg">More than a rear-view mirror</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            We do the rigorous backward-looking work every site should - then go further with
+            forward-looking, probability-based signals. All evidence-based, with clear caveats.
+            Never financial advice.
+          </p>
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            <div>
+              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Forward-looking signals</div>
+              <p className="mt-1 text-sm text-muted">
+                Consistency, skill-vs-luck (is the edge real or chance?), up/down capture, “running
+                hot?”, and probability-based outcome ranges - framed as evidence and confidence, never
+                a guarantee.
+              </p>
+            </div>
             <div>
               <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Any time period</div>
               <p className="mt-1 text-sm text-muted">
@@ -147,24 +159,31 @@ export default function Home() {
               </p>
             </div>
             <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Fixed time windows</div>
-              <p className="mt-1 text-sm text-muted">
-                Baseline rankings measure every fund over identical dates. A fund launched at a market
-                bottom won’t look artificially great.
-              </p>
-            </div>
-            <div>
               <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Peer-relative alpha</div>
               <p className="mt-1 text-sm text-muted">
-                We show whether a manager beat the median fund in their own category — real skill, not
+                We show whether a manager beat the median fund in their own category - real skill, not
                 just riding a hot asset class.
               </p>
             </div>
             <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Within-category ranking</div>
+              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Holdings &amp; overlap</div>
               <p className="mt-1 text-sm text-muted">
-                We never rank a small-cap against a large-cap. You pick the risk level; we find the
-                best fund inside it.
+                See what a fund actually owns, and how much two funds overlap - so you don't
+                unknowingly buy the same stocks three times.
+              </p>
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Management quality</div>
+              <p className="mt-1 text-sm text-muted">
+                Manager tenure plus a cross-fund track record - does the person running it have a
+                repeatable record across the other funds they manage?
+              </p>
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Fair, like-for-like ranking</div>
+              <p className="mt-1 text-sm text-muted">
+                Identical fixed windows so a fund born at a market bottom can’t look artificially
+                great, and we never rank a small-cap against a large-cap.
               </p>
             </div>
           </div>

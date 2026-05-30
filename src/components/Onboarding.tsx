@@ -13,12 +13,12 @@ const STEPS: Step[] = [
   {
     emoji: '👋',
     title: 'Welcome to FairFund',
-    body: 'A simpler, more honest way to research Indian mutual funds. We do the heavy number-crunching so you can make confident decisions — no finance degree needed.',
+    body: 'A smarter, forward-looking way to research Indian mutual funds. We do the heavy number-crunching - backward-tested and probability-based - so you can make confident decisions. No finance degree needed.',
   },
   {
     emoji: '⚖️',
     title: 'We compare funds fairly',
-    body: 'Other sites can make a fund look great by picking a flattering time period. We check every fund over the same timeframes and show whether the manager truly beat similar funds — not just got lucky with a good year.',
+    body: 'Other sites can make a fund look great by picking a flattering time period. We check every fund over the same timeframes and show whether the manager truly beat similar funds - not just got lucky with a good year.',
   },
   {
     emoji: '🗓️',
