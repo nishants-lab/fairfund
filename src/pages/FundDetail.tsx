@@ -11,6 +11,7 @@ import RangeSelector, { type Preset } from '../components/RangeSelector'
 import RiskBadge from '../components/RiskBadge'
 import HoldingsTable from '../components/HoldingsTable'
 import ManagementCard from '../components/ManagementCard'
+import ForwardAnalytics from '../components/ForwardAnalytics'
 import type { NavPoint } from '../types'
 
 export default function FundDetail() {
@@ -141,11 +142,17 @@ export default function FundDetail() {
 
       {/* Live metrics computed for the chosen range */}
       {loading ? (
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="card h-20 animate-pulse" />
-          ))}
-        </div>
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="skeleton h-20" />
+            ))}
+          </div>
+          <p className="mt-2 flex items-center gap-2 text-xs text-faint">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+            Fetching live daily NAV to compute metrics for your range…
+          </p>
+        </>
       ) : live ? (
         <>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -236,6 +243,9 @@ export default function FundDetail() {
         <h3 className="font-bold text-fg">Our take (3-year fixed-window basis)</h3>
         <p className="mt-2 text-muted">{fund.verdict}</p>
       </div>
+
+      {/* Forward-looking analytics (v3) */}
+      <ForwardAnalytics fund={fund} nav={allNav} />
 
       {/* Portfolio holdings */}
       <HoldingsTable fund={fund} />
