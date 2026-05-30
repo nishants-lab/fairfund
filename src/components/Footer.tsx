@@ -10,8 +10,8 @@ export default function Footer() {
           <div>
             <div className="font-extrabold text-fg">FairFund</div>
             <p className="mt-1 max-w-md text-sm text-muted">
-              Honest, easy-to-understand mutual fund research for India. We compare every fund on a
-              level playing field — so you can decide with confidence, not guesswork.
+              Forward-looking, easy-to-understand mutual fund research for India - backward-tested and
+              probability-based, across 838 funds. Evidence, not advice.
             </p>
           </div>
           <div className="flex gap-8 text-sm">
