@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import type { Fund } from '../types'
 import { computeOverlap } from '../lib/overlap'
 
-const COLORS = ['#2563eb', '#10b981', '#f59e0b']
+// Must match the Compare page's series palette (supports up to 5 funds).
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
 
 function shortName(f: Fund): string {
   // first 2-3 words for compact headers
