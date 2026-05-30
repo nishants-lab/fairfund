@@ -82,6 +82,23 @@ export default function Methodology() {
         </p>
       </Section>
 
+      <Section title="Management quality (forward-looking)">
+        <p>
+          Past returns are backward-looking. To add a <strong>forward-looking</strong> lens, every
+          fund page shows a <strong>Management quality</strong> read based on the people running the
+          money — their <strong>tenure</strong> on the fund and, more importantly, their{' '}
+          <strong>track record across the other funds they manage</strong>.
+        </p>
+        <p className="mt-2">
+          The logic: if a manager has beaten peers across several <em>different</em> funds, that's
+          evidence of repeatable skill — not just one lucky fund. We compute the median peer-relative
+          alpha and the share of their funds that beat their category, then label it{' '}
+          <strong>Strong / Solid / Mixed</strong>. When a manager runs too few funds to judge fairly,
+          we say <strong>Limited evidence</strong> rather than pretend. It's deliberately one input
+          among many — weigh it alongside the performance and risk metrics, not on its own.
+        </p>
+      </Section>
+
       <Section title="Portfolio holdings & overlap">
         <p>
           Each fund page shows its latest disclosed <strong>portfolio holdings</strong> (top positions

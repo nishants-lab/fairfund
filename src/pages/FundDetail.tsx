@@ -10,6 +10,7 @@ import RangeChart from '../components/RangeChart'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import RiskBadge from '../components/RiskBadge'
 import HoldingsTable from '../components/HoldingsTable'
+import ManagementCard from '../components/ManagementCard'
 import type { NavPoint } from '../types'
 
 export default function FundDetail() {
@@ -238,6 +239,9 @@ export default function FundDetail() {
 
       {/* Portfolio holdings */}
       <HoldingsTable fund={fund} />
+
+      {/* Management quality */}
+      <ManagementCard fund={fund} />
 
       {/* Peers */}
       {peers.length > 0 && (

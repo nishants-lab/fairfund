@@ -296,6 +296,34 @@ export default function Compare() {
                     </td>
                   ))}
                 </tr>
+                {/* Manager tenure */}
+                <tr className="border-b border-line">
+                  <td className="px-4 py-3 text-muted">Manager tenure</td>
+                  {funds.map((f) => (
+                    <td key={f.code} className="px-4 py-3 text-right text-fg">
+                      {f.management?.avgTenureYears != null ? `${f.management.avgTenureYears} yrs` : '—'}
+                    </td>
+                  ))}
+                </tr>
+                {/* Management quality signal */}
+                <tr className="bg-surface2/50">
+                  <td className="px-4 py-3 text-muted">
+                    Management quality <span className="text-xs text-faint">(manager track record)</span>
+                  </td>
+                  {funds.map((f) => {
+                    const sig = f.management?.signal
+                    const tone =
+                      sig === 'Strong' ? 'text-emerald-700 dark:text-emerald-300'
+                      : sig === 'Solid' ? 'text-emerald-600 dark:text-emerald-400'
+                      : sig === 'Mixed' ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-faint'
+                    return (
+                      <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>
+                        {f.management?.available ? sig : '—'}
+                      </td>
+                    )
+                  })}
+                </tr>
               </tbody>
             </table>
           </div>

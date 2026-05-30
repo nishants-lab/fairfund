@@ -84,6 +84,10 @@ async function run(apiDown) {
   const fdHasHoldings = fdBody.includes('Portfolio holdings') && /\d+\.\d+%/.test(fdBody)
   check(`C4 Fund detail metrics show (${label})`, fdHasMetric, `code=${stockFund.code}`)
   check(`C4 Fund detail holdings show (${label})`, fdHasHoldings)
+  // C4c Management section present with a signal
+  const fdHasMgmt = /Management quality|Management/.test(fdBody) &&
+    /(Strong|Solid|Mixed|Limited evidence|not available)/.test(fdBody)
+  check(`C4 Fund detail management section (${label})`, fdHasMgmt)
 
   // C5 feeder foreign: honest label, no crash
   if (feederForeign) {
@@ -128,6 +132,9 @@ async function run(apiDown) {
   const hasOverlapPct = /\d+\.\d+%/.test(cmpBody) && /overlap/i.test(cmpBody)
   const hasSharedTable = /shared holding/i.test(cmpBody) || /shared no common holdings/i.test(cmpBody)
   check(`C8 Compare overlap present + populated (${label})`, hasOverlapHeader && hasSharedTable, `header=${hasOverlapHeader} shared=${hasSharedTable}`)
+  // C8b Compare shows management quality row
+  const hasMgmtRow = /Management quality/i.test(cmpBody)
+  check(`C8 Compare management row present (${label})`, hasMgmtRow)
 
   // C10 cross-category warning
   if (largeCap) {

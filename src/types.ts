@@ -29,6 +29,34 @@ export interface Fund {
   verdict: string
   holdings?: Holding[]
   holdingsMeta?: HoldingsMeta
+  management?: Management
+}
+
+export interface ManagerInfo {
+  name: string
+  sinceYears: number | null
+  education?: string | null
+  experience?: string | null
+}
+
+export interface ManagerTrackRecord {
+  funds: number
+  medianAlpha: number
+  beatRate: number
+  topRankShare: number | null
+  basis: string | null
+  usedOtherFunds: boolean
+  sampleFunds: { name: string; code: number; alpha: number | null; rank: number | null; size: number | null }[]
+}
+
+export interface Management {
+  available: boolean
+  managers?: ManagerInfo[]
+  leadManager?: string | null
+  avgTenureYears?: number | null
+  trackRecord?: ManagerTrackRecord | null
+  signal?: 'Strong' | 'Solid' | 'Mixed' | 'Limited evidence' | 'No data'
+  note?: string
 }
 
 export interface Holding {
