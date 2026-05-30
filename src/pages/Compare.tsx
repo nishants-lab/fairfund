@@ -88,6 +88,40 @@ export default function Compare() {
   const categories = new Set(funds.map((f) => f.category))
   const crossCategory = categories.size > 1
 
+  // Map the selected range to the closest stored horizon (1Y/3Y/5Y) so we can
+  // show baseline metrics from funds.json even when live NAV is unavailable.
+  const storedHorizon: '1Y' | '3Y' | '5Y' = useMemo(() => {
+    if (!start || !end) return '3Y'
+    const yrs = (new Date(end).getTime() - new Date(start).getTime()) / (365.25 * 86400000)
+    if (yrs <= 2) return '1Y'
+    if (yrs <= 4) return '3Y'
+    return '5Y'
+  }, [start, end])
+
+  // Effective metrics for a fund: prefer live (custom range) when present,
+  // otherwise fall back to stored fixed-window metrics. Guarantees the table
+  // is never blank just because the live NAV API is slow or down.
+  function effective(f: Fund): { m: Partial<ComputedMetrics> | null; live: boolean } {
+    const lm = liveMetrics[f.code]
+    if (lm) return { m: lm, live: true }
+    const sm = f.metrics[storedHorizon]
+    if (!sm) return { m: null, live: false }
+    return {
+      m: {
+        cagr: sm.cagr,
+        sharpe: sm.sharpe,
+        sortino: sm.sortino,
+        maxDrawdown: sm.maxDrawdown,
+        calmar: sm.calmar,
+        volatility: sm.volatility,
+      },
+      live: false,
+    }
+  }
+
+  // True only once every fund has live metrics for the chosen custom range.
+  const allLive = funds.length > 0 && funds.every((f) => liveMetrics[f.code])
+
   const rows: { label: string; key: keyof ComputedMetrics; fmt: (v: number) => string; better: 'high' | 'low' }[] = [
     { label: 'CAGR', key: 'cagr', fmt: (v) => pct(v), better: 'high' },
     { label: 'Total Return', key: 'totalReturn', fmt: (v) => pct(v), better: 'high' },
@@ -103,9 +137,10 @@ export default function Compare() {
     let best = -1
     let bestVal = better === 'high' ? -Infinity : Infinity
     funds.forEach((f, i) => {
-      const m = liveMetrics[f.code]
+      const m = effective(f).m
       if (!m) return
-      const v = m[key] as number
+      const v = m[key] as number | undefined
+      if (v === undefined || isNaN(v)) return
       if (better === 'high' ? v > bestVal : v < bestVal) {
         bestVal = v
         best = i
@@ -181,7 +216,19 @@ export default function Compare() {
               />
             </div>
           ) : (
-            <div className="mt-5 text-sm text-faint">Loading NAV data…</div>
+            <div className="mt-5 rounded-xl border border-line bg-surface2/50 p-3 text-xs text-muted">
+              Showing our <strong>{storedHorizon} fixed-window</strong> metrics. Live NAV (for a custom
+              date range) is loading — if it doesn’t appear, the NAV source is temporarily unavailable
+              and these baseline numbers still stand.
+            </div>
+          )}
+
+          {/* Basis note when live metrics aren't fully loaded */}
+          {earliest && !allLive && (
+            <p className="mt-3 text-xs text-faint">
+              Showing baseline <strong>{storedHorizon}</strong> metrics; recomputing live for your
+              selected range…
+            </p>
           )}
 
           {/* Comparison table */}
@@ -210,20 +257,20 @@ export default function Compare() {
                     <tr key={row.label} className="border-b border-line">
                       <td className="px-4 py-3 text-muted">{row.label}</td>
                       {funds.map((f, i) => {
-                        const m = liveMetrics[f.code]
-                        const v = m ? (m[row.key] as number) : undefined
+                        const m = effective(f).m
+                        const v = m ? (m[row.key] as number | undefined) : undefined
                         const isWinner = i === winner && funds.length > 1 && !crossCategory
                         return (
                           <td key={f.code} className="px-4 py-3 text-right">
-                            {v === undefined ? (
-                              <span className="text-faint">…</span>
+                            {v === undefined || isNaN(v as number) ? (
+                              <span className="text-faint">—</span>
                             ) : (
                               <span
                                 className={`font-semibold text-fg ${
                                   isWinner ? 'rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : ''
                                 }`}
                               >
-                                {row.fmt(v)}
+                                {row.fmt(v as number)}
                               </span>
                             )}
                           </td>
