@@ -11,7 +11,7 @@ Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 | Metrics evaluation (`scripts/qa_metrics.mjs`) | **18/18 PASS** |
 | A. Data integrity (`scripts/qa_data.py`) | **21/21 PASS** |
 | B. Build & bundle | **PASS** (tsc 0 errors, 869 modules, dist + nav/ emitted) |
-| Desktop UI (`qa_ui.mjs`, API-UP + API-DOWN) | **68/68 PASS** |
+| Desktop UI (`qa_ui.mjs`, API-UP + API-DOWN) | **71/71 PASS** |
 | Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **39/39 PASS** |
 
 ## Metrics evaluation harness (added 2026-05-31 — value correctness, not just rendering)
@@ -47,6 +47,15 @@ prompted broadening QA beyond any single defect to the whole class:
 
 5 distinct series colors; sticky metric column + sticky header; Max Drawdown / Best /
 Worst Month rows carry compact period sub-lines; consistent semantic value colors.
+The Growth-of-₹100 chart tooltip lists funds **sorted descending by value**; the
+HoldingsOverlap header shows a colored dot for every fund (shares the 5-color palette).
+
+## Fund-count copy is dynamic (no stale hardcodes)
+
+Home hero, Footer tagline, search placeholder, Methodology, and the AI-assistant
+context all derive the count from `data.totalFunds` (search shows "NNN+" rounded
+down to the nearest 10). When the universe grows, every count updates on the next
+`build_website_data_v6.py` + deploy - no manual edits. QA guards this (C13).
 
 ## Mobile QA harness (added 2026-05-31)
 
