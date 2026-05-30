@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getFund, fundsByCategory } from '../lib/data'
+import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate } from '../lib/metrics'
@@ -58,6 +59,15 @@ export default function FundDetail() {
     [allNav, start, end],
   )
   const live = useMemo(() => computeMetrics(slice), [slice])
+
+  // Baseline stored metrics (from funds.json) — shown when live NAV is
+  // unavailable so the page is never blank if the NAV API is down/slow.
+  const baselineHorizon: '3Y' | '5Y' | '1Y' = fund?.metrics['3Y']
+    ? '3Y'
+    : fund?.metrics['5Y']
+      ? '5Y'
+      : '1Y'
+  const baseline = fund?.metrics[baselineHorizon] ?? null
 
   if (!fund) {
     return (
@@ -171,6 +181,25 @@ export default function FundDetail() {
             <strong className="text-muted">{fmtDate(live.startDate)} → {fmtDate(live.endDate)}</strong>. Change the range
             above and every number updates. This is the core of FairFund — no fund can hide behind a
             cherry-picked window.
+          </p>
+        </>
+      ) : baseline ? (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <MetricCard label="CAGR" value={pct(baseline.cagr)} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
+            <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
+            <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={baseline.sharpe >= 1 ? 'good' : baseline.sharpe >= 0.5 ? 'default' : 'warn'} hint="Return per unit of total risk." />
+            <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={baseline.maxDrawdown > -15 ? 'good' : baseline.maxDrawdown < -25 ? 'bad' : 'warn'} hint="Worst peak-to-trough fall in the window." />
+            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves." />
+            <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} hint="Return relative to the worst drawdown." />
+            <MetricCard label="Volatility" value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
+            <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
+          </div>
+          <p className="mt-2 text-xs text-faint">
+            ↑ Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
+            {error
+              ? 'Live custom-range analysis is unavailable right now (NAV source not responding) — these baseline numbers still stand.'
+              : 'Pick a range above to recompute everything live from daily NAV.'}
           </p>
         </>
       ) : (
