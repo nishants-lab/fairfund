@@ -8,11 +8,61 @@ Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 
 | Suite | Result |
 |-------|--------|
-| A. Data integrity (`scripts/qa_data.py`) | **11/11 PASS** |
-| B. Build & bundle | **PASS** (tsc 0 errors, dist + nav/ emitted) |
-| C+D+E. Functional UI, API-UP (`qa_ui.mjs`) | **17/17 PASS** |
-| C+D+E. Functional UI, API-DOWN | **16/16 PASS** |
-| **Total automated UI** | **33/33 PASS** |
+| A. Data integrity (`scripts/qa_data.py`) | **19/19 PASS** |
+| B. Build & bundle | **PASS** (tsc 0 errors, 869 modules, dist + nav/ emitted) |
+| C+D+E. Functional UI, API-UP (`qa_ui.mjs`) | **27/27 PASS** |
+| C+D+E. Functional UI, API-DOWN | **26/26 PASS** |
+| **Total desktop UI** | **53/53 PASS** |
+| M. Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **20/20 PASS** |
+
+## Mobile QA harness (added 2026-05-31)
+
+Desktop and mobile are the same URLs but a different product on a 390px screen.
+A dedicated harness (`scripts/qa_mobile.mjs`) runs every page at an iPhone-13
+viewport under both API-UP and API-DOWN and asserts small-screen invariants that
+desktop tests cannot catch:
+
+- **No unexpected horizontal page scroll** on Home, Explore, FundDetail, Compare,
+  Planner, Methodology (the exact class of bug that previously slipped through —
+  the un-scrollable Compare table that scrolled the whole page). When it fails it
+  reports the offending elements. The detector was self-tested by injecting a
+  deliberately 900px-wide block and confirming it fires (overflow 0 → 510px,
+  offender identified), so a green result is meaningful, not vacuous.
+- Compare table scrolls **inside its own wrapper**, not the page.
+- Mobile nav present with tap targets ≥ 32px tall.
+- Search dropdown fits within the viewport width and scrolls.
+- Onboarding modal fits within the viewport.
+- No text rendered under 10px; no uncaught app errors.
+
+All 20 mobile checks pass under both API states.
+
+## v3 forward-looking analytics QA (added 2026-05-30)
+
+The forward-looking signals feature added 8 data checks and 8 UI checks (the
+latter run under both API-UP and API-DOWN).
+
+**Data (`qa_data.py` A11–A18):** analytics block present on all 838 funds;
+`capture`/`alpha`/`regimes` present for every fund; rank-trajectory direction in
+{climbing, fading, steady} with 0–100 sparkline points; batting % in 0–100;
+capture/alpha/mean-reversion values finite and in sane bands (NaN/Inf would break
+`JSON.parse`); mean-reversion state in {hot, cold, normal}; exactly the 5 fixed
+regimes per fund. All PASS.
+
+**UI (`qa_ui.mjs`):** the "Forward-looking signals" section renders on Fund
+Detail with the trajectory sparkline (inline SVG), consistency + skill + running-
+hot cards, the block-bootstrap outcome cone, and the regime table; the horizon
+selector (1/3/5/10Y) recomputes the modeled outcome range; honesty framing ("not
+a guarantee") is present; Explore shows the Consistency column; Compare shows the
+Consistency/Form/Skill-confidence/Down-capture/Momentum rows; Methodology
+documents the v3 signals. All render correctly with MFAPI blocked, because the
+build-time signals come from `funds.json` and the client-side signals (outcome
+cone, rolling distribution, drawdown) compute from self-hosted NAV.
+
+**Bug found and fixed during this QA:** the first-visit onboarding modal overlay
+(`fixed inset-0 z-50`) intercepted the horizon-button click in a fresh browser
+context. The QA now seeds `localStorage['ff-onboarded']='1'` so interaction tests
+run as a returning visitor — an app-behavior-faithful fix, not a workaround of a
+real defect.
 
 ## Bugs found and fixed during QA
 
@@ -75,5 +125,30 @@ Methodology with a past-performance caveat.
   consolidated NAVAll.txt, appends each market day's NAV to the self-hosted
   files, and commits → triggers redeploy. Verified locally: appended 43 stale
   funds, 887 already current, idempotent on re-run.
+
+## Holdings-history capture (added 2026-05-31 — Option A)
+
+Groww exposes only a fund's *latest* portfolio snapshot, so the "what did the
+manager add/exit and was it smart" feature needs us to accumulate snapshots
+ourselves. New pipeline:
+
+- `scripts/capture_holdings_snapshot.py` captures each fund's current portfolio
+  into `public/holdings-history/{code}.json`, keyed by the real `portfolioDate`.
+  Idempotent (same month → skipped), resumable, threaded. Filters non-stock line
+  items (cash, net payables, repo, T-bills, futures/options) and de-duplicates
+  Groww's occasional double-listings so weight sums are clean.
+- `.github/workflows/capture-holdings.yml` runs mid-month (8th/12th/16th/20th)
+  and commits new snapshots → the dataset grows month over month. The slug map is
+  committed so CI doesn't re-resolve 800+ funds each run.
+- First capture: **839 funds, 839 snapshots** (weight sums 35.9–108.3%, median
+  97.7% after cleaning). Change-analysis ships once funds have ≥2 snapshots
+  (i.e. after the next monthly capture).
+- Data QA extended: **A19** (every snapshot keyed by its portfolioDate, known
+  coverage, holdings present, pct 0–100, sum sane) and **A20** (manifest matches
+  files). Both PASS.
+
+Two real data bugs were caught and fixed during this QA (exactly why the harness
+exists): negative-% cash lines, and Groww double-listing stocks (which doubled
+some weight sums to ~180%). Both are now filtered/deduped at capture time.
 
 ## Exit criteria: MET. Cleared for prod.
