@@ -11,6 +11,37 @@ interface Props {
   large?: boolean
 }
 
+// Rotating placeholder prompts - each short, each highlighting a real
+// differentiator/feature. Shown only when no explicit placeholder is passed
+// (so the Compare box keeps its static "Add a fund" prompt). Order is
+// randomized per mount and cycles every few seconds as a vertical ticker.
+const ROTATING_PROMPTS = [
+  'Search 830+ Indian equity funds…',
+  'Try “Parag Parikh Flexi Cap”…',
+  'Analyze any fund over any time period…',
+  'Is its edge skill or luck? Find out…',
+  'See how it held up in the 2020 crash…',
+  'Check a fund’s downside protection…',
+  'Is this fund running hot right now?…',
+  'Compare two funds’ stock overlap…',
+  'How consistent is it, really?…',
+  'See probability-based outcome ranges…',
+  'Rank funds fairly within their category…',
+  'Search by AMC, e.g. “HDFC”…',
+  'Find the best small-cap funds…',
+  'How long has the manager run it?…',
+  'Browse international / global funds…',
+]
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 export default function SearchBox({ placeholder, autoFocus, onPick, large }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Fund[]>([])
@@ -19,6 +50,44 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
   const boxRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+
+  // Rotating placeholder ticker (only when caller didn't pin a specific
+  // placeholder). One vertical track holds all prompts stacked; it only ever
+  // moves UP by exactly one line every few seconds. A cloned first item at the
+  // end lets it loop seamlessly: after sliding onto the clone we snap back to 0
+  // with the transition disabled (invisible because the clone == item 0).
+  const promptsRef = useRef<string[]>(shuffle(ROTATING_PROMPTS))
+  const prompts = promptsRef.current
+  const [tickIdx, setTickIdx] = useState(0)
+  const [snap, setSnap] = useState(false) // true = reposition with no transition
+  const rotate = !placeholder
+  const LINE = large ? 28 : 20 // px per line; matches overlay height below
+
+  useEffect(() => {
+    if (!rotate) return
+    const id = setInterval(() => setTickIdx((i) => i + 1), 3500)
+    return () => clearInterval(id)
+  }, [rotate])
+
+  // Seamless loop: once we've slid onto the cloned first item, wait for the
+  // slide to finish, then jump back to index 0 with the transition disabled.
+  useEffect(() => {
+    if (!rotate) return
+    if (tickIdx === prompts.length) {
+      const t = setTimeout(() => {
+        setSnap(true)
+        setTickIdx(0)
+      }, 650) // > slide duration (600ms)
+      return () => clearTimeout(t)
+    }
+    if (snap) {
+      const r = requestAnimationFrame(() => setSnap(false)) // re-enable transition next frame
+      return () => cancelAnimationFrame(r)
+    }
+  }, [tickIdx, rotate, snap, prompts.length])
+
+  // Only show the ticker overlay when the field is empty (else it'd cover text).
+  const showTicker = rotate && query.length === 0
 
   useEffect(() => {
     setResults(searchFunds(query, 10))
@@ -81,7 +150,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
           type="text"
           value={query}
           autoFocus={autoFocus}
-          placeholder={placeholder ?? 'Search 700+ funds by name, AMC, or category…'}
+          placeholder={rotate ? '' : placeholder}
           onChange={(e) => {
             setQuery(e.target.value)
             setOpen(true)
@@ -92,6 +161,33 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
             large ? 'py-4 text-lg' : 'py-3 text-sm'
           }`}
         />
+        {/* Animated placeholder ticker overlay (only when field is empty).
+            A single track of stacked lines that only ever moves UP one line per
+            tick; a cloned first line at the end makes the loop seamless. */}
+        {showTicker && (
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute left-12 right-4 top-1/2 -translate-y-1/2 overflow-hidden text-faint ${large ? 'h-7 text-lg' : 'h-5 text-sm'}`}
+          >
+            <div
+              className="flex flex-col"
+              style={{
+                transform: `translateY(-${tickIdx * LINE}px)`,
+                transition: snap ? 'none' : 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {prompts.concat(prompts[0]).map((p, i) => (
+                <span
+                  key={i}
+                  className="flex shrink-0 items-center truncate whitespace-nowrap"
+                  style={{ height: LINE }}
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {open && results.length > 0 && (
