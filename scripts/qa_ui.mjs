@@ -291,6 +291,27 @@ async function run(apiDown) {
   if (!apiDown) {
     const lines = await page.locator('.recharts-line path').count()
     check('C9 Compare chart draws 5 lines', lines >= 5, `lines=${lines}`)
+    // C9-tooltip: hovering the chart shows fund values sorted DESCENDING.
+    const chart = page.locator('.recharts-surface').first()
+    const box = await chart.boundingBox().catch(() => null)
+    if (box) {
+      await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+      await page.waitForTimeout(400)
+      const order = await page.evaluate(() => {
+        // the custom tooltip lists "Name : ₹value" rows
+        const tip = document.querySelector('.recharts-tooltip-wrapper')
+        if (!tip) return null
+        const nums = [...tip.querySelectorAll('span')]
+          .map((s) => (s.textContent.match(/₹\s*([\d.]+)/) || [])[1])
+          .filter(Boolean)
+          .map(Number)
+        return nums
+      })
+      if (order && order.length >= 2) {
+        const sorted = order.every((v, i) => i === 0 || order[i - 1] >= v)
+        check('C9 chart tooltip sorted descending by value', sorted, JSON.stringify(order))
+      }
+    }
   }
   // date sub-lines present in the table (Max Drawdown / Best / Worst Month rows)
   if (!apiDown) {
@@ -307,6 +328,32 @@ async function run(apiDown) {
     return { position: pos }
   })
   check(`C9 Compare metric column is sticky (${label})`, sticky?.position === 'sticky', JSON.stringify(sticky))
+
+  // C9c Overlap header: every fund column must have a colored dot (regression
+  // guard — the overlap component had a 3-color array while Compare allows 5,
+  // leaving funds 4-5 with transparent/missing dots).
+  if (!apiDown) {
+    const dotCheck = await page.evaluate(() => {
+      // shared-holdings table is the LAST table on the page
+      const tables = [...document.querySelectorAll('table')]
+      const tbl = tables[tables.length - 1]
+      if (!tbl) return { ok: false, note: 'no table' }
+      const headerDots = [...tbl.querySelectorAll('thead th span')].filter((s) => {
+        const bg = getComputedStyle(s).backgroundColor
+        return s.style.backgroundColor || (bg && bg !== 'rgba(0, 0, 0, 0)')
+      })
+      // funds with data = header cells minus the first "Shared holding" label cell
+      const fundCols = tbl.querySelectorAll('thead th').length - 1
+      const coloredDots = [...tbl.querySelectorAll('thead th')].slice(1).filter((th) => {
+        const dot = th.querySelector('span[style*="background"]')
+        if (!dot) return false
+        const bg = dot.style.backgroundColor || getComputedStyle(dot).backgroundColor
+        return bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent'
+      }).length
+      return { ok: coloredDots === fundCols, fundCols, coloredDots }
+    })
+    check('C9 overlap header has a colored dot per fund', dotCheck.ok, JSON.stringify(dotCheck))
+  }
 
   // C10 cross-category warning
   if (largeCap) {
@@ -325,6 +372,27 @@ async function run(apiDown) {
   // C12b Methodology documents the v3 forward-looking signals
   check(`C12 Methodology documents v3 signals (${label})`,
     /Forward-looking signals/i.test(meth) && /probabilistic/i.test(meth))
+
+  // C13 fund-count copy is DYNAMIC (reads data.totalFunds), not a stale literal.
+  // Home hero + Footer should show the live count; guards the "838" hardcode class.
+  if (!apiDown) {
+    const total = funds.length
+    await goto('')
+    const home = await bodyText()
+    check('C13 Home hero shows live fund count', home.includes(`${total} funds`), `expected "${total} funds"`)
+    // search placeholder shows a rounded "NNN+" derived from the live count
+    const label10 = `${Math.floor(total / 10) * 10}+`
+    // the ticker may be mid-rotation; check the prompt set via the input over a moment
+    const seen = new Set()
+    for (let i = 0; i < 6; i++) {
+      const ph = await page.locator('input[type="text"]').first().getAttribute('placeholder').catch(() => '')
+      if (ph) seen.add(ph)
+      await page.waitForTimeout(700)
+    }
+    // not asserting we catch the count prompt in 6 samples (randomized); instead
+    // assert no STALE hardcoded "830+" appears anywhere on the page
+    check('C13 no stale 830+ literal on Home', !home.includes('830+') || label10 === '830+')
+  }
 
   // C15 no app console errors across visited pages
   const errs = await getConsoleErrors(page)

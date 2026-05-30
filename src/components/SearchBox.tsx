@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { searchFunds } from '../lib/data'
+import { searchFunds, data } from '../lib/data'
 import RiskBadge from './RiskBadge'
 import type { Fund } from '../types'
 
@@ -11,12 +11,16 @@ interface Props {
   large?: boolean
 }
 
+// "NNN+" rounded DOWN to the nearest 10 from the live universe size, so this
+// auto-updates when funds are added (no hardcoded count to go stale).
+const FUND_COUNT_LABEL = `${Math.floor(data.totalFunds / 10) * 10}+`
+
 // Rotating placeholder prompts - each short, each highlighting a real
 // differentiator/feature. Shown only when no explicit placeholder is passed
 // (so the Compare box keeps its static "Add a fund" prompt). Order is
 // randomized per mount and cycles every few seconds as a vertical ticker.
 const ROTATING_PROMPTS = [
-  'Search 830+ Indian equity funds…',
+  `Search ${FUND_COUNT_LABEL} Indian equity funds…`,
   'Try “Parag Parikh Flexi Cap”…',
   'Analyze any fund over any time period…',
   'Is its edge skill or luck? Find out…',

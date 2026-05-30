@@ -34,7 +34,7 @@ export default function Home() {
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted">
             Most fund tools are a rear-view mirror - trailing returns and a point-in-time rank. We add
             scientific, <strong>forward-looking signals</strong> - consistency, skill-vs-luck, downside
-            protection, and probability-based outlooks - across 838 funds, over <strong>any time period
+            protection, and probability-based outlooks - across {data.totalFunds} funds, over <strong>any time period
             you choose</strong>. Evidence and probabilities, never advice.
           </p>
 
