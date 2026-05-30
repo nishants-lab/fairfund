@@ -4,7 +4,7 @@ import { getFund, fundsByCategory } from '../lib/data'
 import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
 import { fetchNavHistory } from '../lib/nav'
-import { computeMetrics, sliceByRange, presetRange, fmtDate } from '../lib/metrics'
+import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth } from '../lib/metrics'
 import MetricCard from '../components/MetricCard'
 import RangeChart from '../components/RangeChart'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
@@ -83,6 +83,59 @@ export default function FundDetail() {
   }
 
   const peers = fundsByCategory(fund.category).filter((f) => f.code !== fund.code).slice(0, 4)
+  const catDisplay = fund.categoryDisplay // captured (narrowed) for use inside helpers below
+
+  // Category-median volatility (from stored 3Y metrics) for a peer-relative
+  // read on the live volatility number. Computed once per category.
+  const catMedianVol = useMemo(() => {
+    const vols = fundsByCategory(fund.category)
+      .map((f) => f.metrics['3Y']?.volatility)
+      .filter((v): v is number => typeof v === 'number')
+      .sort((a, b) => a - b)
+    if (!vols.length) return null
+    const mid = Math.floor(vols.length / 2)
+    return vols.length % 2 ? vols[mid] : (vols[mid - 1] + vols[mid]) / 2
+  }, [fund.category])
+
+  // Build a plain-English volatility hint that says how this fund's swings
+  // compare to its category peers (lower volatility = steadier ride).
+  function volatilityHint(v: number | undefined): string {
+    const base =
+      'Annualized standard deviation of daily returns - how much the NAV swings. ' +
+      'Lower = a steadier ride; higher = bigger ups and downs (not inherently bad for long horizons).'
+    if (v == null || catMedianVol == null) return base
+    const diff = v - catMedianVol
+    const rel = Math.abs(diff) < 1
+      ? `about the same as its ${catDisplay} peers (category median ${catMedianVol.toFixed(1)}%)`
+      : diff < 0
+        ? `steadier than its ${catDisplay} peers (category median ${catMedianVol.toFixed(1)}%) - lower swings`
+        : `more volatile than its ${catDisplay} peers (category median ${catMedianVol.toFixed(1)}%) - bigger swings`
+    return `${base} This fund is ${rel}.`
+  }
+  // Volatility tone vs category: steadier=good, much higher=warn.
+  function volatilityTone(v: number | undefined): 'default' | 'good' | 'warn' {
+    if (v == null || catMedianVol == null) return 'default'
+    if (v <= catMedianVol - 1) return 'good'
+    if (v >= catMedianVol + 2) return 'warn'
+    return 'default'
+  }
+  // Drawdown is ALWAYS a loss — never green. Neutral when shallow, amber when
+  // moderate, red when deep. (A "good" drawdown would be a contradiction.)
+  function drawdownTone(v: number | undefined): 'default' | 'warn' | 'bad' {
+    if (v == null) return 'default'
+    if (v <= -25) return 'bad'
+    if (v <= -10) return 'warn'
+    return 'default'
+  }
+  // Risk-adjusted ratios (Sharpe / Sortino / Calmar): negative means it lost
+  // money per unit of risk — always red. 0–1 neutral, >=1 good. Consistent
+  // across all three so a negative ratio never renders black or amber.
+  function ratioTone(v: number | undefined): 'default' | 'good' | 'bad' {
+    if (v == null || isNaN(v)) return 'default'
+    if (v < 0) return 'bad'
+    if (v >= 1) return 'good'
+    return 'default'
+  }
 
   function handleRange(s: string, e: string, p: Preset) {
     setStart(s)
@@ -165,24 +218,39 @@ export default function FundDetail() {
             <MetricCard
               label="Sharpe Ratio"
               value={num(live.sharpe)}
-              tone={live.sharpe >= 1 ? 'good' : live.sharpe >= 0.5 ? 'default' : 'warn'}
-              hint="Return per unit of total risk in this exact period. Above 1 is excellent."
+              tone={ratioTone(live.sharpe)}
+              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis."
             />
             <MetricCard
               label="Max Drawdown"
               value={pct(live.maxDrawdown)}
-              tone={live.maxDrawdown > -15 ? 'good' : live.maxDrawdown < -25 ? 'bad' : 'warn'}
-              hint="Worst peak-to-trough fall within the selected period."
+              sub={`${fmtMonth(live.maxDrawdownStart)} → ${fmtMonth(live.maxDrawdownEnd)}`}
+              tone={drawdownTone(live.maxDrawdown)}
+              hint="Worst peak-to-trough fall within the selected period. The dates show when the fall began (prior peak) and bottomed out (trough). A drawdown is always a loss - shallower is better."
             />
             <MetricCard
               label="Volatility"
               value={pct(live.volatility)}
-              hint="Annualized standard deviation of daily returns in this period."
+              sub={catMedianVol != null ? `Category median ${catMedianVol.toFixed(1)}%` : undefined}
+              tone={volatilityTone(live.volatility)}
+              hint={volatilityHint(live.volatility)}
             />
-            <MetricCard label="Sortino Ratio" value={num(live.sortino)} hint="Like Sharpe, but only penalizes downside moves." />
-            <MetricCard label="Calmar Ratio" value={num(live.calmar)} hint="Return relative to the worst drawdown. Higher is better." />
-            <MetricCard label="Best Month" value={signedPct(live.best1M)} tone="good" hint="Best rolling 1-month return in this period." />
-            <MetricCard label="Worst Month" value={signedPct(live.worst1M)} tone="bad" hint="Worst rolling 1-month return in this period." />
+            <MetricCard label="Sortino Ratio" value={num(live.sortino)} tone={ratioTone(live.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
+            <MetricCard label="Calmar Ratio" value={num(live.calmar)} tone={ratioTone(live.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the period." />
+            <MetricCard
+              label="Best Month"
+              value={signedPct(live.best1M)}
+              sub={`${fmtMonth(live.best1MStart)} → ${fmtMonth(live.best1MEnd)}`}
+              tone="good"
+              hint="Best rolling 1-month return in this period, and the month-long window it occurred in."
+            />
+            <MetricCard
+              label="Worst Month"
+              value={signedPct(live.worst1M)}
+              sub={`${fmtMonth(live.worst1MStart)} → ${fmtMonth(live.worst1MEnd)}`}
+              tone="bad"
+              hint="Worst rolling 1-month return in this period, and the month-long window it occurred in."
+            />
           </div>
           <p className="mt-2 text-xs text-faint">
             ↑ All metrics are computed live from daily NAV for exactly{' '}
@@ -196,10 +264,10 @@ export default function FundDetail() {
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <MetricCard label="CAGR" value={pct(baseline.cagr)} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
             <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
-            <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={baseline.sharpe >= 1 ? 'good' : baseline.sharpe >= 0.5 ? 'default' : 'warn'} hint="Return per unit of total risk." />
-            <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={baseline.maxDrawdown > -15 ? 'good' : baseline.maxDrawdown < -25 ? 'bad' : 'warn'} hint="Worst peak-to-trough fall in the window." />
-            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves." />
-            <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} hint="Return relative to the worst drawdown." />
+            <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={ratioTone(baseline.sharpe)} hint="Return per unit of total risk. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis." />
+            <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is always a loss - shallower is better." />
+            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
+            <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />
             <MetricCard label="Volatility" value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
             <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
