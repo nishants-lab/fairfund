@@ -4,6 +4,7 @@ import { getFund } from '../lib/data'
 import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
+import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, type ComputedMetrics } from '../lib/metrics'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
@@ -255,6 +256,9 @@ export default function Compare() {
             </p>
             <CompareChart funds={funds} navData={navData} start={start} end={end} colors={COLORS} />
           </div>
+
+          {/* Holdings overlap */}
+          <HoldingsOverlap funds={funds} />
         </>
       )}
     </div>

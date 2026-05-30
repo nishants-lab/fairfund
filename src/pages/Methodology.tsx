@@ -67,6 +67,38 @@ export default function Methodology() {
         </p>
       </Section>
 
+      <Section title="Fix 4: Authoritative universe (no silent misses)">
+        <p>
+          Deciding <em>which</em> funds to include matters as much as how we rank them. Early versions
+          guessed each fund’s category from keywords in its name — which silently dropped any fund whose
+          name didn’t match a hard-coded list (we found ~200 equity funds missing, and ~140 debt/income
+          funds wrongly included).
+        </p>
+        <p className="mt-2">
+          We now build the universe from <strong>AMFI’s own published scheme category</strong> for every
+          fund, validated against the official taxonomy. If AMFI classifies it as an equity, index, or
+          overseas-equity fund and it’s an active Direct-Growth plan, it’s in — no name-guessing, no
+          silent gaps.
+        </p>
+      </Section>
+
+      <Section title="Portfolio holdings & overlap">
+        <p>
+          Each fund page shows its latest disclosed <strong>portfolio holdings</strong> (top positions
+          and their weight), and the Compare page computes <strong>holdings overlap</strong> between
+          funds — so you can spot when two funds you hold are really buying the same stocks (less
+          diversification than it looks).
+        </p>
+        <p className="mt-2">
+          Holdings come from the most recent monthly portfolio disclosure. For funds-of-funds we use
+          look-through to the underlying stocks where the disclosure supports it. Some overseas feeder
+          funds invest into a single foreign fund and don’t disclose stock-level holdings — we label
+          those honestly as “not available” rather than show misleading data. Where we can’t confidently
+          match a fund to its disclosed portfolio, we withhold holdings rather than risk showing the
+          wrong fund’s stocks.
+        </p>
+      </Section>
+
       <Section title="The metrics we use">
         <ul className="ml-5 list-disc space-y-1.5">
           <li><strong>CAGR</strong> — annualized return over the window.</li>
@@ -105,9 +137,11 @@ export default function Methodology() {
 
       <Section title="Data source & freshness">
         <p>
+          The fund universe and category for every scheme come from AMFI’s published classification.
           Base metrics are computed from daily NAV data published by AMFI (via the public mfapi.in
           endpoint), covering all active equity Direct-Growth plans. NAV charts on fund pages are
-          fetched live. Base analysis snapshot: <strong>{data.anchor}</strong>.
+          fetched live. Portfolio holdings are from the latest monthly disclosure. Base analysis
+          snapshot: <strong>{data.anchor}</strong>.
         </p>
       </Section>
 
