@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { getFund } from '../lib/data'
 import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
@@ -16,6 +16,7 @@ export default function Compare() {
   const [params, setParams] = useSearchParams()
   const [funds, setFunds] = useState<Fund[]>([])
   const [navData, setNavData] = useState<Record<number, NavPoint[]>>({})
+  const [loadingCodes, setLoadingCodes] = useState<Set<number>>(new Set())
 
   // Shared range across all compared funds
   const [start, setStart] = useState('')
@@ -41,13 +42,24 @@ export default function Compare() {
   // Fetch NAV for any newly added fund
   useEffect(() => {
     funds.forEach((f) => {
-      if (!navData[f.code]) {
+      if (!navData[f.code] && !loadingCodes.has(f.code)) {
+        setLoadingCodes((prev) => new Set(prev).add(f.code))
         fetchNavHistory(f.code)
           .then((pts) => setNavData((prev) => ({ ...prev, [f.code]: pts })))
           .catch(() => {})
+          .finally(() =>
+            setLoadingCodes((prev) => {
+              const next = new Set(prev)
+              next.delete(f.code)
+              return next
+            }),
+          )
       }
     })
   }, [funds])
+
+  // True while any compared fund's live NAV is still being fetched.
+  const navLoading = funds.some((f) => loadingCodes.has(f.code))
 
   // Determine the common overlapping date range across all funds
   const { earliest, latest } = useMemo(() => {
@@ -193,10 +205,16 @@ export default function Compare() {
               <div key={f.code} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                 <div>
-                  <div className="text-sm font-semibold text-fg">{f.name}</div>
+                  <Link
+                    to={`/fund/${f.code}`}
+                    className="text-sm font-semibold text-fg hover:text-brand-600 hover:underline"
+                    title={`Open ${f.name} — use your browser Back to return here`}
+                  >
+                    {f.name}
+                  </Link>
                   <div className="text-xs text-faint">{f.categoryDisplay}</div>
                 </div>
-                <button onClick={() => remove(f.code)} className="ml-2 text-faint hover:text-rose-500">✕</button>
+                <button onClick={() => remove(f.code)} className="ml-2 text-faint hover:text-rose-500" aria-label={`Remove ${f.name}`}>✕</button>
               </div>
             ))}
           </div>
@@ -250,7 +268,13 @@ export default function Compare() {
                     <th key={f.code} className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                        <span className="max-w-[120px] truncate text-xs font-semibold text-fg">{f.name}</span>
+                        <Link
+                          to={`/fund/${f.code}`}
+                          className="max-w-[120px] truncate text-xs font-semibold text-fg hover:text-brand-600 hover:underline"
+                          title={`Open ${f.name}`}
+                        >
+                          {f.name}
+                        </Link>
                       </div>
                     </th>
                   ))}
@@ -324,6 +348,54 @@ export default function Compare() {
                     )
                   })}
                 </tr>
+                {/* Consistency (batting average) */}
+                <tr className="border-b border-line">
+                  <td className="px-4 py-3 text-muted">Consistency <span className="text-xs text-faint">(% 3Y windows beat peers)</span></td>
+                  {funds.map((f) => (
+                    <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
+                      {f.analytics?.battingAverage ? `${f.analytics.battingAverage.pct}%` : '—'}
+                    </td>
+                  ))}
+                </tr>
+                {/* Form / trajectory */}
+                <tr className="bg-surface2/50">
+                  <td className="px-4 py-3 text-muted">Form <span className="text-xs text-faint">(rank trend)</span></td>
+                  {funds.map((f) => {
+                    const dir = f.analytics?.rankTrajectory?.direction
+                    const tone = dir === 'climbing' ? 'text-emerald-600 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
+                    const arrow = dir === 'climbing' ? '↑ Climbing' : dir === 'fading' ? '↓ Fading' : dir === 'steady' ? '→ Steady' : '—'
+                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{arrow}</td>
+                  })}
+                </tr>
+                {/* Skill confidence */}
+                <tr className="border-b border-line">
+                  <td className="px-4 py-3 text-muted">Skill confidence <span className="text-xs text-faint">(alpha vs luck)</span></td>
+                  {funds.map((f) => {
+                    const al = f.analytics?.alpha
+                    if (!al || al.confidence == null) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
+                    const tone = al.couldBeLuck ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{Math.round(al.confidence)}%</td>
+                  })}
+                </tr>
+                {/* Down-capture */}
+                <tr className="bg-surface2/50">
+                  <td className="px-4 py-3 text-muted">Down-capture <span className="text-xs text-faint">(lower = better)</span></td>
+                  {funds.map((f) => (
+                    <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
+                      {f.analytics?.capture?.down != null ? `${f.analytics.capture.down}%` : '—'}
+                    </td>
+                  ))}
+                </tr>
+                {/* Running hot/cold */}
+                <tr className="border-b border-line">
+                  <td className="px-4 py-3 text-muted">Momentum state</td>
+                  {funds.map((f) => {
+                    const mr = f.analytics?.meanReversion
+                    if (!mr) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
+                    const label = mr.state === 'hot' ? '🔥 Hot' : mr.state === 'cold' ? '❄️ Cold' : 'Normal'
+                    return <td key={f.code} className="px-4 py-3 text-right text-fg">{label}</td>
+                  })}
+                </tr>
               </tbody>
             </table>
           </div>
@@ -338,7 +410,7 @@ export default function Compare() {
               All funds start at ₹100 on {start ? fmtDate(start) : 'the start date'} so you can see
               relative growth fairly over the exact same window.
             </p>
-            <CompareChart funds={funds} navData={navData} start={start} end={end} colors={COLORS} />
+            <CompareChart funds={funds} navData={navData} start={start} end={end} colors={COLORS} loading={navLoading} />
           </div>
 
           {/* Holdings overlap */}

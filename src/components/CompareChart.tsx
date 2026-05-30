@@ -19,9 +19,10 @@ interface Props {
   start: string
   end: string
   colors: string[]
+  loading?: boolean
 }
 
-export default function CompareChart({ funds, navData, start, end, colors }: Props) {
+export default function CompareChart({ funds, navData, start, end, colors, loading }: Props) {
   const { theme } = useTheme()
   const grid = theme === 'dark' ? '#1e293b' : '#f1f5f9'
   const axis = theme === 'dark' ? '#64748b' : '#94a3b8'
@@ -45,7 +46,19 @@ export default function CompareChart({ funds, navData, start, end, colors }: Pro
   }, [funds, navData, start, end])
 
   if (merged.length < 2)
-    return <div className="flex h-64 items-center justify-center text-faint">Loading comparison…</div>
+    return loading ? (
+      <div className="space-y-3">
+        <div className="skeleton h-[300px] w-full" />
+        <div className="flex items-center justify-center gap-2 text-xs text-faint">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+          Loading live NAV for the chart…
+        </div>
+      </div>
+    ) : (
+      <div className="flex h-64 items-center justify-center text-center text-sm text-faint">
+        Live NAV for this chart is unavailable right now. The metrics above still stand.
+      </div>
+    )
 
   return (
     <ResponsiveContainer width="100%" height={300}>

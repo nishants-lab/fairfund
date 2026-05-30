@@ -1,0 +1,48 @@
+name: Monthly holdings snapshot
+
+# Captures each fund's latest portfolio snapshot from Groww and accumulates it
+# into public/holdings-history/{code}.json, keyed by the real portfolio_date.
+# AMCs disclose portfolios monthly (typically by ~the 10th for the prior month),
+# so we run a few times mid-month to catch disclosures as they land. Idempotent:
+# a snapshot whose portfolio_date already exists is skipped, so extra runs are safe.
+#
+# Committing the accumulated history to the repo is what lets the dataset grow
+# month over month despite CI being stateless — and the push triggers Deploy so
+# the (eventually) shippable change-analysis has fresh data.
+
+on:
+  schedule:
+    # Mid-month captures (07:00 UTC) on the 8th, 12th, 16th, 20th — covers funds
+    # that disclose on different days. Idempotency makes repeats cost nothing.
+    - cron: '0 7 8,12,16,20 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: holdings-capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Capture holdings snapshots
+        run: python scripts/capture_holdings_snapshot.py
+      - name: Commit if new snapshots
+        run: |
+          git config user.name "fairfund-bot"
+          git config user.email "fairfund-bot@users.noreply.github.com"
+          if [ -n "$(git status --porcelain public/holdings-history)" ]; then
+            git add public/holdings-history
+            git commit -m "chore(holdings): monthly portfolio snapshot capture"
+            git push
+            echo "Holdings history updated and pushed."
+          else
+            echo "No new holdings snapshots this run."
+          fi

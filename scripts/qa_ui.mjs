@@ -21,6 +21,17 @@ import fs from 'fs'
 const funds = JSON.parse(fs.readFileSync(new URL('../src/data/funds.json', import.meta.url))).funds
 const byCov = (cov) => funds.find((f) => f.holdingsMeta?.coverage === cov)
 const stockFund = funds.find((f) => f.holdingsMeta?.coverage === 'stock_level' && f.metrics['3Y'])
+// A fund with the full set of build-time forward-looking signals (trajectory + batting + mean-reversion + regimes)
+// so we can assert the v3 section renders all its parts. Falls back to any fund with a trajectory.
+const fwdFund =
+  funds.find(
+    (f) =>
+      f.analytics?.rankTrajectory &&
+      f.analytics?.battingAverage &&
+      f.analytics?.meanReversion &&
+      f.analytics?.regimes?.length &&
+      f.metrics['3Y'],
+  ) || funds.find((f) => f.analytics?.rankTrajectory)
 const feederForeign = byCov('feeder_foreign')
 const feederDomestic = byCov('feeder_domestic')
 const unresolved = byCov('unresolved')
@@ -52,6 +63,11 @@ async function run(apiDown) {
   console.log(`\n== UI QA (${label}) ==`)
   const browser = await chromium.launch()
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  // Suppress the first-visit onboarding modal (overlay intercepts clicks in interaction tests).
+  // Setting its localStorage flag makes the QA browser behave like a returning visitor.
+  await ctx.addInitScript(() => {
+    try { localStorage.setItem('ff-onboarded', '1') } catch { /* ignore */ }
+  })
   if (apiDown) {
     // block all mfapi.in calls to simulate outage / CORS block
     await ctx.route('**://api.mfapi.in/**', (r) => r.abort())
@@ -77,6 +93,11 @@ async function run(apiDown) {
   const hasPct = /\d+\.\d+%/.test(expBody)
   check(`C2 Explore table non-empty + has % metrics (${label})`, expRows > 1 && hasPct, `rows=${expRows} hasPct=${hasPct}`)
 
+  // C2b Explore shows the v3 Consistency column (batting % + trajectory arrow)
+  const expHasConsistency = /Consistency/i.test(expBody)
+  const expHasBattingPct = await page.locator('thead').innerText().then((t) => /Consistency/i.test(t)).catch(() => false)
+  check(`C2 Explore Consistency column (${label})`, expHasConsistency && expHasBattingPct)
+
   // C4 Fund detail (stock-level): metric cards + holdings
   await goto(`fund/${stockFund.code}`)
   const fdBody = await bodyText()
@@ -88,6 +109,40 @@ async function run(apiDown) {
   const fdHasMgmt = /Management quality|Management/.test(fdBody) &&
     /(Strong|Solid|Mixed|Limited evidence|not available)/.test(fdBody)
   check(`C4 Fund detail management section (${label})`, fdHasMgmt)
+
+  // C4d Forward-looking analytics section (v3) — uses a fund with the full build-time signal set.
+  // Both build-time (funds.json) and client-side (self-hosted NAV) parts must render under API-UP and API-DOWN.
+  await goto(`fund/${fwdFund.code}`)
+  await page.waitForTimeout(apiDown ? 1500 : 800) // let client-side outcome-cone/rolling-dist compute
+  const fwdBody = await bodyText()
+  check(`C4 Forward-looking section present (${label})`,
+    /Forward-looking signals/i.test(fwdBody), `code=${fwdFund.code}`)
+  // sparkline (rank trajectory) renders as inline SVG path
+  const sparkPaths = await page.locator('svg path[stroke="#2563eb"]').count()
+  check(`C4 trajectory sparkline renders (${label})`,
+    /Form \(rank trajectory\)/i.test(fwdBody) && sparkPaths > 0, `sparkPaths=${sparkPaths}`)
+  // core build-time signal cards present
+  check(`C4 consistency + skill cards (${label})`,
+    /Consistency/i.test(fwdBody) && /Skill vs luck/i.test(fwdBody) && /Running hot\?/i.test(fwdBody))
+  // client-side outcome cone (block-bootstrap) + horizon controls
+  const coneOk = /Modeled \d+Y outcome range/i.test(fwdBody) && /simulations/i.test(fwdBody)
+  check(`C4 outcome cone renders (${label})`, coneOk)
+  // horizon buttons change the cone — use 10Y (unique to the forward-looking horizon selector;
+  // the page's RangeSelector presets stop at 5Y, so this avoids a selector collision) and confirm recompute
+  const has10Y = await page.getByRole('button', { name: '10Y', exact: true }).count()
+  if (has10Y) {
+    await page.getByRole('button', { name: '10Y', exact: true }).first().click().catch(() => {})
+    await page.waitForTimeout(900)
+    const after = await bodyText()
+    check(`C4 horizon switch recomputes (${label})`, /Modeled 10Y outcome range/i.test(after))
+  }
+  // regime table with the fixed regimes
+  const regimeOk = /How it behaved in each market regime/i.test(fwdBody) &&
+    /COVID crash/i.test(fwdBody) && /2022-24 bull run/i.test(fwdBody)
+  check(`C4 regime table renders (${label})`, regimeOk)
+  // honesty framing — never a guarantee
+  check(`C4 honesty framing present (${label})`,
+    /not a guarantee|never a guarantee|not advice/i.test(fwdBody))
 
   // C5 feeder foreign: honest label, no crash
   if (feederForeign) {
@@ -136,6 +191,15 @@ async function run(apiDown) {
   const hasMgmtRow = /Management quality/i.test(cmpBody)
   check(`C8 Compare management row present (${label})`, hasMgmtRow)
 
+  // C8c Compare shows the v3 forward-looking rows
+  const cmpFwdRows =
+    /Consistency/i.test(cmpBody) &&
+    /Form/i.test(cmpBody) &&
+    /Skill confidence/i.test(cmpBody) &&
+    /Down-capture/i.test(cmpBody) &&
+    /Momentum state/i.test(cmpBody)
+  check(`C8 Compare forward-looking rows present (${label})`, cmpFwdRows)
+
   // C10 cross-category warning
   if (largeCap) {
     await goto(`compare?codes=${pairA.code},${largeCap.code}`)
@@ -150,6 +214,9 @@ async function run(apiDown) {
   await goto('methodology')
   const meth = await bodyText()
   check(`C12 Methodology sections (${label})`, meth.includes('Methodology') && meth.includes('Authoritative'))
+  // C12b Methodology documents the v3 forward-looking signals
+  check(`C12 Methodology documents v3 signals (${label})`,
+    /Forward-looking signals/i.test(meth) && /probabilistic/i.test(meth))
 
   // C15 no app console errors across visited pages
   const errs = await getConsoleErrors(page)

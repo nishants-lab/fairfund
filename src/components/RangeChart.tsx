@@ -27,8 +27,12 @@ export default function RangeChart({ points, mode = 'nav', loading, error }: Pro
 
   if (loading)
     return (
-      <div className="flex h-64 items-center justify-center text-faint">
-        <div className="animate-pulse">Loading live NAV data…</div>
+      <div className="space-y-3">
+        <div className="skeleton h-64 w-full" />
+        <div className="flex items-center justify-center gap-2 text-xs text-faint">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+          Loading live NAV…
+        </div>
       </div>
     )
   if (error)
