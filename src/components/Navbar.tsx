@@ -22,7 +22,7 @@ export default function Navbar() {
           </div>
           <div className="leading-tight">
             <div className="font-extrabold text-fg">FairFund</div>
-            <div className="text-[10px] font-medium uppercase tracking-wider text-faint">Honest MF Research</div>
+            <div className="text-[10px] font-medium uppercase tracking-wider text-faint">Forward-looking MF Research</div>
           </div>
         </Link>
 
