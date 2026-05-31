@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getFund, fundsByCategory } from '../lib/data'
+import { getFund, fundsByCategory, categoryMetricStats } from '../lib/data'
 import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth } from '../lib/metrics'
+import { ratioSpectrum, lowerBetterSpectrum } from '../lib/spectrum'
 import MetricCard from '../components/MetricCard'
 import RangeChart from '../components/RangeChart'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
@@ -12,30 +13,39 @@ import RiskBadge from '../components/RiskBadge'
 import HoldingsTable from '../components/HoldingsTable'
 import ManagementCard from '../components/ManagementCard'
 import ForwardAnalytics from '../components/ForwardAnalytics'
+import VerdictCard from '../components/VerdictCard'
 import type { NavPoint } from '../types'
 
 // Fixed market regimes (mirror scripts/build_analytics.py) with ISO bounds, so we
 // can explain WHY a drawdown / weak month happened: did it overlap a market-wide
 // downturn (likely not fund-specific) or not? Honest context, no fabrication.
-const REGIMES: { name: string; start: string; end: string; market: 'down' | 'up' | 'mixed'; note: string }[] = [
-  { name: 'the COVID crash', start: '2020-02-19', end: '2020-03-23', market: 'down', note: 'a market-wide crash, not fund-specific' },
-  { name: 'the COVID recovery rally', start: '2020-03-24', end: '2021-10-18', market: 'up', note: 'a broad bull market' },
-  { name: 'the 2022 correction', start: '2021-10-19', end: '2022-06-17', market: 'down', note: 'a market-wide correction (rate hikes, outflows)' },
-  { name: 'the 2022-24 bull run', start: '2022-06-18', end: '2024-09-27', market: 'up', note: 'a broad bull market led by mid & small caps' },
-  { name: 'the recent correction (since Sep 2024)', start: '2024-09-28', end: '2026-05-29', market: 'mixed', note: 'a market-wide pullback in late 2024/2025' },
+const REGIMES: { name: string; short: string; start: string; end: string; market: 'down' | 'up' | 'mixed' }[] = [
+  { name: 'the COVID crash', short: 'the COVID crash (early 2020)', start: '2020-02-19', end: '2020-03-23', market: 'down' },
+  { name: 'the COVID recovery rally', short: 'the 2020-21 recovery rally', start: '2020-03-24', end: '2021-10-18', market: 'up' },
+  { name: 'the 2022 correction', short: 'the 2022 correction', start: '2021-10-19', end: '2022-06-17', market: 'down' },
+  { name: 'the 2022-24 bull run', short: 'the 2022-24 bull run', start: '2022-06-18', end: '2024-09-27', market: 'up' },
+  { name: 'the 2024-25 correction', short: 'the 2024-25 correction', start: '2024-09-28', end: '2025-03-31', market: 'down' },
+  { name: 'the tariff & Iran-war era', short: 'the 2025 tariff/Iran-war shocks', start: '2025-04-01', end: '2026-05-29', market: 'mixed' },
 ]
 
-/** Which regimes a [start,end] window overlaps — used to explain a drawdown/month. */
+/** Which regimes a [start,end] window overlaps - used to explain a drawdown/month. */
 function overlappingRegimes(start: string, end: string) {
   return REGIMES.filter((r) => start <= r.end && end >= r.start)
 }
 
-/** Plain-English "potential reason" for a fall over a given window. */
+/** Short "potential reason" for a fall: did it overlap a market-wide downturn?
+ *  Kept to one short sentence (the long version was hard to read on mobile). */
 function fallReason(start: string, end: string): string | null {
   const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'up')
   if (hits.length === 0) return null
-  const names = hits.map((r) => `${r.name} (${r.note})`).join(' and ')
-  return `This period overlaps ${names} - so the fall was likely market-driven rather than fund-specific. Compare the "vs category" column in the market-regime table below to see if this fund fell more or less than its peers.`
+  return `Overlaps ${hits[0].short} - likely a market-wide fall, not specific to this fund.`
+}
+
+/** Short positive context for a strong month: did it ride a broad rally? */
+function riseContext(start: string, end: string): string | null {
+  const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'down')
+  if (hits.length === 0) return null
+  return `Came during ${hits[0].short} - a broad rally lifted most funds.`
 }
 
 export default function FundDetail() {
@@ -44,6 +54,7 @@ export default function FundDetail() {
   const fund = getFund(Number(code))
 
   const [allNav, setAllNav] = useState<NavPoint[]>([])
+  const [peerNav, setPeerNav] = useState<NavPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [chartMode, setChartMode] = useState<'nav' | 'drawdown'>('nav')
@@ -77,6 +88,26 @@ export default function FundDetail() {
     }
   }, [fund?.code])
 
+  // Fetch the benchmark peer's NAV for the chart overlay (#16). Kept separate so
+  // the main metrics never wait on it; failures are silent (overlay just hides).
+  useEffect(() => {
+    if (!fund) return
+    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+    const top = ranked[0]
+    const peer = top && top.code !== fund.code ? top : ranked[1]
+    if (!peer) {
+      setPeerNav([])
+      return
+    }
+    let cancelled = false
+    fetchNavHistory(peer.code)
+      .then((pts) => !cancelled && setPeerNav(pts))
+      .catch(() => !cancelled && setPeerNav([]))
+    return () => {
+      cancelled = true
+    }
+  }, [fund?.code, fund?.category])
+
   const earliest = allNav[0]?.date ?? ''
   const latest = allNav[allNav.length - 1]?.date ?? ''
 
@@ -84,9 +115,13 @@ export default function FundDetail() {
     () => (start && end ? sliceByRange(allNav, start, end) : []),
     [allNav, start, end],
   )
+  const peerSlice = useMemo(
+    () => (start && end && peerNav.length ? sliceByRange(peerNav, start, end) : []),
+    [peerNav, start, end],
+  )
   const live = useMemo(() => computeMetrics(slice), [slice])
 
-  // Baseline stored metrics (from funds.json) — shown when live NAV is
+  // Baseline stored metrics (from funds.json) - shown when live NAV is
   // unavailable so the page is never blank if the NAV API is down/slow.
   const baselineHorizon: '3Y' | '5Y' | '1Y' = fund?.metrics['3Y']
     ? '3Y'
@@ -109,17 +144,30 @@ export default function FundDetail() {
   const peers = fundsByCategory(fund.category).filter((f) => f.code !== fund.code).slice(0, 4)
   const catDisplay = fund.categoryDisplay // captured (narrowed) for use inside helpers below
 
-  // Category-median volatility (from stored 3Y metrics) for a peer-relative
-  // read on the live volatility number. Computed once per category.
-  const catMedianVol = useMemo(() => {
-    const vols = fundsByCategory(fund.category)
-      .map((f) => f.metrics['3Y']?.volatility)
-      .filter((v): v is number => typeof v === 'number')
-      .sort((a, b) => a - b)
-    if (!vols.length) return null
-    const mid = Math.floor(vols.length / 2)
-    return vols.length % 2 ? vols[mid] : (vols[mid - 1] + vols[mid]) / 2
-  }, [fund.category])
+  // Benchmark peer for the NAV / drawdown charts (#16): there's no index NAV, so
+  // we overlay the category LEADER as a reference - #1 by 3Y rank, or #2 if this
+  // fund itself is #1. Gives an honest "vs the best in class" comparison.
+  const benchmarkPeer = useMemo(() => {
+    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+    if (!ranked.length) return null
+    const top = ranked[0]
+    if (top.code !== fund.code) return top
+    return ranked[1] ?? null
+  }, [fund.category, fund.code])
+
+  // Category metric distributions (from stored 3Y metrics) for spectrum peer
+  // context: each gives {min,max,median,best} so a metric's marker is placed
+  // among real peers, with the category median and best also marked.
+  const catStats = useMemo(
+    () => ({
+      volatility: categoryMetricStats(fund.category, 'volatility', false),
+      sharpe: categoryMetricStats(fund.category, 'sharpe', true),
+      sortino: categoryMetricStats(fund.category, 'sortino', true),
+      calmar: categoryMetricStats(fund.category, 'calmar', true),
+    }),
+    [fund.category],
+  )
+  const catMedianVol = catStats.volatility?.median ?? null
 
   // Build a plain-English volatility hint that says how this fund's swings
   // compare to its category peers (lower volatility = steadier ride).
@@ -136,15 +184,16 @@ export default function FundDetail() {
         : `more volatile than its ${catDisplay} peers (category median ${catMedianVol.toFixed(1)}%) - bigger swings`
     return `${base} This fund is ${rel}.`
   }
-  // Volatility tone vs category: steadier (below median) = good, higher = warn.
-  // Any below-median volatility reads green (user: "better than category is green").
-  function volatilityTone(v: number | undefined): 'default' | 'good' | 'warn' {
+  // Volatility vs category: steadier (below median) = good/green; more volatile
+  // (above median) = bad/red, per the user's ask ("> category should be red").
+  // A near-tie reads neutral so tiny differences don't flip color.
+  function volatilityTone(v: number | undefined): 'default' | 'good' | 'bad' {
     if (v == null || catMedianVol == null) return 'default'
-    if (v < catMedianVol) return 'good'
-    if (v >= catMedianVol + 2) return 'warn'
+    if (v < catMedianVol - 0.5) return 'good'
+    if (v > catMedianVol + 0.5) return 'bad'
     return 'default'
   }
-  // Drawdown is ALWAYS a loss — never green. Neutral when shallow, amber when
+  // Drawdown is ALWAYS a loss - never green. Neutral when shallow, amber when
   // moderate, red when deep. (A "good" drawdown would be a contradiction.)
   function drawdownTone(v: number | undefined): 'default' | 'warn' | 'bad' {
     if (v == null) return 'default'
@@ -153,13 +202,40 @@ export default function FundDetail() {
     return 'default'
   }
   // Risk-adjusted ratios (Sharpe / Sortino / Calmar): negative means it lost
-  // money per unit of risk — always red. 0–1 neutral, >=1 good. Consistent
+  // money per unit of risk - always red. 0-1 neutral, >=1 good. Consistent
   // across all three so a negative ratio never renders black or amber.
   function ratioTone(v: number | undefined): 'default' | 'good' | 'bad' {
     if (v == null || isNaN(v)) return 'default'
     if (v < 0) return 'bad'
     if (v >= 1) return 'good'
     return 'default'
+  }
+
+  // Build a category-pivot spectrum for a risk-adjusted ratio: domain = category
+  // [min,max], the "good" line (1.0) pinned to centre, this fund + category
+  // median + best marked. Returns undefined if no category stats.
+  function ratioSpec(v: number | undefined, stat: ReturnType<typeof categoryMetricStats>) {
+    if (v == null || isNaN(v) || !stat) return undefined
+    return ratioSpectrum({
+      value: v,
+      min: stat.min,
+      max: stat.max,
+      pivot: 1,
+      cat: { median: stat.median, best: stat.best },
+      fmt: (n) => n.toFixed(2),
+    })
+  }
+  // Volatility spectrum: lower is better, green at the steady (low) end.
+  function volSpec(v: number | undefined) {
+    const stat = catStats.volatility
+    if (v == null || isNaN(v) || !stat) return undefined
+    return lowerBetterSpectrum({
+      value: v,
+      min: stat.min,
+      max: stat.max,
+      cat: { median: stat.median, best: stat.best },
+      fmt: (n) => `${n.toFixed(1)}%`,
+    })
   }
 
   function handleRange(s: string, e: string, p: Preset) {
@@ -194,11 +270,11 @@ export default function FundDetail() {
         </button>
       </div>
 
-      {/* Range selector — the differentiator */}
+      {/* Range selector - the differentiator */}
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-faint">
-            Analysis period — pick any range
+            Analysis period - pick any range
           </h2>
           {live && (
             <span className="text-xs text-faint">
@@ -237,17 +313,18 @@ export default function FundDetail() {
             <MetricCard
               label={live.years >= 1 ? 'CAGR' : 'Return (period)'}
               value={live.years >= 1 ? pct(live.cagr) : pct(live.totalReturn)}
-              sub={live.years >= 1 ? `${pct(live.totalReturn)} total over ${live.years.toFixed(1)} yrs` : `${live.years.toFixed(2)} yrs`}
+              sub={live.years >= 1 ? `${pct(live.totalReturn)} absolute over ${live.years.toFixed(1)} yrs` : `${live.years.toFixed(2)} yrs`}
               tone={live.cagr >= 0 ? 'good' : 'bad'}
               hint={live.years >= 1
-                ? `CAGR is the annualized (per-year) return. "${pct(live.totalReturn)} total" is the cumulative growth over the whole ${live.years.toFixed(1)}-year period - e.g. Rs 1L would have become Rs ${(100000 * (1 + live.totalReturn / 100) / 1000).toFixed(0)}K.`
+                ? `CAGR is the annualized (per-year) return. "${pct(live.totalReturn)} absolute" is the cumulative (point-to-point) return over the whole ${live.years.toFixed(1)}-year period - e.g. Rs 1L would have become Rs ${(100000 * (1 + live.totalReturn / 100) / 1000).toFixed(0)}K.`
                 : 'Total return over the selected sub-1-year period (not annualized).'}
             />
             <MetricCard
               label="Sharpe Ratio"
               value={num(live.sharpe)}
               tone={ratioTone(live.sharpe)}
-              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis."
+              spectrum={ratioSpec(live.sharpe, catStats.sharpe)}
+              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range, with the real worst and best peer values printed at each end; the coloured caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marked '≥1.00' is the 'good' level (shown only when it falls in range)."
             />
             <MetricCard
               label="Max Drawdown"
@@ -255,30 +332,36 @@ export default function FundDetail() {
               sub={`${fmtMonth(live.maxDrawdownStart)} → ${fmtMonth(live.maxDrawdownEnd)}`}
               tone={drawdownTone(live.maxDrawdown)}
               note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
-              hint="Worst peak-to-trough fall within the selected period. The dates show when the fall began (prior peak) and bottomed out (trough). A drawdown is always a loss - shallower is better. The note flags if it overlapped a market-wide downturn (check the regime table below for how this fund fell vs its category)."
+              hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is always a loss; shallower is better."
             />
             <MetricCard
               label="Volatility"
               value={pct(live.volatility)}
-              sub={catMedianVol != null
-                ? (live.volatility < catMedianVol
-                    ? `Steadier than category (median ${catMedianVol.toFixed(1)}%)`
-                    : live.volatility > catMedianVol
-                      ? `More volatile than category (median ${catMedianVol.toFixed(1)}%)`
-                      : `In line with category (median ${catMedianVol.toFixed(1)}%)`)
-                : undefined}
-              subTone={catMedianVol != null ? volatilityTone(live.volatility) : 'default'}
               tone={volatilityTone(live.volatility)}
+              spectrum={volSpec(live.volatility)}
               hint={volatilityHint(live.volatility)}
             />
-            <MetricCard label="Sortino Ratio" value={num(live.sortino)} tone={ratioTone(live.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
-            <MetricCard label="Calmar Ratio" value={num(live.calmar)} tone={ratioTone(live.calmar)} hint="Return relative to the worst drawdown. Higher is better (above 1 is strong, above 3 excellent); below 0 means it lost money over the period." />
+            <MetricCard
+              label="Sortino Ratio"
+              value={num(live.sortino)}
+              tone={ratioTone(live.sortino)}
+              spectrum={ratioSpec(live.sortino, catStats.sortino)}
+              hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
+            />
+            <MetricCard
+              label="Calmar Ratio"
+              value={num(live.calmar)}
+              tone={ratioTone(live.calmar)}
+              spectrum={ratioSpec(live.calmar, catStats.calmar)}
+              hint="Return relative to the worst drawdown. Higher is better (above 1 strong, above 3 excellent); below 0 means it lost money. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
+            />
             <MetricCard
               label="Best Month"
               value={signedPct(live.best1M)}
               sub={`${fmtMonth(live.best1MStart)} → ${fmtMonth(live.best1MEnd)}`}
               tone="good"
-              hint="Best rolling 1-month return in this period, and the month-long window it occurred in."
+              note={riseContext(live.best1MStart, live.best1MEnd) ?? undefined}
+              hint="Best rolling 1-month return in this period, and when it happened."
             />
             <MetricCard
               label="Worst Month"
@@ -286,13 +369,13 @@ export default function FundDetail() {
               sub={`${fmtMonth(live.worst1MStart)} → ${fmtMonth(live.worst1MEnd)}`}
               tone="bad"
               note={fallReason(live.worst1MStart, live.worst1MEnd) ?? undefined}
-              hint="Worst rolling 1-month return in this period, and the month-long window it occurred in. The note flags if it overlapped a market-wide downturn."
+              hint="Worst rolling 1-month return in this period, and when it happened."
             />
           </div>
           <p className="mt-2 text-xs text-faint">
             ↑ All metrics are computed live from daily NAV for exactly{' '}
             <strong className="text-muted">{fmtDate(live.startDate)} → {fmtDate(live.endDate)}</strong>. Change the range
-            above and every number updates. This is the core of FairFund — no fund can hide behind a
+            above and every number updates. This is the core of FairFund - no fund can hide behind a
             cherry-picked window.
           </p>
         </>
@@ -311,7 +394,7 @@ export default function FundDetail() {
           <p className="mt-2 text-xs text-faint">
             ↑ Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
             {error
-              ? 'Live custom-range analysis is unavailable right now (NAV source not responding) — these baseline numbers still stand.'
+              ? 'Live custom-range analysis is unavailable right now (NAV source not responding) - these baseline numbers still stand.'
               : 'Pick a range above to recompute everything live from daily NAV.'}
           </p>
         </>
@@ -323,31 +406,37 @@ export default function FundDetail() {
 
       {/* Chart */}
       <div className="mt-6 card p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="inline-flex rounded-xl border border-line bg-surface2 p-1">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex rounded-lg border border-line bg-surface2 p-0.5">
             <button
               onClick={() => setChartMode('nav')}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${chartMode === 'nav' ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'nav' ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
             >
               NAV Growth
             </button>
             <button
               onClick={() => setChartMode('drawdown')}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
             >
               Drawdowns
             </button>
           </div>
-          <span className="text-xs text-faint">Live · selected range</span>
+          {benchmarkPeer && peerSlice.length > 1 && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
+              <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
+              <span className="ml-1 inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
+              {benchmarkPeer.metrics['3Y']?.catRank === 1 ? 'Category #1' : 'Top peer'}
+            </span>
+          )}
         </div>
-        <RangeChart points={slice} mode={chartMode} loading={loading} error={error} />
+        <p className="mb-2 text-xs text-faint">
+          Live, selected range{benchmarkPeer && peerSlice.length > 1 ? ` · dashed line = ${benchmarkPeer.name}` : ''}
+        </p>
+        <RangeChart points={slice} peer={peerSlice} peerName={benchmarkPeer?.name} mode={chartMode} loading={loading} error={error} />
       </div>
 
-      {/* Baseline verdict (from fixed-window analysis) */}
-      <div className="mt-6 card border-l-4 border-l-brand-500 p-5">
-        <h3 className="font-bold text-fg">Our take (3-year fixed-window basis)</h3>
-        <p className="mt-2 text-muted">{fund.verdict}</p>
-      </div>
+      {/* Overall verdict - fuses backward metrics + forward signals + management */}
+      <VerdictCard fund={fund} />
 
       {/* Forward-looking analytics (v3) */}
       <ForwardAnalytics fund={fund} nav={allNav} />

@@ -14,8 +14,8 @@ export interface ComputedMetrics {
   maxDrawdownEnd: string // ISO date of the trough
   calmar: number
   best1M: number // %
-  best1MStart: string // ISO date — start of the best rolling 1M window
-  best1MEnd: string // ISO date — end of the best rolling 1M window
+  best1MStart: string // ISO date - start of the best rolling 1M window
+  best1MEnd: string // ISO date - end of the best rolling 1M window
   worst1M: number // %
   worst1MStart: string
   worst1MEnd: string
@@ -87,7 +87,7 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
   const dDev = downside.length > 5 ? std(downside) * Math.sqrt(252) : 0.0001
   const sortino = dDev > 0 ? (cagr / 100 - RF_ANNUAL) / dDev : 0
 
-  // Max drawdown — track the peak (start) and trough (end) dates of the worst fall.
+  // Max drawdown - track the peak (start) and trough (end) dates of the worst fall.
   // cumSeries[i] corresponds to slice[i] (cumSeries[0] = 1 at slice[0]; each
   // subsequent point multiplies by that day's return).
   let cum = 1
@@ -122,7 +122,7 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
 
   const calmar = maxDrawdown !== 0 ? (cagr / 100 - RF_ANNUAL) / Math.abs(maxDrawdown / 100) : 0
 
-  // Best / worst rolling 1-month (21 trading days) — track the window endpoints.
+  // Best / worst rolling 1-month (21 trading days) - track the window endpoints.
   let best1M = -Infinity
   let worst1M = Infinity
   let bestStartIdx = 0
@@ -183,7 +183,7 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
   }
 }
 
-/** Preset range helpers — return [startISO, endISO] given the latest available date. */
+/** Preset range helpers - return [startISO, endISO] given the latest available date. */
 export function presetRange(
   preset: '1M' | '3M' | '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'MAX',
   earliest: string,
@@ -225,7 +225,7 @@ export function fmtDate(iso: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/** Compact month-year, e.g. "Mar 2020" — for tight metric sub-lines. */
+/** Compact month-year, e.g. "Mar 2020" - for tight metric sub-lines. */
 export function fmtMonth(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })

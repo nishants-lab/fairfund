@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ask, getLlmConfig } from '../lib/llm'
 
-const PRESET_SUMMARY = `In plain English: most websites rank a fund using whatever time period makes it look best. We don't. We check every fund over the exact same dates, only compare it to similar funds (small-cap vs small-cap, never small-cap vs large-cap), and measure whether the manager genuinely did better than the average fund of its type. We also let you test any fund over any time window you like. The goal is simple — show you the real picture, not a flattering one.`
+const PRESET_SUMMARY = `In plain English: most websites rank a fund using whatever time period makes it look best. We don't. We check every fund over the exact same dates, only compare it to similar funds (small-cap vs small-cap, never small-cap vs large-cap), and measure whether the manager genuinely did better than the average fund of its type. We also let you test any fund over any time window you like. The goal is simple: show you the real picture, not a flattering one.`
 
 export default function MethodologySummary() {
   const [summary, setSummary] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export default function MethodologySummary() {
           <div>
             <div className="font-bold text-fg">Explain this simply</div>
             <div className="text-sm text-muted">
-              Get a plain-English summary — no finance background needed.
+              Get a plain-English summary - no finance background needed.
             </div>
           </div>
         </div>
