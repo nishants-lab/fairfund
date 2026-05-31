@@ -6,6 +6,7 @@ import { fmtDate } from '../lib/metrics'
 import { funds } from '../lib/data'
 import Sparkline from './Sparkline'
 import InfoTip from './InfoTip'
+import Spectrum from './Spectrum'
 
 const DIR_STYLE: Record<string, { txt: string; tone: string; arrow: string }> = {
   climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400', arrow: '↑' },
@@ -77,6 +78,24 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
     }
   }, [fund])
 
+  // Comparison peer for the Form chart (#8): overlay this fund vs a reference.
+  // If this fund is #1 by 3Y-return rank, show #2; otherwise show #1. Ranked by
+  // rankTrajectory.currentRank (raw 3Y return rank — same basis as the sparkline).
+  const formPeer = useMemo(() => {
+    const inCat = funds.filter(
+      (f) => f.category === fund.category && f.analytics?.rankTrajectory?.spark?.length,
+    )
+    const myRank = a?.rankTrajectory?.currentRank ?? 999
+    // candidates ranked by their current 3Y-return rank (1 = best)
+    const ranked = inCat
+      .filter((f) => f.code !== fund.code)
+      .sort((x, y) => (x.analytics!.rankTrajectory!.currentRank) - (y.analytics!.rankTrajectory!.currentRank))
+    if (!ranked.length) return null
+    // if we're #1, the most useful comparison is the #2 fund; else the #1 fund
+    const target = myRank === 1 ? ranked[0] : ranked.find((f) => f.analytics!.rankTrajectory!.currentRank === 1) ?? ranked[0]
+    return target
+  }, [fund, a])
+
   const hasAny =
     a && (a.rankTrajectory || a.battingAverage || a.capture || a.alpha || a.meanReversion || a.regimes?.length)
   const navAvailable = nav.length > 30
@@ -118,12 +137,24 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               </span>
             </div>
             <div className="mt-2">
-              <Sparkline data={a.rankTrajectory.spark} />
+              <Sparkline data={a.rankTrajectory.spark} peer={formPeer?.analytics?.rankTrajectory?.spark} width={240} height={48} />
+            </div>
+            {/* legend for the two lines (#8) */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
+              <span className="inline-flex items-center gap-1">
+                <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> This fund
+              </span>
+              {formPeer && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
+                  {formPeer.analytics?.rankTrajectory?.currentRank === 1 ? 'Category #1' : 'Top peer'}: {shortName(formPeer)}
+                </span>
+              )}
             </div>
             <p className="mt-2 text-xs text-muted">
-              Was #{a.rankTrajectory.priorRank}/{a.rankTrajectory.priorPeers}, now #
-              {a.rankTrajectory.currentRank}/{a.rankTrajectory.currentPeers} in its category (rolling 3Y
-              rank over time; higher line = better).
+              By <strong>3-year return</strong>, was #{a.rankTrajectory.priorRank}/{a.rankTrajectory.priorPeers}, now #
+              {a.rankTrajectory.currentRank}/{a.rankTrajectory.currentPeers} in its category (higher line = better rank).
+              {' '}This is a return-rank lens; the headline "Rank #" at the top uses our risk-adjusted composite score, so the two can differ.
             </p>
             {a.rankTrajectory.limited && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Limited evidence — small category ({a.rankTrajectory.currentPeers} peers).</p>}
           </div>
@@ -146,11 +177,18 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               </InfoTip>
             </h4>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-fg">{a.battingAverage.pct}%</span>
+              <span className={`text-2xl font-extrabold ${a.battingAverage.pct >= 65 ? 'text-emerald-600 dark:text-emerald-400' : a.battingAverage.pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>{a.battingAverage.pct}%</span>
               <span className="text-xs text-faint">of 3Y windows beat the category median</span>
             </div>
-            <p className="mt-1 text-xs text-muted">
+            <Spectrum
+              value={a.battingAverage.pct / 100}
+              leftLabel="Inconsistent"
+              rightLabel="Very consistent"
+              gradient="rose-amber-emerald"
+            />
+            <p className="mt-2 text-xs text-muted">
               Across {a.battingAverage.n} rolling 3-year windows. Higher = more repeatable, less luck.
+              {' '}({a.battingAverage.pct >= 65 ? 'Strong' : a.battingAverage.pct >= 50 ? 'Middling' : 'Weak'} - beat peers in {a.battingAverage.pct}% of windows.)
             </p>
             {a.battingAverage.limited && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
@@ -182,16 +220,24 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             ) : (
               <>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className={`text-2xl font-extrabold ${a.alpha.couldBeLuck ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  <span className={`text-2xl font-extrabold ${a.alpha.confidence >= 90 ? 'text-emerald-600 dark:text-emerald-400' : a.alpha.confidence >= 70 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     {Math.round(a.alpha.confidence)}%
                   </span>
                   <span className="text-xs text-faint">confident it's skill, not chance</span>
                 </div>
-                <p className="mt-1 text-xs text-muted">
-                  {a.alpha.couldBeLuck
-                    ? 'Below our 95% bar — its edge could be luck.'
-                    : 'Statistically significant outperformance vs peers.'}{' '}
-                  Based on {a.alpha.n} monthly excess returns.
+                <Spectrum
+                  value={a.alpha.confidence / 100}
+                  leftLabel="Likely luck"
+                  rightLabel="Likely skill"
+                  gradient="rose-amber-emerald"
+                />
+                <p className="mt-2 text-xs text-muted">
+                  {a.alpha.confidence >= 90
+                    ? 'High confidence this edge is genuine skill.'
+                    : a.alpha.confidence >= 70
+                      ? 'Moderate confidence - leans skill, but not conclusive.'
+                      : 'Low confidence - its edge could well be luck.'}{' '}
+                  Based on {a.alpha.n} monthly excess returns. (Green ≥ 90%, amber 70-90%, red &lt; 70%.)
                 </p>
                 {peers.skill.length > 0 && (
                   <p className="mt-2 border-t border-line pt-2 text-xs text-faint">
@@ -227,12 +273,20 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               </InfoTip>
             </h4>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Stat label="Up-capture" value={a.capture.up != null ? `${a.capture.up}%` : '—'} tone="text-emerald-600 dark:text-emerald-400" />
-              <Stat label="Down-capture" value={a.capture.down != null ? `${a.capture.down}%` : '—'} tone="text-rose-600 dark:text-rose-400" />
+              <Stat
+                label="Up-capture"
+                value={a.capture.up != null ? `${a.capture.up}%` : '—'}
+                tone={a.capture.up == null ? 'text-faint' : a.capture.up >= 100 ? 'text-emerald-600 dark:text-emerald-400' : a.capture.up >= 90 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}
+              />
+              <Stat
+                label="Down-capture"
+                value={a.capture.down != null ? `${a.capture.down}%` : '—'}
+                tone={a.capture.down == null ? 'text-faint' : a.capture.down < 100 ? 'text-emerald-600 dark:text-emerald-400' : a.capture.down <= 110 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}
+              />
             </div>
             <p className="mt-2 text-xs text-muted">
-              Of its category's gains it captured {a.capture.up ?? '—'}%, of the losses {a.capture.down ?? '—'}%.
-              Lower down-capture = better downside protection.
+              Captured {a.capture.up ?? '—'}% of its category's gains and {a.capture.down ?? '—'}% of its losses.
+              {' '}<strong>Up-capture</strong>: higher is better (≥100% green). <strong>Down-capture</strong>: lower is better (&lt;100% green - it falls less than peers).
             </p>
             {peers.capture.length > 0 && (
               <p className="mt-2 border-t border-line pt-2 text-xs text-faint">
@@ -273,11 +327,19 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               {a.meanReversion.state === 'cold' && <span className="text-lg font-bold text-sky-600 dark:text-sky-400">❄️ Running cold</span>}
               {a.meanReversion.state === 'normal' && <span className="text-lg font-bold text-muted">In line with its norm</span>}
             </div>
-            <p className="mt-1 text-xs text-muted">
+            <Spectrum
+              value={Math.max(0, Math.min(1, (a.meanReversion.z + 3) / 6))}
+              leftLabel="❄️ Cold"
+              rightLabel="🔥 Hot"
+              gradient="emerald-amber-rose"
+              markerLabel={`z = ${num(a.meanReversion.z)}`}
+            />
+            <p className="mt-2 text-xs text-muted">
               Recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its typical {signedPct(a.meanReversion.norm1Y)}{' '}
               (z = {num(a.meanReversion.z)} - {zWords(a.meanReversion.z)}).
               {a.meanReversion.state === 'hot' && ' Far above norm - be cautious chasing it; returns tend to revert.'}
               {a.meanReversion.state === 'cold' && ' Below its norm - not a guarantee, but mean-reversion can cut both ways.'}
+              {a.meanReversion.state === 'normal' && ' Neither stretched nor depressed vs its own history.'}
             </p>
           </div>
         )}
