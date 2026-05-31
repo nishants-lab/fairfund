@@ -4,6 +4,8 @@ interface Props {
   sub?: string
   tone?: 'default' | 'good' | 'bad' | 'warn'
   hint?: string
+  note?: string
+  subTone?: 'default' | 'good' | 'bad' | 'warn'
 }
 
 const toneClasses: Record<NonNullable<Props['tone']>, string> = {
@@ -13,7 +15,14 @@ const toneClasses: Record<NonNullable<Props['tone']>, string> = {
   warn: 'text-amber-600 dark:text-amber-400',
 }
 
-export default function MetricCard({ label, value, sub, tone = 'default', hint }: Props) {
+const subToneClasses: Record<NonNullable<Props['tone']>, string> = {
+  default: 'text-muted',
+  good: 'text-emerald-600 dark:text-emerald-400',
+  bad: 'text-rose-600 dark:text-rose-400',
+  warn: 'text-amber-600 dark:text-amber-400',
+}
+
+export default function MetricCard({ label, value, sub, tone = 'default', hint, note, subTone = 'default' }: Props) {
   return (
     <div className="card p-4">
       <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-faint">
@@ -30,7 +39,8 @@ export default function MetricCard({ label, value, sub, tone = 'default', hint }
         )}
       </div>
       <div className={`mt-1 text-2xl font-bold ${toneClasses[tone]}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-muted">{sub}</div>}
+      {sub && <div className={`mt-0.5 text-xs ${subToneClasses[subTone]}`}>{sub}</div>}
+      {note && <div className="mt-1 text-[11px] leading-snug text-faint">{note}</div>}
     </div>
   )
 }
