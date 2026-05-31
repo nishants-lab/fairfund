@@ -181,9 +181,10 @@ export default function Methodology() {
 
       <Section title="Regime performance">
         <p>
-          The fund's return and peer-relative alpha in five fixed historical phases: the COVID crash
-          (Feb-Mar 2020), the recovery to Oct 2021, the 2022 correction, the 2022-24 bull run, and the
-          recent phase since Sep 2024. It reveals character: who protects in crashes and who leads in
+          The fund's return and peer-relative alpha in six fixed historical phases: the COVID crash
+          (Feb-Mar 2020), the recovery to Oct 2021, the 2022 correction, the 2022-24 bull run, the
+          2024-25 correction (Sep 2024 - Mar 2025), and the tariff & Iran-war era since Apr 2025. It
+          reveals character: who protects in crashes and who leads in
           bull runs. A fixed classification, not a prediction of future regimes.
         </p>
       </Section>
