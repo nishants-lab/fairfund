@@ -14,6 +14,30 @@ import ManagementCard from '../components/ManagementCard'
 import ForwardAnalytics from '../components/ForwardAnalytics'
 import type { NavPoint } from '../types'
 
+// Fixed market regimes (mirror scripts/build_analytics.py) with ISO bounds, so we
+// can explain WHY a drawdown / weak month happened: did it overlap a market-wide
+// downturn (likely not fund-specific) or not? Honest context, no fabrication.
+const REGIMES: { name: string; start: string; end: string; market: 'down' | 'up' | 'mixed'; note: string }[] = [
+  { name: 'the COVID crash', start: '2020-02-19', end: '2020-03-23', market: 'down', note: 'a market-wide crash, not fund-specific' },
+  { name: 'the COVID recovery rally', start: '2020-03-24', end: '2021-10-18', market: 'up', note: 'a broad bull market' },
+  { name: 'the 2022 correction', start: '2021-10-19', end: '2022-06-17', market: 'down', note: 'a market-wide correction (rate hikes, outflows)' },
+  { name: 'the 2022-24 bull run', start: '2022-06-18', end: '2024-09-27', market: 'up', note: 'a broad bull market led by mid & small caps' },
+  { name: 'the recent correction (since Sep 2024)', start: '2024-09-28', end: '2026-05-29', market: 'mixed', note: 'a market-wide pullback in late 2024/2025' },
+]
+
+/** Which regimes a [start,end] window overlaps — used to explain a drawdown/month. */
+function overlappingRegimes(start: string, end: string) {
+  return REGIMES.filter((r) => start <= r.end && end >= r.start)
+}
+
+/** Plain-English "potential reason" for a fall over a given window. */
+function fallReason(start: string, end: string): string | null {
+  const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'up')
+  if (hits.length === 0) return null
+  const names = hits.map((r) => `${r.name} (${r.note})`).join(' and ')
+  return `This period overlaps ${names} - so the fall was likely market-driven rather than fund-specific. Compare the "vs category" column in the market-regime table below to see if this fund fell more or less than its peers.`
+}
+
 export default function FundDetail() {
   const { code } = useParams()
   const navigate = useNavigate()
@@ -112,10 +136,11 @@ export default function FundDetail() {
         : `more volatile than its ${catDisplay} peers (category median ${catMedianVol.toFixed(1)}%) - bigger swings`
     return `${base} This fund is ${rel}.`
   }
-  // Volatility tone vs category: steadier=good, much higher=warn.
+  // Volatility tone vs category: steadier (below median) = good, higher = warn.
+  // Any below-median volatility reads green (user: "better than category is green").
   function volatilityTone(v: number | undefined): 'default' | 'good' | 'warn' {
     if (v == null || catMedianVol == null) return 'default'
-    if (v <= catMedianVol - 1) return 'good'
+    if (v < catMedianVol) return 'good'
     if (v >= catMedianVol + 2) return 'warn'
     return 'default'
   }
@@ -212,8 +237,11 @@ export default function FundDetail() {
             <MetricCard
               label={live.years >= 1 ? 'CAGR' : 'Return (period)'}
               value={live.years >= 1 ? pct(live.cagr) : pct(live.totalReturn)}
-              sub={live.years >= 1 ? `${pct(live.totalReturn)} total` : `${live.years.toFixed(2)} yrs`}
+              sub={live.years >= 1 ? `${pct(live.totalReturn)} total over ${live.years.toFixed(1)} yrs` : `${live.years.toFixed(2)} yrs`}
               tone={live.cagr >= 0 ? 'good' : 'bad'}
+              hint={live.years >= 1
+                ? `CAGR is the annualized (per-year) return. "${pct(live.totalReturn)} total" is the cumulative growth over the whole ${live.years.toFixed(1)}-year period - e.g. Rs 1L would have become Rs ${(100000 * (1 + live.totalReturn / 100) / 1000).toFixed(0)}K.`
+                : 'Total return over the selected sub-1-year period (not annualized).'}
             />
             <MetricCard
               label="Sharpe Ratio"
@@ -226,17 +254,25 @@ export default function FundDetail() {
               value={pct(live.maxDrawdown)}
               sub={`${fmtMonth(live.maxDrawdownStart)} → ${fmtMonth(live.maxDrawdownEnd)}`}
               tone={drawdownTone(live.maxDrawdown)}
-              hint="Worst peak-to-trough fall within the selected period. The dates show when the fall began (prior peak) and bottomed out (trough). A drawdown is always a loss - shallower is better."
+              note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
+              hint="Worst peak-to-trough fall within the selected period. The dates show when the fall began (prior peak) and bottomed out (trough). A drawdown is always a loss - shallower is better. The note flags if it overlapped a market-wide downturn (check the regime table below for how this fund fell vs its category)."
             />
             <MetricCard
               label="Volatility"
               value={pct(live.volatility)}
-              sub={catMedianVol != null ? `Category median ${catMedianVol.toFixed(1)}%` : undefined}
+              sub={catMedianVol != null
+                ? (live.volatility < catMedianVol
+                    ? `Steadier than category (median ${catMedianVol.toFixed(1)}%)`
+                    : live.volatility > catMedianVol
+                      ? `More volatile than category (median ${catMedianVol.toFixed(1)}%)`
+                      : `In line with category (median ${catMedianVol.toFixed(1)}%)`)
+                : undefined}
+              subTone={catMedianVol != null ? volatilityTone(live.volatility) : 'default'}
               tone={volatilityTone(live.volatility)}
               hint={volatilityHint(live.volatility)}
             />
             <MetricCard label="Sortino Ratio" value={num(live.sortino)} tone={ratioTone(live.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
-            <MetricCard label="Calmar Ratio" value={num(live.calmar)} tone={ratioTone(live.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the period." />
+            <MetricCard label="Calmar Ratio" value={num(live.calmar)} tone={ratioTone(live.calmar)} hint="Return relative to the worst drawdown. Higher is better (above 1 is strong, above 3 excellent); below 0 means it lost money over the period." />
             <MetricCard
               label="Best Month"
               value={signedPct(live.best1M)}
@@ -249,7 +285,8 @@ export default function FundDetail() {
               value={signedPct(live.worst1M)}
               sub={`${fmtMonth(live.worst1MStart)} → ${fmtMonth(live.worst1MEnd)}`}
               tone="bad"
-              hint="Worst rolling 1-month return in this period, and the month-long window it occurred in."
+              note={fallReason(live.worst1MStart, live.worst1MEnd) ?? undefined}
+              hint="Worst rolling 1-month return in this period, and the month-long window it occurred in. The note flags if it overlapped a market-wide downturn."
             />
           </div>
           <p className="mt-2 text-xs text-faint">

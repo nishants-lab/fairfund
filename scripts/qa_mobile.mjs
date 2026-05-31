@@ -133,19 +133,33 @@ async function run(apiDown) {
 
   // --- Mobile-specific functional checks (run once, under API-UP) ---
   if (!apiDown) {
-    // M1 mobile nav links visible (the md:hidden scroller) and tappable
+    // M1 mobile nav is a HAMBURGER: button present, links hidden until opened,
+    // then tappable. (Replaced the old always-visible md:hidden scroller.)
     await goto('')
-    const mobileNav = page.locator('nav.md\\:hidden a')
-    const navCount = await mobileNav.count()
-    check('M·mobile nav present', navCount >= 4, `links=${navCount}`)
+    const burger = page.locator('button[aria-label="Open menu"]')
+    const burgerVisible = await burger.isVisible().catch(() => false)
+    check('M·hamburger button present', burgerVisible)
+    // links should NOT be visible before opening
+    const linksBeforeOpen = await page.locator('nav a', { hasText: 'Explore' }).count()
+    // open the menu
+    await burger.click().catch(() => {})
+    await page.waitForTimeout(400)
+    const menuLinks = page.locator('nav a')
+    const navItems = await page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Goal Planner|Methodology/ }).count()
+    check('M·hamburger opens nav with all links', navItems >= 4, `visible links=${navItems} (before=${linksBeforeOpen})`)
 
-    // M2 tap targets: nav links should be >= 32px tall (usable on touch)
+    // M2 tap targets: opened nav links should be >= 40px tall (comfortable touch)
     let small = 0
-    for (let i = 0; i < navCount; i++) {
-      const box = await mobileNav.nth(i).boundingBox().catch(() => null)
-      if (box && box.height < 32) small++
+    const visLinks = page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Goal Planner|Methodology/ })
+    const vc = await visLinks.count()
+    for (let i = 0; i < vc; i++) {
+      const box = await visLinks.nth(i).boundingBox().catch(() => null)
+      if (box && box.height < 40) small++
     }
-    check('M·nav tap targets >=32px tall', small === 0, `${small} too small`)
+    check('M·nav tap targets >=40px tall', small === 0, `${small} too small`)
+    // close it again so it doesn't block later checks
+    await page.locator('button[aria-label="Close menu"]').click().catch(() => {})
+    await page.waitForTimeout(300)
 
     // M3 search box usable on mobile: opens, dropdown fits within viewport width
     await goto('')
