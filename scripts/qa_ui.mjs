@@ -149,8 +149,10 @@ async function run(apiDown) {
   if (!apiDown) {
     const hasPeriods = /[A-Z][a-z]{2} \d{4} → [A-Z][a-z]{2} \d{4}/.test(fdBody)
     check('C4 drawdown/month date sub-lines render', hasPeriods)
-    // volatility shows a category-median comparison (now phrased as a verdict)
-    check('C4 volatility shows category median', /category \(median \d+\.\d+%\)|Category median \d+\.\d+%/i.test(fdBody))
+    // volatility shows a category-median comparison — now carried by the
+    // spectrum gloss ("Below/Above the category median (NN.N%)") under the bar.
+    check('C4 volatility shows category median',
+      /(below|above|lowest|best|in line with).{0,40}categor.{0,30}median \d+\.\d+%|category median \(\d+\.\d+%\)/i.test(fdBody))
   }
 
   // C4-color: semantic-color correctness (the bug class the user caught).
@@ -184,39 +186,94 @@ async function run(apiDown) {
     check('C4 semantic colors (drawdown not green; negative ratios red)', colorCheck.length === 0, colorCheck.join(' | '))
 
     // C4b metric-card spectrums (#7): Volatility / Sharpe / Sortino / Calmar each
-    // show a gradient spectrum bar with a marker, and volatility ABOVE the
-    // category median renders red (the user's explicit ask).
+    // render a SELF-EXPLANATORY spectrum — a value pill + a "this fund" caret + a
+    // plain-English gloss — and the caret never escapes the bar. Also: a fund
+    // whose value equals its category extreme must sit at the matching edge (the
+    // anti-"floating mid-bar under CAT. HIGHEST" guard the user caught by eye).
     await goto(`fund/${stockFund.code}`)
     await page.waitForTimeout(1600)
     const spectrumInfo = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('.card')]
       const find = (lbl) => cards.find((c) => c.innerText.toUpperCase().startsWith(lbl))
-      const hasSpectrum = (lbl) => {
+      const labels = ['VOLATILITY', 'SHARPE', 'SORTINO', 'CALMAR']
+      const detail = {}
+      for (const lbl of labels) {
         const c = find(lbl)
-        if (!c) return false
-        // Spectrum renders a div whose inline background is a linear-gradient
-        return [...c.querySelectorAll('div')].some((d) => /linear-gradient/.test(d.style.background || ''))
+        if (!c) { detail[lbl] = { present: false }; continue }
+        const bar = [...c.querySelectorAll('div')].find((d) => /linear-gradient/.test(d.style.background || ''))
+        const caret = [...c.querySelectorAll('div')].find((d) => /border-t-\[7px\]/.test(d.className))
+        const pill = [...c.querySelectorAll('span')].find((s) => /rounded/.test(s.className) && /font-bold/.test(s.className) && /[\d.]/.test(s.textContent || ''))
+        const gloss = [...c.querySelectorAll('p')].find((p) => /font-medium/.test(p.className) && (p.textContent || '').length > 6)
+        const caretPct = caret ? parseFloat(caret.style.left) : null
+        detail[lbl] = {
+          present: !!bar,
+          hasCaret: !!caret,
+          hasPill: !!pill,
+          hasGloss: !!gloss && /categor/i.test(gloss.textContent || ''),
+          caretPct,
+          caretInBar: caretPct != null && caretPct >= -0.01 && caretPct <= 100.01,
+        }
       }
-      // volatility value color + whether its sub-line says "more volatile"
+      // volatility tone
       const vol = find('VOLATILITY')
-      let volColor = null, volMoreThanCat = false
+      let volColor = null, volAboveCat = false
       if (vol) {
         const v = [...vol.querySelectorAll('div')].find((d) => /text-2xl|font-bold/.test(d.className) && /%/.test(d.textContent))
         volColor = v ? getComputedStyle(v).color : null
-        volMoreThanCat = /more volatile than category/i.test(vol.innerText)
+        volAboveCat = /swingier than most peers|above the category median/i.test(vol.innerText)
       }
-      return {
-        spectra: ['VOLATILITY', 'SHARPE', 'SORTINO', 'CALMAR'].filter(hasSpectrum),
-        volColor,
-        volMoreThanCat,
-      }
+      return { detail, volColor, volAboveCat }
     })
-    check('C4 spectrums on volatility/sharpe/sortino/calmar',
-      spectrumInfo.spectra.length === 4, JSON.stringify(spectrumInfo.spectra))
+    const allFour = ['VOLATILITY', 'SHARPE', 'SORTINO', 'CALMAR']
+    check('C4 all four metric spectrums present', allFour.every((l) => spectrumInfo.detail[l]?.present), JSON.stringify(spectrumInfo.detail))
+    check('C4 each spectrum has value pill + caret + gloss (self-explanatory)',
+      allFour.every((l) => { const d = spectrumInfo.detail[l]; return d?.hasCaret && d?.hasPill && d?.hasGloss }),
+      JSON.stringify(spectrumInfo.detail))
+    check('C4 every "this fund" caret stays within the bar (0–100%)',
+      allFour.every((l) => spectrumInfo.detail[l]?.caretInBar),
+      JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.caretPct}`)))
     // if this fund is more volatile than its category, the value must be red
-    if (spectrumInfo.volMoreThanCat) {
+    if (spectrumInfo.volAboveCat) {
       const RED = /rgb\(225, 29, 72\)|rgb\(220, 38, 38\)|rgb\(244, 63, 94\)|rgb\(251, 113, 133\)/
       check('C4 above-category volatility is red', !!spectrumInfo.volColor && RED.test(spectrumInfo.volColor), spectrumInfo.volColor || 'no color')
+    }
+
+    // C4b2 anti-"floating mid-bar": find a fund that is its category BEST on a
+    // ratio and assert the caret sits at the right edge (≥95%), with no "Cat.
+    // highest"-style empty tail. This is the exact regression the user caught.
+    const bestRatioFund = (() => {
+      // pick a category + metric where some fund equals the category max (3Y)
+      const cats = [...new Set(funds.map((f) => f.category))]
+      for (const cat of cats) {
+        const inCat = funds.filter((f) => f.category === cat && f.metrics?.['3Y'])
+        if (inCat.length < 4) continue
+        for (const metric of ['calmar', 'sharpe', 'sortino']) {
+          const vals = inCat.map((f) => f.metrics['3Y'][metric]).filter((v) => typeof v === 'number')
+          if (vals.length < 4) continue
+          const mx = Math.max(...vals)
+          const top = inCat.find((f) => f.metrics['3Y'][metric] === mx && f.holdingsMeta?.coverage === 'stock_level')
+          if (top) return { code: top.code, metric }
+        }
+      }
+      return null
+    })()
+    if (bestRatioFund) {
+      await goto(`fund/${bestRatioFund.code}`)
+      await page.waitForTimeout(1600)
+      const edge = await page.evaluate((metric) => {
+        const lbl = metric.toUpperCase()
+        const c = [...document.querySelectorAll('.card')].find((x) => x.innerText.toUpperCase().startsWith(lbl))
+        if (!c) return null
+        const caret = [...c.querySelectorAll('div')].find((d) => /border-t-\[7px\]/.test(d.className))
+        const gloss = [...c.querySelectorAll('p')].find((p) => /font-medium/.test(p.className))
+        return { caretPct: caret ? parseFloat(caret.style.left) : null, gloss: gloss?.textContent || '' }
+      }, bestRatioFund.metric)
+      // NOTE: the live YTD/3Y value may differ from the stored 3Y baseline, so we
+      // assert the WEAKER condition that the bar is honest: IF the gloss says
+      // "best in its category", the caret must be at the right edge (≥95%).
+      const honest = !edge || !/best in its category/i.test(edge.gloss) || (edge.caretPct != null && edge.caretPct >= 95)
+      check('C4 category-best ratio caret sits at right edge (no floating mid-bar)',
+        honest, JSON.stringify({ fund: bestRatioFund, edge }))
     }
   }
 
@@ -427,15 +484,25 @@ async function run(apiDown) {
     check(`C10 cross-category warning (${label})`, /different categories|apples/i.test(cc))
   }
 
-  // C11 Planner, C12 Methodology
+  // C11 Goal Planner was REMOVED (product pivot to forward-looking). Assert it's
+  // gone: no "Goal Planner" nav link, and #/planner doesn't render a planner UI
+  // (no crash either — the app shell still renders).
+  const navHasPlanner = await page.locator('nav a', { hasText: 'Goal Planner' }).count()
   await goto('planner')
-  check(`C11 Planner loads (${label})`, (await bodyText()).length > 200)
+  const plannerBody = await bodyText()
+  const plannerUiGone = !/Goal Planner|Plan my goal|target amount|monthly investment/i.test(plannerBody)
+  check(`C11 Goal Planner removed (no nav link, no planner UI) (${label})`,
+    navHasPlanner === 0 && plannerUiGone, `navLink=${navHasPlanner}`)
+
+  // C12 Methodology
   await goto('methodology')
   const meth = await bodyText()
   check(`C12 Methodology sections (${label})`, meth.includes('Methodology') && meth.includes('Authoritative'))
-  // C12b Methodology documents the v3 forward-looking signals
+  // C12b Methodology documents the v3 forward-looking signals. Match on the
+  // stable section heading + the probability concept (the page says
+  // "probability-based" / "probability"), not a single brittle adjective.
   check(`C12 Methodology documents v3 signals (${label})`,
-    /Forward-looking signals/i.test(meth) && /probabilistic/i.test(meth))
+    /Forward-looking signals/i.test(meth) && /probabilit/i.test(meth))
 
   // C13 fund-count copy is DYNAMIC (reads data.totalFunds), not a stale literal.
   // Home hero + Footer should show the live count; guards the "838" hardcode class.

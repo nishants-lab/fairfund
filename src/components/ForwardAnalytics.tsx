@@ -215,8 +215,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               })}
             />
             <p className="mt-2 text-xs text-muted">
-              Across {a.battingAverage.n} rolling 3-year windows.
-              {' '}({a.battingAverage.pct >= 65 ? 'Strong' : a.battingAverage.pct >= 50 ? 'Middling' : 'Weak'}: beat peers in {a.battingAverage.pct}% of windows.)
+              Across {a.battingAverage.n} rolling 3-year windows — higher means more repeatable skill, less luck.
             </p>
             {a.battingAverage.limited && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
