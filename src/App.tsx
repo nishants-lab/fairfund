@@ -5,7 +5,6 @@ import Home from './pages/Home'
 import Explore from './pages/Explore'
 import FundDetail from './pages/FundDetail'
 import Compare from './pages/Compare'
-import Planner from './pages/Planner'
 import Methodology from './pages/Methodology'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
@@ -22,7 +21,6 @@ export default function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/fund/:code" element={<FundDetail />} />
           <Route path="/compare" element={<Compare />} />
-          <Route path="/planner" element={<Planner />} />
           <Route path="/methodology" element={<Methodology />} />
         </Routes>
       </main>

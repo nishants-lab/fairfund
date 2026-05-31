@@ -182,6 +182,42 @@ async function run(apiDown) {
       return issues
     })
     check('C4 semantic colors (drawdown not green; negative ratios red)', colorCheck.length === 0, colorCheck.join(' | '))
+
+    // C4b metric-card spectrums (#7): Volatility / Sharpe / Sortino / Calmar each
+    // show a gradient spectrum bar with a marker, and volatility ABOVE the
+    // category median renders red (the user's explicit ask).
+    await goto(`fund/${stockFund.code}`)
+    await page.waitForTimeout(1600)
+    const spectrumInfo = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('.card')]
+      const find = (lbl) => cards.find((c) => c.innerText.toUpperCase().startsWith(lbl))
+      const hasSpectrum = (lbl) => {
+        const c = find(lbl)
+        if (!c) return false
+        // Spectrum renders a div whose inline background is a linear-gradient
+        return [...c.querySelectorAll('div')].some((d) => /linear-gradient/.test(d.style.background || ''))
+      }
+      // volatility value color + whether its sub-line says "more volatile"
+      const vol = find('VOLATILITY')
+      let volColor = null, volMoreThanCat = false
+      if (vol) {
+        const v = [...vol.querySelectorAll('div')].find((d) => /text-2xl|font-bold/.test(d.className) && /%/.test(d.textContent))
+        volColor = v ? getComputedStyle(v).color : null
+        volMoreThanCat = /more volatile than category/i.test(vol.innerText)
+      }
+      return {
+        spectra: ['VOLATILITY', 'SHARPE', 'SORTINO', 'CALMAR'].filter(hasSpectrum),
+        volColor,
+        volMoreThanCat,
+      }
+    })
+    check('C4 spectrums on volatility/sharpe/sortino/calmar',
+      spectrumInfo.spectra.length === 4, JSON.stringify(spectrumInfo.spectra))
+    // if this fund is more volatile than its category, the value must be red
+    if (spectrumInfo.volMoreThanCat) {
+      const RED = /rgb\(225, 29, 72\)|rgb\(220, 38, 38\)|rgb\(244, 63, 94\)|rgb\(251, 113, 133\)/
+      check('C4 above-category volatility is red', !!spectrumInfo.volColor && RED.test(spectrumInfo.volColor), spectrumInfo.volColor || 'no color')
+    }
   }
 
   // C4d Forward-looking analytics section (v3) — uses a fund with the full build-time signal set.
@@ -191,24 +227,32 @@ async function run(apiDown) {
   const fwdBody = await bodyText()
   check(`C4 Forward-looking section present (${label})`,
     /Forward-looking signals/i.test(fwdBody), `code=${fwdFund.code}`)
-  // sparkline (rank trajectory) renders as inline SVG path
-  const sparkPaths = await page.locator('svg path[stroke="#2563eb"]').count()
-  check(`C4 trajectory sparkline renders (${label})`,
-    /Form \(rank trajectory\)/i.test(fwdBody) && sparkPaths > 0, `sparkPaths=${sparkPaths}`)
+  // sparkline (rank trajectory) renders as inline SVG with axes (#3): the chart
+  // now draws gridlines + month labels, so assert the labelled SVG is present.
+  const sparkAxes = await page.evaluate(() => {
+    const svg = document.querySelector('svg[aria-label="Rank percentile over time"]')
+    if (!svg) return null
+    const lines = svg.querySelectorAll('line').length
+    const texts = [...svg.querySelectorAll('text')].map((t) => t.textContent || '')
+    return { lines, hasPctLabels: texts.includes('0') && texts.includes('100'), hasMonth: texts.some((t) => /[A-Z][a-z]{2} '?\d{2}/.test(t)) }
+  })
+  check(`C4 trajectory sparkline renders with axes (${label})`,
+    /Rank trajectory/i.test(fwdBody) && !!sparkAxes && sparkAxes.lines >= 2 && sparkAxes.hasPctLabels && sparkAxes.hasMonth,
+    JSON.stringify(sparkAxes))
   // core build-time signal cards present
   check(`C4 consistency + skill cards (${label})`,
     /Consistency/i.test(fwdBody) && /Skill vs luck/i.test(fwdBody) && /Running hot\?/i.test(fwdBody))
   // client-side outcome cone (block-bootstrap) + horizon controls
-  const coneOk = /Modeled \d+Y outcome range/i.test(fwdBody) && /simulations/i.test(fwdBody)
+  const coneOk = /Modeled \d+-year range/i.test(fwdBody) && /simulations/i.test(fwdBody)
   check(`C4 outcome cone renders (${label})`, coneOk)
-  // horizon buttons change the cone — use 10Y (unique to the forward-looking horizon selector;
-  // the page's RangeSelector presets stop at 5Y, so this avoids a selector collision) and confirm recompute
-  const has10Y = await page.getByRole('button', { name: '10Y', exact: true }).count()
+  // horizon buttons change the cone — use the 10-year button (unique to the
+  // forward-looking holding-period selector) and confirm recompute
+  const has10Y = await page.getByRole('button', { name: '10 years', exact: true }).count()
   if (has10Y) {
-    await page.getByRole('button', { name: '10Y', exact: true }).first().click().catch(() => {})
+    await page.getByRole('button', { name: '10 years', exact: true }).first().click().catch(() => {})
     await page.waitForTimeout(900)
     const after = await bodyText()
-    check(`C4 horizon switch recomputes (${label})`, /Modeled 10Y outcome range/i.test(after))
+    check(`C4 horizon switch recomputes (${label})`, /What 10-year holds/i.test(after) || /Modeled 10-year range/i.test(after))
   }
   // regime table with the fixed regimes
   const regimeOk = /How it behaved in each market regime/i.test(fwdBody) &&
