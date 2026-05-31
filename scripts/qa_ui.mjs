@@ -186,10 +186,13 @@ async function run(apiDown) {
     check('C4 semantic colors (drawdown not green; negative ratios red)', colorCheck.length === 0, colorCheck.join(' | '))
 
     // C4b metric-card spectrums (#7): Volatility / Sharpe / Sortino / Calmar each
-    // render a SELF-EXPLANATORY spectrum — a value pill + a "this fund" caret + a
-    // plain-English gloss — and the caret never escapes the bar. Also: a fund
-    // whose value equals its category extreme must sit at the matching edge (the
-    // anti-"floating mid-bar under CAT. HIGHEST" guard the user caught by eye).
+    // render a SELF-EXPLANATORY spectrum where EVERY marker states its own value
+    // (no hover, no legend-hunting): a tone-coloured "this fund" caret with its
+    // value printed above it, a category-median tick labelled "med <value>", real
+    // numeric endpoint values at both bar ends, and a plain-English gloss. The
+    // caret never escapes the bar. Also: a fund whose value equals its category
+    // extreme must sit at the matching edge (the anti-"floating mid-bar under CAT.
+    // HIGHEST" guard the user caught by eye).
     await goto(`fund/${stockFund.code}`)
     await page.waitForTimeout(1600)
     const spectrumInfo = await page.evaluate(() => {
@@ -202,16 +205,25 @@ async function run(apiDown) {
         if (!c) { detail[lbl] = { present: false }; continue }
         const bar = [...c.querySelectorAll('div')].find((d) => /linear-gradient/.test(d.style.background || ''))
         const caret = [...c.querySelectorAll('div')].find((d) => /border-t-\[7px\]/.test(d.className))
-        const pill = [...c.querySelectorAll('span')].find((s) => /rounded/.test(s.className) && /font-bold/.test(s.className) && /[\d.]/.test(s.textContent || ''))
         const gloss = [...c.querySelectorAll('p')].find((p) => /font-medium/.test(p.className) && (p.textContent || '').length > 6)
         const caretPct = caret ? parseFloat(caret.style.left) : null
+        // value printed AT the fund caret (the bold, tone-coloured 11px span)
+        const fundValEl = [...c.querySelectorAll('span')].find((s) => /text-\[11px\]/.test(s.className) && /font-bold/.test(s.className))
+        // median value printed under the bar ("med <value>")
+        const medValEl = [...c.querySelectorAll('span')].find((s) => /text-\[10px\]/.test(s.className) && /^med\s/i.test((s.textContent || '').trim()))
+        // real numeric endpoint values at the two bar ends (font-semibold text-muted)
+        const endValEls = [...c.querySelectorAll('span')].filter((s) => /font-semibold/.test(s.className) && /text-muted/.test(s.className) && /[\d.]/.test(s.textContent || ''))
         detail[lbl] = {
           present: !!bar,
           hasCaret: !!caret,
-          hasPill: !!pill,
           hasGloss: !!gloss && /categor/i.test(gloss.textContent || ''),
+          fundValue: fundValEl ? (fundValEl.textContent || '').trim() : null,
+          medianValue: medValEl ? (medValEl.textContent || '').trim() : null,
+          endValueCount: endValEls.length,
           caretPct,
           caretInBar: caretPct != null && caretPct >= -0.01 && caretPct <= 100.01,
+          // feedback #2: the old uninformative end strings must be gone
+          hasOldPeerStrings: /weakest peer|strongest peer/i.test(c.innerText),
         }
       }
       // volatility tone
@@ -226,9 +238,25 @@ async function run(apiDown) {
     })
     const allFour = ['VOLATILITY', 'SHARPE', 'SORTINO', 'CALMAR']
     check('C4 all four metric spectrums present', allFour.every((l) => spectrumInfo.detail[l]?.present), JSON.stringify(spectrumInfo.detail))
-    check('C4 each spectrum has value pill + caret + gloss (self-explanatory)',
-      allFour.every((l) => { const d = spectrumInfo.detail[l]; return d?.hasCaret && d?.hasPill && d?.hasGloss }),
+    check('C4 each spectrum has caret + gloss (self-explanatory)',
+      allFour.every((l) => { const d = spectrumInfo.detail[l]; return d?.hasCaret && d?.hasGloss }),
       JSON.stringify(spectrumInfo.detail))
+    // feedback #1: each of the three markers communicates its value directly —
+    // the fund value sits on the caret, the median value under its tick, and the
+    // bar's two ends print real numeric endpoint values.
+    check('C4 each spectrum prints the fund value at its caret',
+      allFour.every((l) => { const d = spectrumInfo.detail[l]; return d?.fundValue && /[\d.]/.test(d.fundValue) }),
+      JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.fundValue}`)))
+    check('C4 each spectrum prints the category-median value at its tick',
+      allFour.every((l) => { const d = spectrumInfo.detail[l]; return d?.medianValue && /[\d.]/.test(d.medianValue) }),
+      JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.medianValue}`)))
+    check('C4 each spectrum prints real numeric values at both bar ends',
+      allFour.every((l) => (spectrumInfo.detail[l]?.endValueCount ?? 0) >= 2),
+      JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.endValueCount}`)))
+    // feedback #2: the uninformative "weakest/strongest peer" strings are gone.
+    check('C4 old "weakest/strongest peer" end labels removed',
+      allFour.every((l) => spectrumInfo.detail[l]?.hasOldPeerStrings === false),
+      JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.hasOldPeerStrings}`)))
     check('C4 every "this fund" caret stays within the bar (0–100%)',
       allFour.every((l) => spectrumInfo.detail[l]?.caretInBar),
       JSON.stringify(allFour.map((l) => `${l}:${spectrumInfo.detail[l]?.caretPct}`)))
