@@ -60,21 +60,21 @@ export default function Home() {
       {/* Quick actions */}
       <section className="mx-auto -mt-8 max-w-5xl px-4">
         <div className="grid gap-4 md:grid-cols-3">
-          <Link to="/planner" className="card group p-6 transition hover:shadow-md">
-            <div className="text-3xl">🎯</div>
-            <div className="mt-3 font-bold text-fg">Plan a Goal</div>
+          <Link to="/methodology" className="card group p-6 transition hover:shadow-md">
+            <div className="text-3xl">🧪</div>
+            <div className="mt-3 font-bold text-fg">How we rank</div>
             <p className="mt-1 text-sm text-muted">
-              Tell us your target. We’ll show if it’s achievable and what return you need.
+              See the method: identical windows, within-category ranking, peer-relative alpha and forward signals.
             </p>
             <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
-              Start planning →
+              Read the method →
             </div>
           </Link>
           <Link to="/compare" className="card group p-6 transition hover:shadow-md">
             <div className="text-3xl">⚖️</div>
             <div className="mt-3 font-bold text-fg">Compare Funds</div>
             <p className="mt-1 text-sm text-muted">
-              Put 2-3 funds side by side over any period. Same category or across - we'll flag it.
+              Put up to 5 funds side by side over any period. Same category or across; we'll flag it.
             </p>
             <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
               Compare now →

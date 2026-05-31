@@ -26,9 +26,9 @@ const STEPS: Step[] = [
     body: 'Want to see how a fund did in the last 6 months, or between two specific dates? Drag a slider or pick dates, and every number updates instantly. That flexibility is our superpower.',
   },
   {
-    emoji: '🎯',
-    title: 'Start with your goal',
-    body: 'Tell us what you’re saving for and how much you can invest. We’ll show whether your target is realistic and point you to funds that fit. Ready?',
+    emoji: '🔮',
+    title: 'Forward-looking, not just history',
+    body: 'Beyond past returns, we show probability-based signals: how consistent a fund has been, whether its edge looks like skill or luck, how it cushions falls, and a modeled range for the years ahead. Always evidence, never a guarantee.',
   },
 ]
 
@@ -101,11 +101,11 @@ export default function Onboarding() {
               )}
               {isLast ? (
                 <div className="flex gap-2">
-                  <button onClick={() => finish('/explore')} className="btn-ghost px-4 py-2 text-sm">
-                    Browse funds
+                  <button onClick={() => finish('/methodology')} className="btn-ghost px-4 py-2 text-sm">
+                    How it works
                   </button>
-                  <button onClick={() => finish('/planner')} className="btn-primary px-4 py-2 text-sm">
-                    Plan my goal →
+                  <button onClick={() => finish('/explore')} className="btn-primary px-4 py-2 text-sm">
+                    Explore funds →
                   </button>
                 </div>
               ) : (

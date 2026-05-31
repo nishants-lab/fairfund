@@ -54,14 +54,14 @@ export interface ChatMessage {
 
 /**
  * Build a compact knowledge context the model can ground its answers in.
- * We keep it small to stay within token limits — top funds per category + the
+ * We keep it small to stay within token limits - top funds per category + the
  * methodology summary.
  */
 export function buildKnowledgeContext(focusFund?: Fund): string {
   const lines: string[] = []
   lines.push(`FairFund analyses ${data.totalFunds} active Indian equity mutual funds (Direct-Growth plans).`)
   lines.push(
-    `Method: every fund is measured over identical calendar windows (1Y/3Y/5Y ending ${data.anchor}); funds are ranked only within their own category; "alpha vs peers" = a fund's annual return minus its category-median fund's return (manager skill, not just asset-class luck). Scoring uses the geometric mean of within-category percentile ranks across Sharpe, Sortino, Calmar, drawdown protection, alpha and CAGR — no arbitrary weights.`,
+    `Method: every fund is measured over identical calendar windows (1Y/3Y/5Y ending ${data.anchor}); funds are ranked only within their own category; "alpha vs peers" = a fund's annual return minus its category-median fund's return (manager skill, not just asset-class luck). Scoring uses the geometric mean of within-category percentile ranks across Sharpe, Sortino, Calmar, drawdown protection, alpha and CAGR - no arbitrary weights.`,
   )
 
   // Category leaders (3Y)
@@ -100,12 +100,12 @@ export function buildKnowledgeContext(focusFund?: Fund): string {
   return lines.join('\n')
 }
 
-const SYSTEM_PROMPT = `You are FairFund's assistant — a friendly, plain-spoken guide to Indian mutual fund research.
+const SYSTEM_PROMPT = `You are FairFund's assistant - a friendly, plain-spoken guide to Indian mutual fund research.
 Rules:
 - Be concise and clear. Avoid jargon; when you must use a term (alpha, Sharpe, drawdown), explain it in a few words.
 - Ground every answer ONLY in the provided FairFund data/context. If something isn't in the context, say you don't have that data rather than inventing it.
 - Never give personalised investment advice or tell someone exactly what to buy. Explain what the data shows and let them decide. Remind them you're not a SEBI-registered adviser when they ask "should I invest".
-- Keep answers short (2–5 sentences) unless asked for detail.`
+- Keep answers short (2-5 sentences) unless asked for detail.`
 
 /** Call the real LLM (OpenAI-compatible). Throws on failure. */
 export async function callLlm(messages: ChatMessage[], cfg: LlmConfig): Promise<string> {
@@ -165,7 +165,7 @@ export async function ask(
 }
 
 /**
- * Deterministic fallback "assistant" — answers common questions from the data
+ * Deterministic fallback "assistant" - answers common questions from the data
  * without any API. Pattern-matches the question and composes an answer.
  */
 export function fallbackAnswer(question: string, focusFund?: Fund): string {
@@ -173,19 +173,19 @@ export function fallbackAnswer(question: string, focusFund?: Fund): string {
 
   // Methodology questions
   if (q.includes('alpha')) {
-    return `Alpha vs peers is how much a fund beat (or trailed) the *median* fund in its own category, per year, over the same time window. Positive alpha means the manager genuinely added value — not just rode a hot asset class. ${focusFund && focusFund.metrics['3Y'] ? `For ${focusFund.name}, 3Y alpha is ${focusFund.metrics['3Y'].alpha >= 0 ? '+' : ''}${focusFund.metrics['3Y'].alpha}%.` : ''}`
+    return `Alpha vs peers is how much a fund beat (or trailed) the *median* fund in its own category, per year, over the same time window. Positive alpha means the manager genuinely added value - not just rode a hot asset class. ${focusFund && focusFund.metrics['3Y'] ? `For ${focusFund.name}, 3Y alpha is ${focusFund.metrics['3Y'].alpha >= 0 ? '+' : ''}${focusFund.metrics['3Y'].alpha}%.` : ''}`
   }
   if (q.includes('sharpe')) {
-    return `Sharpe ratio measures return per unit of total risk (volatility). Above 1 is excellent, 0.7–1 is solid. ${focusFund && focusFund.metrics['3Y'] ? `${focusFund.name} has a 3Y Sharpe of ${focusFund.metrics['3Y'].sharpe}.` : ''}`
+    return `Sharpe ratio measures return per unit of total risk (volatility). Above 1 is excellent, 0.7-1 is solid. ${focusFund && focusFund.metrics['3Y'] ? `${focusFund.name} has a 3Y Sharpe of ${focusFund.metrics['3Y'].sharpe}.` : ''}`
   }
   if (q.includes('drawdown')) {
-    return `Max drawdown is the worst peak-to-trough fall in a period — basically the biggest loss you'd have stomached. Smaller (less negative) is better. ${focusFund && focusFund.metrics['3Y'] ? `${focusFund.name}'s worst 3Y drawdown was ${focusFund.metrics['3Y'].maxDrawdown}%.` : ''}`
+    return `Max drawdown is the worst peak-to-trough fall in a period - basically the biggest loss you'd have stomached. Smaller (less negative) is better. ${focusFund && focusFund.metrics['3Y'] ? `${focusFund.name}'s worst 3Y drawdown was ${focusFund.metrics['3Y'].maxDrawdown}%.` : ''}`
   }
   if ((q.includes('how') && q.includes('rank')) || q.includes('methodology') || q.includes('fixed window') || q.includes('how do you')) {
     return `We measure every fund over the exact same dates (so a fund launched at a market low can't look artificially great), rank funds only against others in their own category, and score them on risk-adjusted metrics plus how much they beat their category's median fund. No cherry-picked timeframes, no arbitrary weightings.`
   }
   if (q.includes('should i') || q.includes('safe') || q.includes('buy')) {
-    return `I can't tell you what to buy — I'm a research tool, not a SEBI-registered adviser. What I can do is show you the data: rankings, risk-adjusted returns, and how a fund did over any period you pick. Use that to decide, ideally with a qualified advisor.`
+    return `I can't tell you what to buy - I'm a research tool, not a SEBI-registered adviser. What I can do is show you the data: rankings, risk-adjusted returns, and how a fund did over any period you pick. Use that to decide, ideally with a qualified advisor.`
   }
 
   // Fund-specific

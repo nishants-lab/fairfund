@@ -48,9 +48,9 @@ function parseSelfHosted(j: SelfHostedNav): NavPoint[] | null {
 
 /**
  * Fetch historical NAV. Strategy per requirement: LIVE FIRST, cache fallback.
- *   1. Live mfapi.in (fresh data) — with a 4s timeout so a slow/down API never
+ *   1. Live mfapi.in (fresh data) - with a 4s timeout so a slow/down API never
  *      hangs the page.
- *   2. Self-hosted same-origin file (./nav/{code}.json) — ALWAYS available on
+ *   2. Self-hosted same-origin file (./nav/{code}.json) - ALWAYS available on
  *      GitHub Pages, so the page is never blank even if mfapi is down/CORS-blocked.
  * Returns chronological (oldest -> newest) array of {date, nav}.
  */
@@ -69,7 +69,7 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
       }
     }
   } catch {
-    // network error / timeout / CORS — fall through to self-hosted
+    // network error / timeout / CORS - fall through to self-hosted
   }
 
   // 2) Self-hosted cache fallback (same origin, rock solid)

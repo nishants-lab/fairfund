@@ -18,7 +18,6 @@ export default function Footer() {
             <div className="flex flex-col gap-2">
               <Link to="/explore" className="text-muted hover:text-brand-600">Explore Funds</Link>
               <Link to="/compare" className="text-muted hover:text-brand-600">Compare</Link>
-              <Link to="/planner" className="text-muted hover:text-brand-600">Goal Planner</Link>
               <Link to="/methodology" className="text-muted hover:text-brand-600">How it works</Link>
               <button onClick={resetOnboarding} className="text-left text-muted hover:text-brand-600">
                 Take the tour
