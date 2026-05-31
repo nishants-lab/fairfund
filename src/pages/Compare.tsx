@@ -8,9 +8,10 @@ import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
 import { pct, signedPct, num, alphaColor } from '../lib/format'
+import { buildVerdict } from '../lib/verdict'
 import type { Fund, NavPoint } from '../types'
 
-// Up to 5 funds — 5 distinct, theme-safe series colors.
+// Up to 5 funds - 5 distinct, theme-safe series colors.
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
 const MAX_FUNDS = 5
 
@@ -190,13 +191,47 @@ export default function Compare() {
     return best
   }
 
+  // Generic winner index for any per-fund numeric value (used by the forward
+  // and management rows). `better` decides direction; ties yield the first.
+  function bestIdxBy(get: (f: Fund) => number | null | undefined, better: 'high' | 'low'): number {
+    let best = -1
+    let bestVal = better === 'high' ? -Infinity : Infinity
+    funds.forEach((f, i) => {
+      const v = get(f)
+      if (v == null || isNaN(v)) return
+      if (better === 'high' ? v > bestVal : v < bestVal) {
+        bestVal = v
+        best = i
+      }
+    })
+    return best
+  }
+
+  // Green pill class for the winning cell in a row (#17). Applies whenever there
+  // is more than one fund; a small caption warns when categories differ.
+  const winClass = 'rounded-md bg-emerald-50 px-2 py-0.5 dark:bg-emerald-900/30'
+
+  // Overall verdicts for the final row (#18) - conviction score per fund.
+  const verdicts = useMemo(() => funds.map((f) => buildVerdict(f)), [funds])
+  const verdictWinner = useMemo(() => {
+    let best = -1
+    let bestVal = -Infinity
+    verdicts.forEach((v, i) => {
+      if (v.score > bestVal) {
+        bestVal = v.score
+        best = i
+      }
+    })
+    return best
+  }, [verdicts])
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-bold text-fg">Compare Funds</h1>
       <p className="mt-1 text-sm text-muted">
         Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
-        recompute live. Same category gives the cleanest comparison; mixing categories is allowed -
-        we'll flag it.
+        recompute live. Same category gives the cleanest comparison; mixing categories is allowed and
+        we'll flag it. Green highlights the best fund on each row.
       </p>
 
       {funds.length < MAX_FUNDS && (
@@ -210,8 +245,9 @@ export default function Compare() {
           <span className="text-fg">⚠️</span>
           <div>
             <strong>You’re comparing different categories.</strong> These funds carry different risk
-            levels, so raw returns aren’t apples-to-apples. A small-cap “winning” on CAGR is expected —
-            it takes more risk. Weigh the risk metrics (drawdown, volatility) alongside returns.
+            levels, so raw returns aren’t apples-to-apples. A small-cap "winning" on CAGR is expected;
+            it takes more risk. Weigh the risk metrics (drawdown, volatility) alongside returns. The
+            per-row green highlight still marks the higher number, not necessarily the better fit.
           </div>
         </div>
       )}
@@ -231,7 +267,7 @@ export default function Compare() {
                   <Link
                     to={`/fund/${f.code}`}
                     className="text-sm font-semibold text-fg hover:text-brand-600 hover:underline"
-                    title={`Open ${f.name} — use your browser Back to return here`}
+                    title={`Open ${f.name} - use your browser Back to return here`}
                   >
                     {f.name}
                   </Link>
@@ -265,7 +301,7 @@ export default function Compare() {
           ) : (
             <div className="mt-5 rounded-xl border border-line bg-surface2/50 p-3 text-xs text-muted">
               Showing our <strong>{storedHorizon} fixed-window</strong> metrics. Live NAV (for a custom
-              date range) is loading — if it doesn’t appear, the NAV source is temporarily unavailable
+              date range) is loading - if it doesn’t appear, the NAV source is temporarily unavailable
               and these baseline numbers still stand.
             </div>
           )}
@@ -278,7 +314,7 @@ export default function Compare() {
             </p>
           )}
 
-          {/* Comparison table — sticky first column (metric) stays in view on
+          {/* Comparison table - sticky first column (metric) stays in view on
               horizontal scroll; sticky header (fund names) stays on vertical
               scroll. The wrapper scrolls internally so the PAGE never scrolls
               horizontally on mobile (the bug class we guard against). */}
@@ -314,7 +350,7 @@ export default function Compare() {
                       {funds.map((f, i) => {
                         const m = effective(f).m
                         const v = m ? (m[row.key] as number | undefined) : undefined
-                        const isWinner = i === winner && funds.length > 1 && !crossCategory
+                        const isWinner = i === winner && funds.length > 1
                         const period = row.sub ? periodFor(f, row.key) : ''
                         return (
                           <td key={f.code} className="px-4 py-3 text-right align-top">
@@ -324,7 +360,7 @@ export default function Compare() {
                               <>
                                 <span
                                   className={`font-semibold ${valueToneClass(row.key, v as number)} ${
-                                    isWinner ? 'rounded-md bg-emerald-50 px-2 py-0.5 dark:bg-emerald-900/30' : ''
+                                    isWinner ? winClass : ''
                                   }`}
                                 >
                                   {row.fmt(v as number)}
@@ -343,20 +379,30 @@ export default function Compare() {
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">
                     Category Rank <span className="text-xs text-faint">(3Y baseline)</span>
                   </td>
-                  {funds.map((f) => (
-                    <td key={f.code} className="px-4 py-3 text-right text-muted">
-                      {f.metrics['3Y'] ? `#${f.metrics['3Y'].catRank} / ${f.categorySize}` : '—'}
-                    </td>
-                  ))}
+                  {funds.map((f, i) => {
+                    const win = bestIdxBy((x) => x.metrics['3Y'] ? -x.metrics['3Y']!.catRank : null, 'high')
+                    return (
+                      <td key={f.code} className="px-4 py-3 text-right text-muted">
+                        <span className={i === win && funds.length > 1 ? winClass + ' font-semibold text-fg' : ''}>
+                          {f.metrics['3Y'] ? `#${f.metrics['3Y'].catRank} / ${f.categorySize}` : '—'}
+                        </span>
+                      </td>
+                    )
+                  })}
                 </tr>
                 {/* Manager tenure */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Manager tenure</td>
-                  {funds.map((f) => (
-                    <td key={f.code} className="px-4 py-3 text-right text-fg">
-                      {f.management?.avgTenureYears != null ? `${f.management.avgTenureYears} yrs` : '—'}
-                    </td>
-                  ))}
+                  {funds.map((f, i) => {
+                    const win = bestIdxBy((x) => x.management?.avgTenureYears, 'high')
+                    return (
+                      <td key={f.code} className="px-4 py-3 text-right text-fg">
+                        <span className={i === win && funds.length > 1 ? winClass : ''}>
+                          {f.management?.avgTenureYears != null ? `${f.management.avgTenureYears} yrs` : '—'}
+                        </span>
+                      </td>
+                    )
+                  })}
                 </tr>
                 {/* Management quality signal */}
                 <tr className="border-b border-line">
@@ -380,11 +426,16 @@ export default function Compare() {
                 {/* Consistency (batting average) */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Consistency <span className="text-xs text-faint">(% 3Y windows beat peers)</span></td>
-                  {funds.map((f) => (
-                    <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
-                      {f.analytics?.battingAverage ? `${f.analytics.battingAverage.pct}%` : '—'}
-                    </td>
-                  ))}
+                  {funds.map((f, i) => {
+                    const win = bestIdxBy((x) => x.analytics?.battingAverage?.pct, 'high')
+                    return (
+                      <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
+                        <span className={i === win && funds.length > 1 ? winClass : ''}>
+                          {f.analytics?.battingAverage ? `${f.analytics.battingAverage.pct}%` : '—'}
+                        </span>
+                      </td>
+                    )
+                  })}
                 </tr>
                 {/* Form / trajectory */}
                 <tr className="border-b border-line">
@@ -399,30 +450,55 @@ export default function Compare() {
                 {/* Skill confidence */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Skill confidence <span className="text-xs text-faint">(alpha vs luck)</span></td>
-                  {funds.map((f) => {
+                  {funds.map((f, i) => {
                     const al = f.analytics?.alpha
                     if (!al || al.confidence == null) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
+                    const win = bestIdxBy((x) => x.analytics?.alpha?.confidence, 'high')
                     const tone = al.couldBeLuck ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
-                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{Math.round(al.confidence)}%</td>
+                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}><span className={i === win && funds.length > 1 ? winClass : ''}>{Math.round(al.confidence)}%</span></td>
                   })}
                 </tr>
                 {/* Down-capture */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Down-capture <span className="text-xs text-faint">(lower = better)</span></td>
-                  {funds.map((f) => (
-                    <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
-                      {f.analytics?.capture?.down != null ? `${f.analytics.capture.down}%` : '—'}
-                    </td>
-                  ))}
+                  {funds.map((f, i) => {
+                    const win = bestIdxBy((x) => x.analytics?.capture?.down, 'low')
+                    return (
+                      <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
+                        <span className={i === win && funds.length > 1 ? winClass : ''}>
+                          {f.analytics?.capture?.down != null ? `${f.analytics.capture.down}%` : '—'}
+                        </span>
+                      </td>
+                    )
+                  })}
                 </tr>
                 {/* Running hot/cold */}
-                <tr>
+                <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Momentum state</td>
                   {funds.map((f) => {
                     const mr = f.analytics?.meanReversion
                     if (!mr) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
                     const label = mr.state === 'hot' ? '🔥 Hot' : mr.state === 'cold' ? '❄️ Cold' : 'Normal'
                     return <td key={f.code} className="px-4 py-3 text-right text-fg">{label}</td>
+                  })}
+                </tr>
+                {/* FINAL VERDICT (#18) - overall conviction fusing backward + forward */}
+                <tr className="border-t-2 border-line bg-surface2/40">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface2 px-4 py-3 font-bold text-fg">
+                    Overall verdict <span className="text-xs font-normal text-faint">(all signals)</span>
+                  </td>
+                  {funds.map((f, i) => {
+                    const v = verdicts[i]
+                    const isWin = i === verdictWinner && funds.length > 1
+                    const tone = v.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : v.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+                    return (
+                      <td key={f.code} className="px-4 py-3 text-right align-top">
+                        <div className={`inline-flex flex-col items-end ${isWin ? winClass : ''}`}>
+                          <span className={`font-bold ${tone}`}>{v.label}</span>
+                          <span className="text-[11px] text-faint">{v.score}/100{isWin ? ' · best' : ''}</span>
+                        </div>
+                      </td>
+                    )
                   })}
                 </tr>
               </tbody>

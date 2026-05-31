@@ -231,10 +231,10 @@ function SettingsPanel({ onClose }: { onClose: () => void }) {
     <div className="flex-1 overflow-y-auto p-4">
       <h3 className="font-bold text-fg">AI Settings (optional)</h3>
       <p className="mt-1 text-xs text-muted">
-        FairFund’s assistant works instantly — no key, no setup — using our built-in engine grounded
+        FairFund’s assistant works instantly - no key, no setup - using our built-in engine grounded
         in the fund data. Prefer fuller, conversational replies? Add <strong>your own</strong> AI key
         below. It’s stored <strong>only in this browser</strong> and sent only to the provider you
-        choose — never to us.
+        choose - never to us.
       </p>
 
       <label className="mt-4 block text-xs font-semibold text-muted">API Endpoint</label>
@@ -277,7 +277,7 @@ function SettingsPanel({ onClose }: { onClose: () => void }) {
 
       <div className="mt-4 rounded-lg bg-amber-50 p-3 text-[11px] text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
         Tip: a key with usage limits is safest. Your browser talks to the AI provider directly, so
-        your key never passes through FairFund’s servers (there aren’t any — it’s a static site).
+        your key never passes through FairFund’s servers (there aren’t any - it’s a static site).
       </div>
     </div>
   )

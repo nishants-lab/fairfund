@@ -17,9 +17,9 @@ function overlapTone(pct: number): string {
 }
 
 function overlapVerdict(pct: number): string {
-  if (pct >= 50) return 'High overlap — these funds largely duplicate each other.'
-  if (pct >= 25) return 'Moderate overlap — meaningful shared exposure.'
-  if (pct > 0) return 'Low overlap — mostly complementary holdings.'
+  if (pct >= 50) return 'High overlap - these funds largely duplicate each other.'
+  if (pct >= 25) return 'Moderate overlap - meaningful shared exposure.'
+  if (pct > 0) return 'Low overlap - mostly complementary holdings.'
   return 'No shared stock-level holdings.'
 }
 
@@ -29,7 +29,7 @@ export default function HoldingsOverlap({ funds }: { funds: Fund[] }) {
 
   if (funds.length < 2) return null
 
-  // Funds without usable holdings (feeders / unresolved) — call out honestly.
+  // Funds without usable holdings (feeders / unresolved) - call out honestly.
   const noData = funds.filter((_, i) => !overlap.hasData[i])
 
   return (
@@ -125,7 +125,7 @@ export default function HoldingsOverlap({ funds }: { funds: Fund[] }) {
             </div>
           ) : (
             <div className="mt-4 rounded-xl bg-surface2 p-4 text-center text-sm text-muted">
-              These funds share no common holdings in their latest disclosures — fully complementary.
+              These funds share no common holdings in their latest disclosures - fully complementary.
             </div>
           )}
           {overlap.shared.length > 20 && (
