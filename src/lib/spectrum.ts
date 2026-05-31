@@ -3,21 +3,28 @@
  * gradient + marker layout for the <Spectrum> component.
  *
  * DESIGN BAR (must hold for every model):
- *  1. The scale never lies. The bar's left and right edges are REAL values, and
- *     every marker's position is that value's true linear position on that
- *     scale. If a fund is the category best, its marker sits at the right edge -
- *     it must never float mid-bar under a "highest" label.
- *  2. Self-explanatory without reading text: the fund is a distinct caret with
- *     its value floating on it (primaryAbove + label), coloured by good/bad; the
- *     category median is a labelled tick; a one-line `gloss` states where it sits.
+ *  1. The scale never lies. The bar's left and right edges are REAL values
+ *     (exposed as `minLabel`/`maxLabel`), and every marker's position is that
+ *     value's true linear position on that scale. If a fund is the category
+ *     best, its marker sits at the right edge - never floating mid-bar under a
+ *     "highest" label.
+ *  2. Self-explanatory without reading prose. Every marker carries its own
+ *     value: the fund (primary marker `label`), the category median (median
+ *     marker `label`), and the "good ≥ pivot" reference (`pivotLabel`). The
+ *     <Spectrum> component renders each value AT its marker, so the reader never
+ *     has to hover or hunt in a legend. The bar's two ends print their real
+ *     numeric values plus a one-word direction (e.g. "Worse → Better"), which
+ *     replaces the old, uninformative "weakest peer / strongest peer" strings.
  *
  * Two flavours:
  *  - THRESHOLD bands (fixed 0..100 domain): colour changes at meaningful cut-offs
  *    so the green zone is only as wide as "good" actually is (skill, consistency).
+ *    The ends are self-evident (0..100), so no numeric endpoint labels are set -
+ *    only the direction words (leftLabel/rightLabel).
  *  - CATEGORY range (domain = real peer min..max): the bar spans the category's
- *    actual spread, so both ends are real peer values and the fund's marker shows
- *    its true rank among peers. A "good ≥ pivot" reference tick is drawn ONLY if
- *    the pivot falls within the real range (never implied where no peer reaches it).
+ *    actual spread, so both ends are real peer values (set as minLabel/maxLabel)
+ *    and the fund's marker shows its true rank among peers. A "good ≥ pivot"
+ *    reference tick is drawn ONLY if the pivot falls within the real range.
  *
  * All functions are deterministic and side-effect free → unit-tested in qa_spectrum.
  */
@@ -35,7 +42,7 @@ export interface SpectrumStop {
 export interface SpectrumMarker {
   pos: number // 0..1 (already scaled)
   kind: 'primary' | 'median' | 'best'
-  label?: string // short legend label, e.g. "1.04", "med 0.8"
+  label?: string // value shown AT the marker, e.g. "1.04", "med 0.70", "best 92%"
   tick?: boolean // render as a thin vertical tick rather than a dot
 }
 export interface SpectrumModel {
@@ -43,13 +50,17 @@ export interface SpectrumModel {
   markers: SpectrumMarker[]
   leftLabel: string
   rightLabel: string
+  /** Real value at the bar's left edge (e.g. weakest peer), shown under the end. */
+  minLabel?: string
+  /** Real value at the bar's right edge (e.g. strongest peer), shown under the end. */
+  maxLabel?: string
   pivotPos?: number // optional reference tick position (e.g. the "1.0 = good" line)
   pivotLabel?: string
-  /** Render the primary (this-fund) marker as a caret + value pill ABOVE the bar. */
+  /** Render the primary (this-fund) marker as a caret + value ABOVE the bar. */
   primaryAbove?: boolean
-  /** Tone for the primary marker + value pill (good/bad/warn/neutral). */
+  /** Tone for the primary marker + its value (good/bad/warn/neutral). */
   primaryTone?: Tone
-  /** Plain-English "where it sits" line, shown under the bar. */
+  /** Plain-English "where it sits" line, shown under the bar (extra context). */
   gloss?: string
   glossTone?: Tone
 }
@@ -104,40 +115,41 @@ export function bandSpectrum(opts: {
       : value >= lowMid
         ? `Middling — amber zone (${fmt(lowMid)}–${fmt(midHigh)}).`
         : `Weak — red zone (below ${fmt(lowMid)}).`
+  // Fixed 0..100 domain → the ends are self-evident, so we don't print numeric
+  // endpoint values; the direction words alone carry the meaning.
   return { stops, markers, leftLabel, rightLabel, primaryAbove: true, primaryTone, gloss, glossTone: primaryTone }
 }
 
 /**
  * Build the "where does it sit vs peers" gloss + tone for a category-range metric.
  * `higherBetter` flips the language (a high ratio is good; high volatility is bad).
+ * The fund's OWN value is intentionally left out of the gloss — it is already shown
+ * large in the card headline and again on the bar's caret — so we don't print the
+ * same number three times. The category median (which is NOT shown elsewhere as a
+ * sentence) is named so the comparison is concrete even in prose.
  */
 function categoryGloss(
   value: number,
   stat: { min: number; max: number; median: number },
   fmt: (n: number) => string,
   higherBetter: boolean,
-  unit = '',
 ): { gloss: string; tone: Tone } {
   const { min, max, median } = stat
   const eps = 1e-9
+  const med = fmt(median)
   const isTop = higherBetter ? value >= max - eps : value <= min + eps
   const isBottom = higherBetter ? value <= min + eps : value >= max - eps
   const beatsMedian = higherBetter ? value > median : value < median
-  if (isTop) return { gloss: `Best in its category — ${fmt(value)}${unit} vs a ${fmt(median)}${unit} median.`, tone: 'good' }
-  if (isBottom) return { gloss: `Lowest in its category — ${fmt(value)}${unit} vs a ${fmt(median)}${unit} median.`, tone: 'bad' }
-  if (beatsMedian)
-    return {
-      gloss: higherBetter
-        ? `Above the category median (${fmt(median)}${unit}) — better than most peers.`
-        : `Below the category median (${fmt(median)}${unit}) — steadier than most peers.`,
-      tone: 'good',
-    }
-  return {
-    gloss: higherBetter
-      ? `Below the category median (${fmt(median)}${unit}) — trails most peers.`
-      : `Above the category median (${fmt(median)}${unit}) — swingier than most peers.`,
-    tone: 'warn',
+  if (higherBetter) {
+    if (isTop) return { gloss: `Best in its category, above the category median (${med}).`, tone: 'good' }
+    if (isBottom) return { gloss: `Lowest in its category, below the category median (${med}).`, tone: 'bad' }
+    if (beatsMedian) return { gloss: `Above the category median (${med}) — better than most peers.`, tone: 'good' }
+    return { gloss: `Below the category median (${med}) — trails most peers.`, tone: 'warn' }
   }
+  if (isTop) return { gloss: `Steadiest in its category, below the category median (${med}).`, tone: 'good' }
+  if (isBottom) return { gloss: `Swingiest in its category, above the category median (${med}).`, tone: 'bad' }
+  if (beatsMedian) return { gloss: `Below the category median (${med}) — steadier than most peers.`, tone: 'good' }
+  return { gloss: `Above the category median (${med}) — swingier than most peers.`, tone: 'warn' }
 }
 
 /**
@@ -146,7 +158,8 @@ function categoryGloss(
  * this fund if it is an outlier), coloured worst→best (red→green). The fund's value
  * sits at its true position; the category median is a tick. A "good ≥ pivot" tick
  * (1.0 by default) is drawn ONLY if the pivot is within the real range, so we never
- * imply a green "good" zone that no peer actually reaches.
+ * imply a green "good" zone that no peer actually reaches. The bar's ends carry the
+ * real min/max peer values (minLabel/maxLabel).
  */
 export function ratioSpectrum(opts: {
   value: number
@@ -181,8 +194,10 @@ export function ratioSpectrum(opts: {
   const model: SpectrumModel = {
     stops,
     markers,
-    leftLabel: opts.leftLabel ?? 'Weakest peer',
-    rightLabel: opts.rightLabel ?? 'Strongest peer',
+    leftLabel: opts.leftLabel ?? 'Worse',
+    rightLabel: opts.rightLabel ?? 'Better',
+    minLabel: fmt(lo),
+    maxLabel: fmt(hi),
     primaryAbove: true,
     primaryTone,
     gloss,
@@ -200,6 +215,7 @@ export function ratioSpectrum(opts: {
  * Category-range spectrum for a "lower is better" metric (volatility): domain is
  * the real peer [min,max] (padded to include this fund), coloured green at the LOW
  * (steady) end → red at the high (swingy) end. Markers: this fund (caret) + median.
+ * The bar's ends carry the real min/max peer values (minLabel/maxLabel).
  */
 export function lowerBetterSpectrum(opts: {
   value: number
@@ -234,8 +250,10 @@ export function lowerBetterSpectrum(opts: {
   return {
     stops,
     markers,
-    leftLabel: opts.leftLabel ?? 'Steadiest',
-    rightLabel: opts.rightLabel ?? 'Swingiest',
+    leftLabel: opts.leftLabel ?? 'Steadier',
+    rightLabel: opts.rightLabel ?? 'Swingier',
+    minLabel: fmt(lo),
+    maxLabel: fmt(hi),
     primaryAbove: true,
     primaryTone,
     gloss,

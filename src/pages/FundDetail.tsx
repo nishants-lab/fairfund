@@ -323,7 +323,7 @@ export default function FundDetail() {
               value={num(live.sharpe)}
               tone={ratioTone(live.sharpe)}
               spectrum={ratioSpec(live.sharpe, catStats.sharpe)}
-              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range (weakest to strongest peer); the caret is this fund, the tick is the category median, and a faint line marks the 1.0 'good' level when it falls in range."
+              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range, with the real worst and best peer values printed at each end; the coloured caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marked '≥1.00' is the 'good' level (shown only when it falls in range)."
             />
             <MetricCard
               label="Max Drawdown"
@@ -345,14 +345,14 @@ export default function FundDetail() {
               value={num(live.sortino)}
               tone={ratioTone(live.sortino)}
               spectrum={ratioSpec(live.sortino, catStats.sortino)}
-              hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range; the caret is this fund, the tick is the category median, and a faint line marks 1.0 when it falls in range."
+              hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
             />
             <MetricCard
               label="Calmar Ratio"
               value={num(live.calmar)}
               tone={ratioTone(live.calmar)}
               spectrum={ratioSpec(live.calmar, catStats.calmar)}
-              hint="Return relative to the worst drawdown. Higher is better (above 1 strong, above 3 excellent); below 0 means it lost money. The bar spans the category range; the caret is this fund, the tick is the category median, and a faint line marks 1.0 when it falls in range."
+              hint="Return relative to the worst drawdown. Higher is better (above 1 strong, above 3 excellent); below 0 means it lost money. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
             />
             <MetricCard
               label="Best Month"
