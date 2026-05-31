@@ -233,6 +233,56 @@ async function run(apiDown) {
     const fwdOk = /Forward-looking signals/i.test(await body())
     check('M·FundDetail forward section renders', fwdOk)
 
+    // M5b InfoTip CLOSE behavior on touch (the reported bug: metric-card tip
+    // opened on tap but never closed). Tap an "i" → tip opens; tap it again →
+    // closes; tap it again then tap OUTSIDE → also closes. Uses a real touch tap.
+    await goto(`fund/${stockFund.code}`)
+    await page.waitForTimeout(2200)
+    const infoBtn = page.locator('button[aria-label^="About"]').first()
+    const haveInfo = (await infoBtn.count()) > 0
+    if (haveInfo) {
+      await infoBtn.scrollIntoViewIfNeeded().catch(() => {})
+      // Use real touchscreen taps at the button's center (locator.tap can fall
+      // back to a mouse click, which triggers hover-open semantics and muddies
+      // the toggle measurement). touchscreen.tap is unambiguously a touch tap.
+      const box = await infoBtn.boundingBox()
+      const cx = box.x + box.width / 2
+      const cy = box.y + box.height / 2
+      // open
+      await page.touchscreen.tap(cx, cy)
+      await page.waitForTimeout(250)
+      const openCount1 = await page.locator('[role="tooltip"]').count()
+      // tap the same button again → should close (toggle)
+      await page.touchscreen.tap(cx, cy)
+      await page.waitForTimeout(250)
+      const afterToggle = await page.locator('[role="tooltip"]').count()
+      // open again, then tap OUTSIDE (top-left of viewport) → should close
+      await page.touchscreen.tap(cx, cy)
+      await page.waitForTimeout(200)
+      await page.touchscreen.tap(8, 120)
+      await page.waitForTimeout(250)
+      const afterOutside = await page.locator('[role="tooltip"]').count()
+      check('M·metric tooltip toggles closed on re-tap', openCount1 >= 1 && afterToggle === 0, `open=${openCount1} afterToggle=${afterToggle}`)
+      check('M·metric tooltip closes on tap-outside', afterOutside === 0, `afterOutside=${afterOutside}`)
+    } else {
+      check('M·metric tooltip toggles closed on re-tap', false, 'no info button found')
+    }
+
+    // M5c rank-trajectory mini-chart shows axes (the sparkline was axis-less and
+    // read as a broken flat line). Expect y gridlines + month labels in its SVG.
+    await goto(`fund/${fwdFund.code}`)
+    await page.waitForTimeout(1500)
+    const axisInfo = await page.evaluate(() => {
+      const svg = document.querySelector('svg[aria-label="Rank percentile over time"]')
+      if (!svg) return null
+      const lines = svg.querySelectorAll('line').length
+      const texts = [...svg.querySelectorAll('text')].map((t) => t.textContent || '')
+      const hasPctLabels = texts.includes('0') && texts.includes('100')
+      const hasMonthLabel = texts.some((t) => /[A-Z][a-z]{2} '?\d{2}/.test(t))
+      return { lines, hasPctLabels, hasMonthLabel }
+    })
+    check('M·trajectory chart has y + x axes', !!axisInfo && axisInfo.lines >= 2 && axisInfo.hasPctLabels && axisInfo.hasMonthLabel, JSON.stringify(axisInfo))
+
     // M6 readable text: body font-size >= 12px (nothing microscopic on mobile)
     const tooSmall = await page.evaluate(() => {
       let n = 0

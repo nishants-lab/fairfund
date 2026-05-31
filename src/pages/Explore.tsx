@@ -27,7 +27,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
       <>
         <strong>How often the fund beat its category's median over rolling 3-year windows.</strong>
         <br /><br />The arrow shows recent form: ↑ climbing the rankings, ↓ fading, → steady. The %
-        is the share of 3-year windows it finished in the better half — higher means more repeatable
+        is the share of 3-year windows it finished in the better half - higher means more repeatable
         skill, less luck. Full explanation on each fund's page.
       </>
     ),
@@ -39,9 +39,9 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
     defaultDir: 'desc',
     tip: (
       <>
-        <strong>Our overall risk-adjusted rank within the category (0–100 bar).</strong>
+        <strong>Our overall risk-adjusted rank within the category (0-100 bar).</strong>
         <br /><br />It's the geometric mean of the fund's within-category percentile ranks across
-        Sharpe, Sortino, Calmar, drawdown protection, peer-relative alpha, and CAGR — over identical
+        Sharpe, Sortino, Calmar, drawdown protection, peer-relative alpha, and CAGR - over identical
         fixed windows. We use a geometric mean so a fund can't hide one terrible weakness behind
         strong other numbers. Higher = better all-round, not just high returns.
       </>

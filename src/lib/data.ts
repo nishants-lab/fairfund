@@ -77,3 +77,35 @@ export const categoryOrder = [
 export function topFundsForCategory(category: string, n = 5): Fund[] {
   return fundsByCategory(category).slice(0, n)
 }
+
+export interface CatMetricStats {
+  min: number
+  max: number
+  median: number
+  /** "best" value in the metric's good direction (max if higherBetter else min) */
+  best: number
+  n: number
+}
+
+/**
+ * Distribution of a stored metric across a category, for spectrum peer-context.
+ * Reads from each fund's 3Y window (the canonical baseline). `higherBetter`
+ * decides which extreme counts as "best". Returns null if too few peers.
+ */
+export function categoryMetricStats(
+  category: string,
+  metric: 'volatility' | 'sharpe' | 'sortino' | 'calmar' | 'cagr' | 'alpha',
+  higherBetter = true,
+): CatMetricStats | null {
+  const vals = funds
+    .filter((f) => f.category === category)
+    .map((f) => f.metrics['3Y']?.[metric])
+    .filter((v): v is number => typeof v === 'number' && !isNaN(v))
+    .sort((a, b) => a - b)
+  if (vals.length < 3) return null
+  const mid = Math.floor(vals.length / 2)
+  const median = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2
+  const min = vals[0]
+  const max = vals[vals.length - 1]
+  return { min, max, median, best: higherBetter ? max : min, n: vals.length }
+}
