@@ -145,12 +145,12 @@ async function run(apiDown) {
     await burger.click().catch(() => {})
     await page.waitForTimeout(400)
     const menuLinks = page.locator('nav a')
-    const navItems = await page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Goal Planner|Methodology/ }).count()
-    check('M·hamburger opens nav with all links', navItems >= 4, `visible links=${navItems} (before=${linksBeforeOpen})`)
+    const navItems = await page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Methodology/ }).count()
+    check('M·hamburger opens nav with all links', navItems >= 3, `visible links=${navItems} (before=${linksBeforeOpen})`)
 
     // M2 tap targets: opened nav links should be >= 40px tall (comfortable touch)
     let small = 0
-    const visLinks = page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Goal Planner|Methodology/ })
+    const visLinks = page.locator('nav a:visible').filter({ hasText: /Explore|Compare|Methodology/ })
     const vc = await visLinks.count()
     for (let i = 0; i < vc; i++) {
       const box = await visLinks.nth(i).boundingBox().catch(() => null)

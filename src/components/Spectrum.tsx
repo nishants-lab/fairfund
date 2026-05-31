@@ -34,11 +34,47 @@ const MARKER_STYLE: Record<string, string> = {
   best: 'h-3 w-3 border-2 border-white bg-brand-600 dark:border-slate-900 z-10',
 }
 
+const TONE_TEXT: Record<string, string> = {
+  good: 'text-emerald-600 dark:text-emerald-400',
+  warn: 'text-amber-600 dark:text-amber-400',
+  bad: 'text-rose-600 dark:text-rose-400',
+  neutral: 'text-fg',
+}
+const TONE_PILL: Record<string, string> = {
+  good: 'bg-emerald-600 text-white',
+  warn: 'bg-amber-500 text-white',
+  bad: 'bg-rose-600 text-white',
+  neutral: 'bg-fg text-canvas',
+}
+const TONE_CARET: Record<string, string> = {
+  good: 'border-t-emerald-600',
+  warn: 'border-t-amber-500',
+  bad: 'border-t-rose-600',
+  neutral: 'border-t-fg',
+}
+
 function ModelSpectrum({ model, className }: { model: SpectrumModel; className?: string }) {
+  const primary = model.markers.find((m) => m.kind === 'primary')
+  const others = model.markers.filter((m) => m.kind !== 'primary')
+  const tone = model.primaryTone ?? 'neutral'
+  const primaryPos = primary ? Math.max(0, Math.min(1, primary.pos)) : 0.5
+
   return (
     <div className={`mt-2 ${className ?? ''}`}>
+      {/* Floating value pill on the fund's marker — so "where this fund sits" is
+          legible at a glance with zero reading. Positioned over the caret. */}
+      {model.primaryAbove && primary && (
+        <div className="relative h-5">
+          <div className="absolute -translate-x-1/2" style={{ left: `${primaryPos * 100}%` }}>
+            <span className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold shadow-sm ${TONE_PILL[tone]}`}>
+              {primary.label}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="relative h-2.5 w-full rounded-full" style={{ background: gradientCss(model.stops) }}>
-        {/* optional pivot tick (e.g. the "1.0 = good" line) */}
+        {/* "good ≥ pivot" reference tick — drawn only when it falls on the real scale */}
         {model.pivotPos != null && (
           <div
             className="absolute top-1/2 h-3.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded bg-fg/40 dark:bg-white/40"
@@ -46,30 +82,53 @@ function ModelSpectrum({ model, className }: { model: SpectrumModel; className?:
             title={model.pivotLabel ? `Good ≈ ${model.pivotLabel}` : undefined}
           />
         )}
-        {model.markers.map((m, i) => (
+        {/* category median / best as thin labelled ticks (secondary) */}
+        {others.map((m, i) => (
           <div
             key={i}
-            className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow ${MARKER_STYLE[m.kind]}`}
-            style={{ left: `${m.pos * 100}%` }}
+            className="absolute top-1/2 h-3 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-sm bg-slate-500/80 dark:bg-slate-300/70"
+            style={{ left: `${Math.max(0, Math.min(1, m.pos)) * 100}%` }}
             title={m.label}
           />
         ))}
+        {/* THIS FUND — an unmistakable downward caret sitting on the bar */}
+        {model.primaryAbove && primary && (
+          <div
+            className={`absolute -top-1.5 -translate-x-1/2 border-x-[5px] border-t-[7px] border-x-transparent ${TONE_CARET[tone]}`}
+            style={{ left: `${primaryPos * 100}%` }}
+            aria-label={`This fund: ${primary.label}`}
+          />
+        )}
+        {/* fallback: if not using the caret style, render the old primary dot */}
+        {!model.primaryAbove &&
+          model.markers.map((m, i) => (
+            <div
+              key={i}
+              className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow ${MARKER_STYLE[m.kind]}`}
+              style={{ left: `${Math.max(0, Math.min(1, m.pos)) * 100}%` }}
+              title={m.label}
+            />
+          ))}
       </div>
+
       <div className="mt-1 flex justify-between text-[10px] font-medium uppercase tracking-wide text-faint">
         <span>{model.leftLabel}</span>
         <span>{model.rightLabel}</span>
       </div>
-      {/* marker legend - only shows the named markers (this fund / median / best) */}
-      {model.markers.some((m) => m.kind !== 'primary' && m.label) && (
+
+      {/* one-line plain-English placement */}
+      {model.gloss && (
+        <p className={`mt-1.5 text-xs font-medium ${TONE_TEXT[model.glossTone ?? 'neutral']}`}>{model.gloss}</p>
+      )}
+      {/* compact secondary legend (median / best ticks) */}
+      {others.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-faint">
-          {model.markers.map((m, i) => {
-            const dot =
-              m.kind === 'primary' ? 'bg-fg dark:bg-white' : m.kind === 'best' ? 'bg-brand-600' : 'bg-slate-500'
-            const name = m.kind === 'primary' ? 'This fund' : m.kind === 'best' ? 'Category best' : 'Category median'
+          {others.map((m, i) => {
+            const name = m.kind === 'best' ? 'Category best' : 'Category median'
             return (
               <span key={i} className="inline-flex items-center gap-1">
-                <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
-                {name}{m.label ? ` (${m.label})` : ''}
+                <span className="inline-block h-2.5 w-[3px] rounded-sm bg-slate-500/80 dark:bg-slate-300/70" />
+                {name}{m.label ? ` (${m.label.replace(/^(med|best)\s/, '')})` : ''}
               </span>
             )
           })}
