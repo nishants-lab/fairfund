@@ -21,7 +21,8 @@ const REGIME_INFO: Record<string, { range: string; desc: string }> = {
   'COVID recovery': { range: 'Mar 2020 - Oct 2021', desc: 'The liquidity-fuelled V-shaped rebound and bull run.' },
   '2022 correction': { range: 'Oct 2021 - Jun 2022', desc: 'Rate hikes and foreign outflows dragged markets down.' },
   '2022-24 bull run': { range: 'Jun 2022 - Sep 2024', desc: 'A strong, broad-based bull led by mid and small caps.' },
-  'Recent (since Sep 2024)': { range: 'Sep 2024 - May 2026', desc: 'The latest phase, including the late-2024/2025 correction, right up to today.' },
+  '2024-25 correction': { range: 'Sep 2024 - Mar 2025', desc: 'A domestic correction driven by heavy foreign-investor outflows and stretched valuations, before the global shocks of 2025.' },
+  'Tariff & Iran-war era': { range: 'Apr 2025 - today', desc: 'The US "Liberation Day" tariff escalation (Apr 2025) and the Israel-Iran war (Jun 2025) and the recovery since - a geopolitically turbulent phase, right up to today.' },
 }
 
 function shortName(f: Fund): string {
@@ -567,7 +568,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                     </td>
                     {r.active ? (
                       <>
-                        <td className={`px-2 py-1.5 text-right font-semibold ${(r.ret ?? 0) >= 0 ? 'text-fg' : 'text-rose-600 dark:text-rose-400'}`}>{pct(r.ret)}</td>
+                        <td className={`px-2 py-1.5 text-right font-semibold ${(r.ret ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{pct(r.ret)}</td>
                         <td className={`px-2 py-1.5 text-right font-semibold ${(r.alpha ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{r.alpha != null ? signedPct(r.alpha) : '—'}</td>
                       </>
                     ) : (

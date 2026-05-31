@@ -24,7 +24,8 @@ const REGIMES: { name: string; short: string; start: string; end: string; market
   { name: 'the COVID recovery rally', short: 'the 2020-21 recovery rally', start: '2020-03-24', end: '2021-10-18', market: 'up' },
   { name: 'the 2022 correction', short: 'the 2022 correction', start: '2021-10-19', end: '2022-06-17', market: 'down' },
   { name: 'the 2022-24 bull run', short: 'the 2022-24 bull run', start: '2022-06-18', end: '2024-09-27', market: 'up' },
-  { name: 'the recent correction (since Sep 2024)', short: 'the 2024-25 correction', start: '2024-09-28', end: '2026-05-29', market: 'mixed' },
+  { name: 'the 2024-25 correction', short: 'the 2024-25 correction', start: '2024-09-28', end: '2025-03-31', market: 'down' },
+  { name: 'the tariff & Iran-war era', short: 'the 2025 tariff/Iran-war shocks', start: '2025-04-01', end: '2026-05-29', market: 'mixed' },
 ]
 
 /** Which regimes a [start,end] window overlaps - used to explain a drawdown/month. */

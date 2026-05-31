@@ -339,11 +339,39 @@ async function run(apiDown) {
     const after = await bodyText()
     check(`C4 horizon switch recomputes (${label})`, /What 10-year holds/i.test(after) || /Modeled 10-year range/i.test(after))
   }
-  // regime table with the fixed regimes
+  // regime table with the fixed regimes — assert the post-Sep-2024 SPLIT renders
+  // (the two new geopolitical-era regimes), not just the older ones.
   const regimeOk = /How it behaved in each market regime/i.test(fwdBody) &&
-    /COVID crash/i.test(fwdBody) && /2022-24 bull run/i.test(fwdBody)
-  check(`C4 regime table renders (${label})`, regimeOk)
-  // honesty framing — never a guarantee
+    /COVID crash/i.test(fwdBody) && /2022-24 bull run/i.test(fwdBody) &&
+    /2024-25 correction/i.test(fwdBody) && /Tariff & Iran-war era/i.test(fwdBody)
+  check(`C4 regime table renders (incl. Sep-2024 split) (${label})`, regimeOk)
+  // C4-regime-color: a POSITIVE fund return in the regime table must render
+  // green (was neutral/black before); a negative one stays red. Verify the
+  // computed colour of the "Fund return" cells against their sign.
+  if (!apiDown) {
+    const regimeColors = await page.evaluate(() => {
+      const GREEN = /rgb\(5, 150, 105\)|rgb\(16, 185, 129\)|rgb\(52, 211, 153\)/
+      const RED = /rgb\(225, 29, 72\)|rgb\(220, 38, 38\)|rgb\(244, 63, 94\)|rgb\(251, 113, 133\)/
+      const h4 = [...document.querySelectorAll('h4')].find((e) => /each market regime/i.test(e.textContent))
+      const table = h4?.closest('.card')?.querySelector('table')
+      if (!table) return { ok: false, note: 'no regime table' }
+      const issues = []
+      for (const tr of table.querySelectorAll('tbody tr')) {
+        const cells = tr.querySelectorAll('td')
+        if (cells.length < 2) continue
+        const retCell = cells[1] // "Fund return" column
+        const txt = (retCell.textContent || '').trim()
+        const m = txt.match(/-?\d+\.?\d*/)
+        if (!m) continue
+        const val = parseFloat(m[0])
+        const col = getComputedStyle(retCell).color
+        if (val > 0 && !GREEN.test(col)) issues.push(`${txt} not green (${col})`)
+        if (val < 0 && !RED.test(col)) issues.push(`${txt} not red (${col})`)
+      }
+      return { ok: issues.length === 0, issues }
+    })
+    check('C4 regime fund-return cells colour-coded (green +, red −)', regimeColors.ok, JSON.stringify(regimeColors.issues || regimeColors.note))
+  }
   check(`C4 honesty framing present (${label})`,
     /not a guarantee|never a guarantee|not advice/i.test(fwdBody))
 
