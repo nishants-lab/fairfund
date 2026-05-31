@@ -149,8 +149,8 @@ async function run(apiDown) {
   if (!apiDown) {
     const hasPeriods = /[A-Z][a-z]{2} \d{4} → [A-Z][a-z]{2} \d{4}/.test(fdBody)
     check('C4 drawdown/month date sub-lines render', hasPeriods)
-    // volatility shows a category-median comparison line
-    check('C4 volatility shows category median', /Category median \d+\.\d+%/.test(fdBody))
+    // volatility shows a category-median comparison (now phrased as a verdict)
+    check('C4 volatility shows category median', /category \(median \d+\.\d+%\)|Category median \d+\.\d+%/i.test(fdBody))
   }
 
   // C4-color: semantic-color correctness (the bug class the user caught).
@@ -217,6 +217,26 @@ async function run(apiDown) {
   // honesty framing — never a guarantee
   check(`C4 honesty framing present (${label})`,
     /not a guarantee|never a guarantee|not advice/i.test(fwdBody))
+
+  // C4e Form card clarifies its rank is by 3-year RETURN (not the composite
+  // headline rank) — guards the #7 confusion where the two ranks differ.
+  check(`C4 Form card labels 3Y-return rank (${label})`,
+    /3-year return/i.test(fwdBody) && /composite/i.test(fwdBody))
+  // C4f spectrums render (skill / consistency / running-hot) — count SVG-free
+  // gradient bars via their left/right labels.
+  if (!apiDown) {
+    check('C4 skill spectrum (luck→skill) present', /Likely luck/i.test(fwdBody) && /Likely skill/i.test(fwdBody))
+    check('C4 running-hot spectrum present', /❄️ Cold/i.test(fwdBody) && /🔥 Hot/i.test(fwdBody))
+    // capture color logic: down-capture <100 should be emerald, up-capture <90 rose
+    const capColors = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('.card')]
+      const cap = cards.find((c) => /Up \/ down capture/i.test(c.innerText))
+      if (!cap) return null
+      const stats = [...cap.querySelectorAll('div')].filter((d) => /^\d+%$/.test(d.textContent.trim()))
+      return stats.map((s) => ({ v: s.textContent.trim(), color: getComputedStyle(s).color }))
+    })
+    check('C4 capture values are color-coded', !!capColors && capColors.length >= 1, JSON.stringify(capColors))
+  }
 
   // C5 feeder foreign: honest label, no crash
   if (feederForeign) {

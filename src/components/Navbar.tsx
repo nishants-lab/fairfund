@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
 
@@ -10,6 +11,21 @@ const links = [
 
 export default function Navbar() {
   const loc = useLocation()
+  const [open, setOpen] = useState(false)
+
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => {
+    setOpen(false)
+  }, [loc.pathname])
+
+  // Lock body scroll while the mobile menu overlay is open.
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -27,6 +43,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((l) => (
               <Link
@@ -43,25 +60,51 @@ export default function Navbar() {
             ))}
           </nav>
           <ThemeToggle />
+          {/* Mobile hamburger button */}
+          <button
+            type="button"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-fg transition hover:bg-surface2 md:hidden"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {open ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Mobile nav */}
-      <nav className="flex items-center gap-1 overflow-x-auto px-4 pb-2 md:hidden">
-        {links.map((l) => (
-          <Link
-            key={l.to}
-            to={l.to}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              loc.pathname.startsWith(l.to)
-                ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
-                : 'text-muted hover:bg-surface2'
-            }`}
-          >
-            {l.label}
-          </Link>
-        ))}
-      </nav>
+      {/* Mobile slide-down menu + backdrop */}
+      {open && (
+        <div className="md:hidden">
+          <div
+            className="fixed inset-0 top-[57px] z-30 bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <nav className="relative z-40 border-t border-line bg-surface px-4 py-2 shadow-lg">
+            {links.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className={`block rounded-lg px-3 py-3 text-base font-medium transition ${
+                  loc.pathname.startsWith(l.to)
+                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
+                    : 'text-fg hover:bg-surface2'
+                }`}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   )
 }

@@ -11,8 +11,8 @@ Browser: Chromium (Playwright), desktop 1280×900 + mobile 390px
 | Metrics evaluation (`scripts/qa_metrics.mjs`) | **18/18 PASS** |
 | A. Data integrity (`scripts/qa_data.py`) | **21/21 PASS** |
 | B. Build & bundle | **PASS** (tsc 0 errors, 869 modules, dist + nav/ emitted) |
-| Desktop UI (`qa_ui.mjs`, API-UP + API-DOWN) | **71/71 PASS** |
-| Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **39/39 PASS** |
+| Desktop UI (`qa_ui.mjs`, API-UP + API-DOWN) | **76/76 PASS** |
+| Mobile (`qa_mobile.mjs`, 390×844, API-UP + API-DOWN) | **40/40 PASS** |
 
 ## Metrics evaluation harness (added 2026-05-31 — value correctness, not just rendering)
 
@@ -42,6 +42,17 @@ prompted broadening QA beyond any single defect to the whole class:
   edge after horizontal scroll (verified by scrolling and re-measuring); the
   fund-name header row is sticky on vertical scroll - name + parameter stay in view
   with 5 funds and many rows. No horizontal PAGE scroll on mobile.
+
+## UX batch (added 2026-05-31): hamburger, spectrums, color-coding, peer graph
+
+A 12-point UX/clarity batch on FundDetail + nav:
+- **Mobile nav is now a hamburger** (slide-down overlay + backdrop, body-scroll lock); QA M1/M2 verify the button shows, links are hidden until opened, and tap targets ≥ 40px.
+- **CAGR "total" explained** (sub-line + hint showing cumulative growth on Rs 1L).
+- **Color-coding**: Volatility green when below category median; Calmar/Sortino/Sharpe via ratioTone; Consistency green/amber/red by %; capture up-capture (≥100 green) and down-capture (<100 green) logic.
+- **Drawdown & Worst-month "potential reason"**: maps the window to overlapping market regimes and notes if the fall was market-wide vs fund-specific (data we have; no fabrication). Live category-during-arbitrary-window is NOT computed (would need many peer NAVs) - we point to the regime table's "vs category" column instead.
+- **#7 rank discrepancy resolved (not a bug):** the headline "Rank #N" is by our composite score; the Form card's "#N/27" is by raw 3Y return. Form card now says so explicitly.
+- **#8 peer graph:** Form sparkline now overlays a reference peer (category #1, or #2 if this fund is #1) with a legend.
+- **Spectrums** (new `Spectrum.tsx`): Skill-vs-luck (luck→skill, green ≥90% / amber 70-90% / red <70%), Consistency, and Running-hot (cold↔hot by z-score).
 
 ## Compare now supports up to 5 funds (was 3)
 
