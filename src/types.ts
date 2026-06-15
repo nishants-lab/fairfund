@@ -31,6 +31,7 @@ export interface Fund {
   holdingsMeta?: HoldingsMeta
   management?: Management
   analytics?: Analytics
+  stockMoves?: StockMoves | null
 }
 
 export interface ManagerInfo {
@@ -124,6 +125,23 @@ export interface HoldingsMeta {
   note?: string
   underlying?: string | null
   count?: number
+}
+
+// ---- Stock-move intelligence (portfolio change analysis) ----
+export interface StockMove {
+  name: string
+  pct: number // weight in the portfolio at that snapshot
+  ticker?: string | null
+  postReturn?: number | null // % return since the move (null = no price data)
+}
+export interface StockMoves {
+  fromDate: string // earlier snapshot date
+  toDate: string // later snapshot date
+  added: StockMove[]
+  exited: StockMove[]
+  smartScore?: number | null // 0-100: % of moves that went the right way
+  smartBasis?: number | null // how many moves had price data to judge
+  verdict?: string // 'Smart moves' | 'Mixed moves' | 'Questionable moves' | 'Insufficient price data'
 }
 
 export interface CategorySummary {
