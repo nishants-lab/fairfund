@@ -6,6 +6,10 @@ name: Monthly holdings snapshot
 # so we run a few times mid-month to catch disclosures as they land. Idempotent:
 # a snapshot whose portfolio_date already exists is skipped, so extra runs are safe.
 #
+# Rate-limiting: the script throttles requests (4 workers, 0.3s between submissions,
+# exponential backoff on 429/403) to avoid triggering Groww's rate limiter. If >50%
+# of fetches fail or 0 new snapshots are captured, GitHub Actions annotations warn.
+#
 # Committing the accumulated history to the repo is what lets the dataset grow
 # month over month despite CI being stateless — and the push triggers Deploy so
 # the (eventually) shippable change-analysis has fresh data.
@@ -27,13 +31,16 @@ concurrency:
 jobs:
   capture:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Capture holdings snapshots
         run: python scripts/capture_holdings_snapshot.py
+
       - name: Commit if new snapshots
         run: |
           git config user.name "fairfund-bot"
@@ -46,3 +53,11 @@ jobs:
           else
             echo "No new holdings snapshots this run."
           fi
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          echo "::error::Monthly holdings capture FAILED. Check the logs above."
+          echo "Common causes: Groww API rate-limiting CI IPs, endpoint format change,"
+          echo "or the funds.json path issue (should be fixed). The existing holdings"
+          echo "history is safe (append-only) but no new month was captured."
