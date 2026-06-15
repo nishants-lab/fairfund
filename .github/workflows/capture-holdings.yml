@@ -41,17 +41,30 @@ jobs:
       - name: Capture holdings snapshots
         run: python scripts/capture_holdings_snapshot.py
 
+      - name: Compute stock-move intelligence
+        run: |
+          pip install yfinance -q
+          python scripts/build_stock_moves.py
+
       - name: Commit if new snapshots
         run: |
           git config user.name "fairfund-bot"
           git config user.email "fairfund-bot@users.noreply.github.com"
+          CHANGED=""
           if [ -n "$(git status --porcelain public/holdings-history)" ]; then
             git add public/holdings-history
-            git commit -m "chore(holdings): monthly portfolio snapshot capture"
+            CHANGED="yes"
+          fi
+          if [ -n "$(git status --porcelain data/)" ]; then
+            git add data/
+            CHANGED="yes"
+          fi
+          if [ -n "$CHANGED" ]; then
+            git commit -m "chore(holdings): monthly portfolio snapshot + stock-move analysis"
             git push
-            echo "Holdings history updated and pushed."
+            echo "Holdings + stock moves updated and pushed."
           else
-            echo "No new holdings snapshots this run."
+            echo "No new data this run."
           fi
 
       - name: Alert on failure
