@@ -73,15 +73,29 @@ EQUITY_INSTR = {"equity", "forgn. eq", "foreign equity", "equity shares", "fgn e
 
 
 def _get(url, timeout=20):
-    for _ in range(3):
+    """HTTP GET with exponential backoff + rate-limit awareness.
+    Retries up to 4x with increasing wait (0.5s, 1s, 2s, 4s) and respects
+    Groww's 429/403 signals — backs off longer on rate-limit responses."""
+    for attempt in range(4):
         try:
             req = urllib.request.Request(url, headers=H)
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 if r.status == 200:
                     return json.loads(r.read().decode("utf-8", errors="replace"))
-            time.sleep(0.3)
+                # 429 Too Many Requests or 403 Forbidden (Groww's rate-limit signal)
+                if r.status in (429, 403):
+                    wait = min(2 ** (attempt + 2), 30)  # 4s, 8s, 16s, 30s
+                    time.sleep(wait)
+                    continue
+            time.sleep(0.5 * (2 ** attempt))
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 403):
+                wait = min(2 ** (attempt + 2), 30)
+                time.sleep(wait)
+                continue
+            time.sleep(0.5 * (2 ** attempt))
         except Exception:
-            time.sleep(0.4)
+            time.sleep(0.5 * (2 ** attempt))
     return None
 
 
@@ -318,6 +332,7 @@ def main():
     added_snaps = 0
     skipped_same = 0
     cov_counter = {}
+    fetch_errors = 0
     t0 = time.time()
     done = 0
 
@@ -332,9 +347,23 @@ def main():
 
     lock_writes = {}
 
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        futs = {ex.submit(capture_one, c, n, smap, today): (c, n) for c, n in todo}
+    # 4 workers (reduced from 8) — less aggressive against Groww's rate limiter.
+    # A 0.3s sleep between each future submission further throttles request rate.
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {}
+        for c, n in todo:
+            futs[ex.submit(capture_one, c, n, smap, today)] = (c, n)
+            time.sleep(0.3)  # throttle submission rate to ~3 req/s per worker = ~12/s total
         for fut in as_completed(futs):
+            c, n = futs[fut]
+            done += 1
+            try:
+                code, snap, cov = fut.result()
+            except Exception as e:
+                cov = f"error:{str(e)[:20]}"; snap = None; code = c; fetch_errors += 1
+            cov_counter[cov] = cov_counter.get(cov, 0) + 1
+            if cov and ("error" in str(cov) or cov == "fetch_failed"):
+                fetch_errors += 1
             c, n = futs[fut]
             done += 1
             try:
@@ -382,9 +411,24 @@ def main():
 
     print(f"\nDone. New snapshots: {added_snaps} | unchanged (same month): {skipped_same}")
     print("Coverage this run:", cov_counter)
+    print(f"Fetch errors/failures: {fetch_errors}")
     print(f"Dataset: {manifest['funds']} funds, {manifest['totalSnapshots']} total snapshots, "
           f"{manifest['multiSnapshot']} funds with >=2 snapshots (ready for change analysis).")
     print(f"::NEW_SNAPSHOTS::{added_snaps}")
+
+    # Minimum-capture threshold: if this is a scheduled CI run (not a manual
+    # dispatch or local test with FF_CAPTURE_LIMIT) and we captured ZERO new
+    # snapshots, something is likely wrong (Groww down, rate-limited, API changed).
+    # Emit a GitHub Actions warning annotation so the run shows a yellow badge.
+    is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    is_limited = os.environ.get("FF_CAPTURE_LIMIT")
+    if is_ci and not is_limited and added_snaps == 0:
+        print("::warning::Holdings capture produced 0 new snapshots this run. "
+              "Possible cause: Groww API rate-limiting, downtime, or format change. "
+              f"Fetch errors: {fetch_errors}/{len(todo)}. Check the logs above.")
+    if is_ci and not is_limited and fetch_errors > len(todo) * 0.5:
+        print(f"::warning::Over 50% of fund fetches failed ({fetch_errors}/{len(todo)}). "
+              "Groww may be rate-limiting or blocking CI IPs.")
 
 
 if __name__ == "__main__":

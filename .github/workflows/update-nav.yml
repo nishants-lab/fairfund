@@ -4,6 +4,11 @@ name: Daily NAV refresh
 # AMFI's consolidated NAVAll.txt, then commits. The push triggers the existing
 # Deploy workflow, so the live site always serves fresh NAV without depending
 # on any third-party API at view time.
+#
+# Also runs a sync check: if any fund in funds.json lacks a nav file, it creates
+# it (covers the case where new funds were added to the universe but nobody
+# manually ran build_nav_files.py). This ensures the self-hosted fallback always
+# covers the full dataset.
 
 on:
   schedule:
@@ -29,8 +34,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Sync missing nav files (new fund coverage)
+        run: python scripts/sync_nav_files.py
+
       - name: Update NAV from AMFI
         run: python scripts/update_nav_daily.py
+
       - name: Commit if changed
         run: |
           git config user.name "fairfund-bot"
@@ -43,3 +53,11 @@ jobs:
           else
             echo "No NAV changes today."
           fi
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          echo "::error::Daily NAV refresh FAILED. Check the logs above."
+          echo "The live site will continue to serve the last-known NAV via self-hosted files,"
+          echo "but no new data was captured this run. Common causes: AMFI endpoint down/changed,"
+          echo "GitHub network issue, or a script bug."
