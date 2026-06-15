@@ -250,7 +250,8 @@ export default function Methodology() {
           The fund universe and category come from AMFI's published classification. Metrics are computed
           from daily NAV published by AMFI (via the public mfapi.in endpoint), covering all active equity
           Direct-Growth plans. NAV charts are fetched live. Holdings are from the latest monthly disclosure.
-          Base analysis snapshot: <strong>{data.anchor}</strong>.
+          Base analysis snapshot (fixed-window rankings): <strong>{data.anchor}</strong>.
+          Live NAV is refreshed daily by an automated pipeline — the footer shows the actual latest date.
         </p>
       </Section>
 

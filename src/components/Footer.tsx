@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { data } from '../lib/data'
+import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
 import { resetOnboarding } from './Onboarding'
 
 export default function Footer() {
+  const navDate = useNavFreshness()
   return (
     <footer className="mt-16 border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -29,8 +31,8 @@ export default function Footer() {
         <div className="mt-8 rounded-xl bg-amber-50 p-4 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
           <strong>Disclaimer:</strong> FairFund is a research and educational tool, not investment
           advice. We are not a SEBI-registered investment adviser. Mutual fund investments are
-          subject to market risks. Past performance does not guarantee future returns. Data as of{' '}
-          {data.anchor}. Always consult a qualified financial advisor before investing.
+          subject to market risks. Past performance does not guarantee future returns. NAV data as of{' '}
+          {fmtNavDate(navDate)}. Always consult a qualified financial advisor before investing.
         </div>
 
         <div className="mt-4 text-center text-xs text-faint">

@@ -11,40 +11,12 @@
     "lookthrough_domestic": 1
   },
   "categories": {
-    "Value/Contra": {
-      "display": "Value / Contra",
-      "riskLevel": "Moderately High",
-      "medianCagr5Y": 15.69,
-      "topCagr5Y": 18.21,
-      "fundCount": 23
-    },
-    "Focused": {
-      "display": "Focused",
+    "Mid Cap": {
+      "display": "Mid Cap",
       "riskLevel": "High",
-      "medianCagr5Y": 14.01,
-      "topCagr5Y": 19.62,
-      "fundCount": 25
-    },
-    "Index-MidCap": {
-      "display": "Index - Mid Cap",
-      "riskLevel": "High",
-      "medianCagr5Y": 18.82,
-      "topCagr5Y": 18.89,
-      "fundCount": 8
-    },
-    "Large Cap": {
-      "display": "Large Cap",
-      "riskLevel": "Moderate",
-      "medianCagr5Y": 11.4,
-      "topCagr5Y": 16.04,
-      "fundCount": 31
-    },
-    "Small Cap": {
-      "display": "Small Cap",
-      "riskLevel": "Very High",
-      "medianCagr5Y": 19.19,
-      "topCagr5Y": 22.92,
-      "fundCount": 24
+      "medianCagr5Y": 18.63,
+      "topCagr5Y": 23.26,
+      "fundCount": 30
     },
     "Dividend Yield": {
       "display": "Dividend Yield",
@@ -53,68 +25,12 @@
       "topCagr5Y": 20.78,
       "fundCount": 8
     },
-    "Index-Other": {
-      "display": "Index - Other",
+    "ELSS": {
+      "display": "ELSS (Tax Saver)",
       "riskLevel": "Moderately High",
-      "medianCagr5Y": 14.09,
-      "topCagr5Y": 19.08,
-      "fundCount": 68
-    },
-    "Flexi Cap": {
-      "display": "Flexi Cap",
-      "riskLevel": "Moderately High",
-      "medianCagr5Y": 12.95,
-      "topCagr5Y": 18.66,
-      "fundCount": 34
-    },
-    "Index-Sectoral/Thematic": {
-      "display": "Index - Sectoral / Thematic",
-      "riskLevel": "Very High",
-      "medianCagr5Y": 12.77,
-      "topCagr5Y": 13.25,
-      "fundCount": 27
-    },
-    "Mid Cap": {
-      "display": "Mid Cap",
-      "riskLevel": "High",
-      "medianCagr5Y": 18.63,
-      "topCagr5Y": 23.26,
-      "fundCount": 30
-    },
-    "Index-SmallCap": {
-      "display": "Index - Small Cap",
-      "riskLevel": "Very High",
-      "medianCagr5Y": 15.3,
-      "topCagr5Y": 16.36,
-      "fundCount": 8
-    },
-    "Index-LargeCap": {
-      "display": "Index - Large Cap",
-      "riskLevel": "Moderate",
-      "medianCagr5Y": 9.65,
-      "topCagr5Y": 14.04,
-      "fundCount": 30
-    },
-    "International": {
-      "display": "International / Global",
-      "riskLevel": "Very High",
-      "medianCagr5Y": 13.82,
-      "topCagr5Y": 23.91,
-      "fundCount": 45
-    },
-    "Large & Mid Cap": {
-      "display": "Large & Mid Cap",
-      "riskLevel": "Moderately High",
-      "medianCagr5Y": 15.73,
-      "topCagr5Y": 21.56,
-      "fundCount": 27
-    },
-    "Sectoral/Thematic": {
-      "display": "Sectoral / Thematic",
-      "riskLevel": "Very High",
-      "medianCagr5Y": 14.55,
-      "topCagr5Y": 25.32,
-      "fundCount": 127
+      "medianCagr5Y": 13.36,
+      "topCagr5Y": 19.51,
+      "fundCount": 37
     },
     "FoF-Equity (Domestic)": {
       "display": "Equity FoF (Domestic)",
@@ -123,12 +39,40 @@
       "topCagr5Y": 27.47,
       "fundCount": 14
     },
-    "ELSS": {
-      "display": "ELSS (Tax Saver)",
+    "Flexi Cap": {
+      "display": "Flexi Cap",
       "riskLevel": "Moderately High",
-      "medianCagr5Y": 13.36,
-      "topCagr5Y": 19.51,
-      "fundCount": 37
+      "medianCagr5Y": 12.95,
+      "topCagr5Y": 18.66,
+      "fundCount": 34
+    },
+    "Large & Mid Cap": {
+      "display": "Large & Mid Cap",
+      "riskLevel": "Moderately High",
+      "medianCagr5Y": 15.73,
+      "topCagr5Y": 21.56,
+      "fundCount": 27
+    },
+    "Focused": {
+      "display": "Focused",
+      "riskLevel": "High",
+      "medianCagr5Y": 14.01,
+      "topCagr5Y": 19.62,
+      "fundCount": 25
+    },
+    "Index-Sectoral/Thematic": {
+      "display": "Index - Sectoral / Thematic",
+      "riskLevel": "Very High",
+      "medianCagr5Y": 12.77,
+      "topCagr5Y": 13.25,
+      "fundCount": 27
+    },
+    "Index-SmallCap": {
+      "display": "Index - Small Cap",
+      "riskLevel": "Very High",
+      "medianCagr5Y": 15.3,
+      "topCagr5Y": 16.36,
+      "fundCount": 8
     },
     "Multi Cap": {
       "display": "Multi Cap",
@@ -136,6 +80,62 @@
       "medianCagr5Y": 16.61,
       "topCagr5Y": 20.74,
       "fundCount": 21
+    },
+    "International": {
+      "display": "International / Global",
+      "riskLevel": "Very High",
+      "medianCagr5Y": 13.82,
+      "topCagr5Y": 23.91,
+      "fundCount": 45
+    },
+    "Sectoral/Thematic": {
+      "display": "Sectoral / Thematic",
+      "riskLevel": "Very High",
+      "medianCagr5Y": 14.55,
+      "topCagr5Y": 25.32,
+      "fundCount": 127
+    },
+    "Large Cap": {
+      "display": "Large Cap",
+      "riskLevel": "Moderate",
+      "medianCagr5Y": 11.4,
+      "topCagr5Y": 16.04,
+      "fundCount": 31
+    },
+    "Index-Other": {
+      "display": "Index - Other",
+      "riskLevel": "Moderately High",
+      "medianCagr5Y": 14.09,
+      "topCagr5Y": 19.08,
+      "fundCount": 68
+    },
+    "Value/Contra": {
+      "display": "Value / Contra",
+      "riskLevel": "Moderately High",
+      "medianCagr5Y": 15.69,
+      "topCagr5Y": 18.21,
+      "fundCount": 23
+    },
+    "Index-LargeCap": {
+      "display": "Index - Large Cap",
+      "riskLevel": "Moderate",
+      "medianCagr5Y": 9.65,
+      "topCagr5Y": 14.04,
+      "fundCount": 30
+    },
+    "Small Cap": {
+      "display": "Small Cap",
+      "riskLevel": "Very High",
+      "medianCagr5Y": 19.19,
+      "topCagr5Y": 22.92,
+      "fundCount": 24
+    },
+    "Index-MidCap": {
+      "display": "Index - Mid Cap",
+      "riskLevel": "High",
+      "medianCagr5Y": 18.82,
+      "topCagr5Y": 18.89,
+      "fundCount": 8
     }
   },
   "funds": [
@@ -4359,8 +4359,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 10.0,
           "fundReturn": 52.6,
@@ -4384,7 +4384,7 @@
           "avgAddWeight": 0.15,
           "avgExitWeight": 0
         },
-        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +10.0%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+0.3%/yr median alpha across 19 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -5454,8 +5454,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 14.1,
           "fundReturn": 28.4,
@@ -5488,7 +5488,7 @@
           "avgAddWeight": 0.93,
           "avgExitWeight": 0.81
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +4.1%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (27 months), alpha vs the category is +14.1%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm. Cross-fund record (+4.1%/yr median alpha across 13 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -6608,7 +6608,7 @@
           "avgAddWeight": 0.43,
           "avgExitWeight": 0.98
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (59 months), alpha vs the category is +19.6%."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (59 months), alpha vs the category is +19.6%. Note: 2 of 4 managers are new (< 1 year). While the longest-serving manager has been here 4.9 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -13893,8 +13893,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 9.8,
           "fundReturn": 158.7,
@@ -13927,7 +13927,7 @@
           "avgAddWeight": 0.69,
           "avgExitWeight": 1.48
         },
-        "note": "Across 8 funds, median alpha +1.2%/yr with 50% beating their category. Confirmed at this fund: since the lead manager took over (68 months), alpha vs the category is +9.8%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 28/37 in its category. Cross-fund record (+1.2%/yr median alpha across 8 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -17999,8 +17999,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 13.1,
           "fundReturn": 59.6,
@@ -18057,7 +18057,7 @@
           "avgAddWeight": 0.15,
           "avgExitWeight": 0.17
         },
-        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +13.1%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+0.3%/yr median alpha across 19 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -20324,7 +20324,7 @@
           "avgAddWeight": 0.56,
           "avgExitWeight": 0.78
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +3.8%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (27 months), alpha vs the category is +5.0%."
+        "note": "Across 13 funds these managers run, the median peer-relative alpha is +3.8%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (27 months), alpha vs the category is +5.0%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 2.2 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -21081,8 +21081,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 16.2,
           "fundReturn": 72.6,
@@ -21143,7 +21143,7 @@
           "avgAddWeight": 0.88,
           "avgExitWeight": 3.53
         },
-        "note": "Across 27 funds, median alpha +0.0%/yr with 52% beating their category. Confirmed at this fund: since the lead manager took over (42 months), alpha vs the category is +16.2%."
+        "note": "\u26a0\ufe0f 3 of 6 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm. Cross-fund record (+0.0%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -26078,8 +26078,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -0.7,
           "fundReturn": 67.2,
@@ -26136,7 +26136,7 @@
           "avgAddWeight": 0.8,
           "avgExitWeight": 0.82
         },
-        "note": "Across 8 funds, median alpha +1.2%/yr with 50% beating their category. Under the current lead (58 months), this fund has tracked its category closely (-0.7% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and running cold vs its own norm and ranked 22/34 in its category. Cross-fund record (+1.2%/yr median alpha across 8 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -35029,7 +35029,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -20.7,
@@ -35039,7 +35039,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 75% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned -20.1% since they joined (category median +0.7%) \u2014 an early concern, though 17 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and running cold vs its own norm and ranked 13/14 in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -38209,7 +38209,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +13.0%."
+        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +13.0%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 2.9 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -44536,7 +44536,7 @@
           ]
         },
         "signal": "Mixed",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -12.7,
           "fundReturn": 43.5,
@@ -44597,7 +44597,7 @@
           "avgAddWeight": 2.82,
           "avgExitWeight": 2.78
         },
-        "note": "Across 27 funds, median alpha +3.1%/yr with 56% beating their category. CAUTION: since the current lead manager took over (42 months ago), this fund returned +43.5% while the category median returned +56.2%. The category did well but this fund didn't \u2014 this points to fund-specific issues under the current management, not macro headwinds."
+        "note": "\u26a0\ufe0f 3 of 5 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 23/25 in its category. Cross-fund record (+3.1%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -48189,7 +48189,7 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": {
@@ -48237,7 +48237,7 @@
           "avgAddWeight": 0.15,
           "avgExitWeight": 0.15
         },
-        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm. Cross-fund record (+0.1%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -56394,7 +56394,7 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": {
@@ -56450,7 +56450,7 @@
           "avgAddWeight": 0.09,
           "avgExitWeight": 0.09
         },
-        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.1%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -58588,11 +58588,11 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": null,
-        "note": "Across 11 funds, median alpha +0.9%/yr with 73% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.9%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -59389,7 +59389,7 @@
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": null,
-        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. Note: 2 of 2 managers are new (< 1 year). While the longest-serving manager has been here 0.2 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -84019,7 +84019,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 21.2,
@@ -84029,7 +84029,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned +30.5% since they joined (category median +9.3%) \u2014 looks good, but a 17-month window can't distinguish skill from market timing."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -85390,7 +85390,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -2.4,
@@ -85400,7 +85400,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -91117,7 +91117,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -11.5,
@@ -91127,7 +91127,7 @@
           "categoryUpFundDown": true
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned -5.9% since they joined (category median +5.7%) \u2014 an early concern, though 17 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -97443,7 +97443,7 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": {
@@ -97491,7 +97491,7 @@
           "avgAddWeight": 0.88,
           "avgExitWeight": 0.93
         },
-        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.1%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -98683,7 +98683,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 4.0,
@@ -98693,7 +98693,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -100068,7 +100068,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 3.9,
@@ -100078,7 +100078,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -100858,7 +100858,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 4.2,
@@ -100868,7 +100868,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +4.3%/yr and 67% beat their category. However, the lead manager has been here only 10 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+4.3%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -101120,7 +101120,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -9.2,
@@ -101174,7 +101174,7 @@
           "avgAddWeight": 0.5,
           "avgExitWeight": 0.52
         },
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned -3.6% since they joined (category median +5.7%) \u2014 an early concern, though 17 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -101698,7 +101698,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 9.2,
@@ -101708,7 +101708,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +3.9%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned +14.5% since they joined (category median +5.3%) \u2014 looks good, but a 17-month window can't distinguish skill from market timing."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.9%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -102460,7 +102460,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -2.1,
@@ -102490,7 +102490,7 @@
           "avgAddWeight": 0.56,
           "avgExitWeight": 0.44
         },
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 67% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -104343,11 +104343,11 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": null,
-        "note": "Across 11 funds, median alpha +0.9%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.9%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -107822,11 +107822,11 @@
             }
           ]
         },
-        "signal": "Solid",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": null,
-        "note": "Across 11 funds, median alpha +0.9%/yr with 73% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.9%/yr median alpha across 11 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -109970,7 +109970,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 0.8,
@@ -109980,7 +109980,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 75% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -113945,7 +113945,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -35.1,
@@ -113955,7 +113955,7 @@
           "categoryUpFundDown": true
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 75% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned -29.4% since they joined (category median +5.7%) \u2014 an early concern, though 17 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -114209,7 +114209,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -26.3,
@@ -114219,7 +114219,7 @@
           "categoryUpFundDown": true
         },
         "holdingsMoves": null,
-        "note": "Across 12 funds these managers run, the median peer-relative alpha is +5.0%/yr and 75% beat their category. However, the lead manager has been here only 1.4 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned -20.6% since they joined (category median +5.7%) \u2014 an early concern, though 17 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+5.0%/yr median alpha across 12 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -115237,7 +115237,7 @@
         "tenureCaveat": true,
         "tenurePerf": null,
         "holdingsMoves": null,
-        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "Across 11 funds, median alpha +0.1%/yr with 64% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. Note: 2 of 2 managers are new (< 1 year). While the longest-serving manager has been here 0.2 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -129814,7 +129814,7 @@
           "avgAddWeight": 0.26,
           "avgExitWeight": 0.32
         },
-        "note": "Across 3 funds these managers run, the median peer-relative alpha is +8.8%/yr and 100% beat their category. Confirmed at this fund: since the lead manager took over (132 months), alpha vs the category is +82.5%."
+        "note": "Across 3 funds these managers run, the median peer-relative alpha is +8.8%/yr and 100% beat their category. Confirmed at this fund: since the lead manager took over (132 months), alpha vs the category is +82.5%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 11.0 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -132582,8 +132582,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 26.8,
           "fundReturn": 87.5,
@@ -132632,7 +132632,7 @@
           "avgAddWeight": 0.57,
           "avgExitWeight": 0.17
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +4.1%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (42 months), alpha vs the category is +26.8%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 14/27 in its category. Cross-fund record (+4.1%/yr median alpha across 13 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -133762,8 +133762,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -0.3,
           "fundReturn": 58.6,
@@ -133824,7 +133824,7 @@
           "avgAddWeight": 1.94,
           "avgExitWeight": 1.73
         },
-        "note": "Across 7 funds, median alpha +2.1%/yr with 56% beating their category. Under the current lead (36 months), this fund has tracked its category closely (-0.3% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and ranked 17/27 in its category. Cross-fund record (+2.1%/yr median alpha across 7 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -139701,8 +139701,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 201.9,
           "fundReturn": 570.0,
@@ -139759,7 +139759,7 @@
           "avgAddWeight": 0.25,
           "avgExitWeight": 0.13
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +201.9%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -140013,8 +140013,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 200.0,
           "fundReturn": 568.1,
@@ -140071,7 +140071,7 @@
           "avgAddWeight": 0.25,
           "avgExitWeight": 0.13
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +200.0%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -140788,8 +140788,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 28.1,
           "fundReturn": 106.4,
@@ -140850,7 +140850,7 @@
           "avgAddWeight": 0.44,
           "avgExitWeight": 0.13
         },
-        "note": "Across 24 funds these managers run, the median peer-relative alpha is +2.5%/yr and 62% beat their category. Confirmed at this fund: since the lead manager took over (64 months), alpha vs the category is +28.1%."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm. Cross-fund record (+2.5%/yr median alpha across 24 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -146127,8 +146127,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 1.1,
           "fundReturn": 46.7,
@@ -146173,7 +146173,7 @@
           "avgAddWeight": 1.05,
           "avgExitWeight": 1.36
         },
-        "note": "Across 3 funds these managers run, the median peer-relative alpha is +3.0%/yr and 67% beat their category. Under the current lead (37 months), this fund has tracked its category closely (+1.1% alpha)."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 19/31 in its category. Cross-fund record (+3.0%/yr median alpha across 3 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -147725,8 +147725,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 20.9,
           "fundReturn": 384.7,
@@ -147763,7 +147763,7 @@
           "avgAddWeight": 1.04,
           "avgExitWeight": 1.33
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +4.1%/yr and 85% beat their category. Confirmed at this fund: since the lead manager took over (156 months), alpha vs the category is +20.9%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and ranked 23/31 in its category. Cross-fund record (+4.1%/yr median alpha across 13 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -148111,8 +148111,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -1.7,
           "fundReturn": -0.9,
@@ -148153,7 +148153,7 @@
           "avgAddWeight": 0.59,
           "avgExitWeight": 1.0
         },
-        "note": "Across 10 funds these managers run, the median peer-relative alpha is +4.3%/yr and 80% beat their category. Under the current lead (19 months), this fund has tracked its category closely (-1.7% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm and ranked 24/31 in its category. Cross-fund record (+4.3%/yr median alpha across 10 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -156036,7 +156036,7 @@
           "avgAddWeight": 0.97,
           "avgExitWeight": 0.18
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +3.8%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (42 months), alpha vs the category is +33.6%."
+        "note": "Across 13 funds these managers run, the median peer-relative alpha is +3.8%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (42 months), alpha vs the category is +33.6%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 3.5 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -161233,8 +161233,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -1.1,
           "fundReturn": 88.3,
@@ -161275,7 +161275,7 @@
           "avgAddWeight": 1.82,
           "avgExitWeight": 2.77
         },
-        "note": "Across 27 funds, median alpha +3.1%/yr with 56% beating their category. Under the current lead (42 months), this fund has tracked its category closely (-1.1% alpha)."
+        "note": "\u26a0\ufe0f 3 of 5 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and running cold vs its own norm and ranked 26/30 in its category. Cross-fund record (+3.1%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -163989,7 +163989,7 @@
           "avgAddWeight": 0.34,
           "avgExitWeight": 0.45
         },
-        "note": "Across 24 funds these managers run, the median peer-relative alpha is +2.2%/yr and 62% beat their category. Confirmed at this fund: since the lead manager took over (47 months), alpha vs the category is +33.9%."
+        "note": "Across 24 funds these managers run, the median peer-relative alpha is +2.2%/yr and 62% beat their category. Confirmed at this fund: since the lead manager took over (47 months), alpha vs the category is +33.9%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 3.9 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -165780,7 +165780,7 @@
           "avgAddWeight": 0.33,
           "avgExitWeight": 0.4
         },
-        "note": "Across 8 funds, median alpha +1.4%/yr with 50% beating their category. Confirmed at this fund: since the lead manager took over (68 months), alpha vs the category is +176.6%."
+        "note": "Across 8 funds, median alpha +1.4%/yr with 50% beating their category. Confirmed at this fund: since the lead manager took over (68 months), alpha vs the category is +176.6%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 5.6 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -166029,7 +166029,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 556.0,
           "fundReturn": 628.2,
@@ -166066,7 +166066,7 @@
           "avgAddWeight": 0.13,
           "avgExitWeight": 0.18
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +556.0%."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 8 months \u2014 too early to attribute this fund's recent performance to them. The fund returned +628.2% since they joined (category median +72.2%) \u2014 looks good, but a 161-month window can't distinguish skill from market timing. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 13.4 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -166421,7 +166421,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 556.0,
           "fundReturn": 628.2,
@@ -166458,7 +166458,7 @@
           "avgAddWeight": 0.13,
           "avgExitWeight": 0.18
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +556.0%."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 8 months \u2014 too early to attribute this fund's recent performance to them. The fund returned +628.2% since they joined (category median +72.2%) \u2014 looks good, but a 161-month window can't distinguish skill from market timing. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 13.4 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -169478,8 +169478,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 0.2,
           "fundReturn": 51.1,
@@ -169520,7 +169520,7 @@
           "avgAddWeight": 0.14,
           "avgExitWeight": 0.64
         },
-        "note": "Across 19 funds, median alpha +0.8%/yr with 57% beating their category. Under the current lead (35 months), this fund has tracked its category closely (+0.2% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and running cold vs its own norm and ranked 17/21 in its category. Cross-fund record (+0.8%/yr median alpha across 19 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -169837,7 +169837,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -8.5,
@@ -169879,7 +169879,7 @@
           "avgAddWeight": 0.22,
           "avgExitWeight": 2.28
         },
-        "note": "Across 5 funds these managers run, the median peer-relative alpha is +4.5%/yr and 80% beat their category. However, the lead manager has been here only 10 months \u2014 too early to attribute this fund's recent performance to them. The fund returned -7.5% since they joined (category median +0.9%) \u2014 an early concern, though 11 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 18/21 in its category. Cross-fund record (+4.5%/yr median alpha across 5 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -171118,8 +171118,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 10.2,
           "fundReturn": 13.9,
@@ -171176,7 +171176,7 @@
           "avgAddWeight": 0.92,
           "avgExitWeight": 1.16
         },
-        "note": "Across 3 funds, median alpha +0.3%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (18 months), alpha vs the category is +10.2%."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.3%/yr median alpha across 3 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -174126,8 +174126,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 15.1,
           "fundReturn": 27.6,
@@ -174184,7 +174184,7 @@
           "avgAddWeight": 1.49,
           "avgExitWeight": 1.65
         },
-        "note": "Across 27 funds, median alpha +3.1%/yr with 56% beating their category. Confirmed at this fund: since the lead manager took over (24 months), alpha vs the category is +15.1%."
+        "note": "\u26a0\ufe0f 3 of 5 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.1%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -176080,7 +176080,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 648.3,
           "fundReturn": 751.6,
@@ -176104,7 +176104,7 @@
           "avgAddWeight": 0.0,
           "avgExitWeight": 0
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +648.3%."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. The fund returned +751.6% since they joined (category median +103.3%) \u2014 looks good, but a 161-month window can't distinguish skill from market timing. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 13.4 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -176459,7 +176459,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 653.3,
           "fundReturn": 756.7,
@@ -176483,7 +176483,7 @@
           "avgAddWeight": 0.0,
           "avgExitWeight": 0
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (161 months), alpha vs the category is +653.3%."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. The fund returned +756.7% since they joined (category median +103.3%) \u2014 looks good, but a 161-month window can't distinguish skill from market timing. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 13.4 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -178869,7 +178869,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 15.4,
           "fundReturn": 24.5,
@@ -178906,7 +178906,7 @@
           "avgAddWeight": 0.66,
           "avgExitWeight": 1.06
         },
-        "note": "Across 10 funds, median alpha +1.7%/yr with 60% beating their category. Confirmed at this fund: since the lead manager took over (24 months), alpha vs the category is +15.4%."
+        "note": "Across 10 funds, median alpha +1.7%/yr with 60% beating their category. However, the lead manager has been here only 1 months \u2014 too early to attribute this fund's recent performance to them. The fund returned +24.5% since they joined (category median +9.1%) \u2014 looks good, but a 24-month window can't distinguish skill from market timing. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 2.0 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -182516,7 +182516,7 @@
           "avgAddWeight": 0.8,
           "avgExitWeight": 0.7
         },
-        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +35.1%."
+        "note": "Across 19 funds, median alpha +0.3%/yr with 53% beating their category. Confirmed at this fund: since the lead manager took over (35 months), alpha vs the category is +35.1%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 2.9 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -184461,7 +184461,7 @@
           "avgAddWeight": 0.9,
           "avgExitWeight": 0
         },
-        "note": "Across 5 funds these managers run, the median peer-relative alpha is +3.2%/yr and 60% beat their category. Confirmed at this fund: since the lead manager took over (72 months), alpha vs the category is +187.0%."
+        "note": "Across 5 funds these managers run, the median peer-relative alpha is +3.2%/yr and 60% beat their category. Confirmed at this fund: since the lead manager took over (72 months), alpha vs the category is +187.0%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 6.0 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -186598,7 +186598,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 1.8,
           "fundReturn": 6.0,
@@ -186627,7 +186627,7 @@
           "avgAddWeight": 0.21,
           "avgExitWeight": 0.36
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Under the current lead (21 months), this fund has tracked its category closely (+1.8% alpha)."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 1.8 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -186876,7 +186876,7 @@
           ]
         },
         "signal": "Solid",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 1.8,
           "fundReturn": 6.0,
@@ -186905,7 +186905,7 @@
           "avgAddWeight": 0.21,
           "avgExitWeight": 0.36
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Under the current lead (21 months), this fund has tracked its category closely (+1.8% alpha)."
+        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. However, the lead manager has been here only 2 months \u2014 too early to attribute this fund's recent performance to them. Note: 2 of 3 managers are new (< 1 year). While the longest-serving manager has been here 1.8 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -192655,8 +192655,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 19.7,
           "fundReturn": 88.6,
@@ -192685,7 +192685,7 @@
           "avgAddWeight": 0.53,
           "avgExitWeight": 0.02
         },
-        "note": "Across 24 funds these managers run, the median peer-relative alpha is +2.5%/yr and 67% beat their category. Confirmed at this fund: since the lead manager took over (47 months), alpha vs the category is +19.7%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm. Cross-fund record (+2.5%/yr median alpha across 24 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -195447,7 +195447,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 0.3,
@@ -195457,7 +195457,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 8 funds these managers run, the median peer-relative alpha is +2.8%/yr and 62% beat their category. However, the lead manager has been here only 10 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "\u26a0\ufe0f 2 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 64/127 in its category. Cross-fund record (+2.8%/yr median alpha across 8 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -198565,8 +198565,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 17.2,
           "fundReturn": 63.1,
@@ -198595,7 +198595,7 @@
           "avgAddWeight": 0.5,
           "avgExitWeight": 0.55
         },
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +4.1%/yr and 77% beat their category. Confirmed at this fund: since the lead manager took over (36 months), alpha vs the category is +17.2%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating and running cold vs its own norm and ranked 74/127 in its category. Cross-fund record (+4.1%/yr median alpha across 13 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -200022,8 +200022,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 49.2,
           "fundReturn": 149.7,
@@ -200056,7 +200056,7 @@
           "avgAddWeight": 0.68,
           "avgExitWeight": 0.92
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 70% beating their category. Confirmed at this fund: since the lead manager took over (98 months), alpha vs the category is +49.2%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 78/127 in its category. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -200416,8 +200416,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 49.2,
           "fundReturn": 149.7,
@@ -200450,7 +200450,7 @@
           "avgAddWeight": 0.68,
           "avgExitWeight": 0.92
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 70% beating their category. Confirmed at this fund: since the lead manager took over (98 months), alpha vs the category is +49.2%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 79/127 in its category. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -202551,8 +202551,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -0.4,
           "fundReturn": 37.4,
@@ -202613,7 +202613,7 @@
           "avgAddWeight": 1.29,
           "avgExitWeight": 1.18
         },
-        "note": "Across 4 funds these managers run, the median peer-relative alpha is +2.0%/yr and 75% beat their category. Under the current lead (31 months), this fund has tracked its category closely (-0.4% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm and ranked 85/127 in its category. Cross-fund record (+2.0%/yr median alpha across 4 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -208161,8 +208161,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 117.1,
           "fundReturn": 217.5,
@@ -208203,7 +208203,7 @@
           "avgAddWeight": 0.61,
           "avgExitWeight": 1.13
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 70% beating their category. Confirmed at this fund: since the lead manager took over (96 months), alpha vs the category is +117.1%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm and ranked 101/127 in its category. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -208551,8 +208551,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 117.1,
           "fundReturn": 217.5,
@@ -208593,7 +208593,7 @@
           "avgAddWeight": 0.61,
           "avgExitWeight": 1.13
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 70% beating their category. Confirmed at this fund: since the lead manager took over (96 months), alpha vs the category is +117.1%."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm and ranked 102/127 in its category. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -210591,7 +210591,7 @@
           "avgAddWeight": 0,
           "avgExitWeight": 0.85
         },
-        "note": "Across 15 funds, median alpha -2.0%/yr and 27% beat their category \u2014 an inconsistent record. However, the lead manager has been here only 6 months \u2014 too early to attribute this fund's recent performance to them. The fund returned -9.8% since they joined (category median +0.6%) \u2014 an early concern, though 6 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
+        "note": "Across 15 funds, median alpha -2.0%/yr and 27% beat their category \u2014 an inconsistent record. However, the lead manager has been here only 3 months \u2014 too early to attribute this fund's recent performance to them. The fund returned -9.8% since they joined (category median +0.6%) \u2014 an early concern, though 6 months isn't enough to judge conclusively. The category did better, suggesting fund-specific weakness."
       },
       "analytics": {
         "rankTrajectory": {
@@ -212044,7 +212044,7 @@
           ]
         },
         "signal": "Mixed",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -0.3,
           "fundReturn": 52.8,
@@ -212085,7 +212085,7 @@
           "avgAddWeight": 2.65,
           "avgExitWeight": 1.21
         },
-        "note": "Across 11 funds, median alpha -1.1%/yr and 27% beat their category \u2014 an inconsistent record. Under the current lead (45 months), this fund has tracked its category closely (-0.3% alpha)."
+        "note": "Across 11 funds, median alpha -1.1%/yr and 27% beat their category \u2014 an inconsistent record. However, the lead manager has been here only 1.2 yrs \u2014 too early to attribute this fund's recent performance to them."
       },
       "analytics": {
         "rankTrajectory": {
@@ -212398,8 +212398,8 @@
             }
           ]
         },
-        "signal": "Strong",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -1.6,
           "fundReturn": 71.6,
@@ -212436,7 +212436,7 @@
           "avgAddWeight": 1.21,
           "avgExitWeight": 1.0
         },
-        "note": "Across 6 funds these managers run, the median peer-relative alpha is +3.5%/yr and 83% beat their category. Under the current lead (63 months), this fund has tracked its category closely (-1.6% alpha)."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's running cold vs its own norm and ranked 114/127 in its category. Cross-fund record (+3.5%/yr median alpha across 6 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -221472,8 +221472,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 2.1,
           "fundReturn": 4.4,
@@ -221518,7 +221518,7 @@
           "avgAddWeight": 0.99,
           "avgExitWeight": 1.33
         },
-        "note": "Across 6 funds, median alpha +1.8%/yr with 67% beating their category. Under the current lead (18 months), this fund has tracked its category closely (+2.1% alpha)."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+1.8%/yr median alpha across 6 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -226646,7 +226646,7 @@
             }
           ]
         },
-        "signal": "Strong",
+        "signal": "Mixed",
         "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 12.6,
@@ -226656,7 +226656,7 @@
           "categoryUpFundDown": false
         },
         "holdingsMoves": null,
-        "note": "Across 13 funds these managers run, the median peer-relative alpha is +3.8%/yr and 77% beat their category. However, the lead manager has been here only 1.3 yrs \u2014 too early to attribute this fund's recent performance to them. The fund returned +22.0% since they joined (category median +9.4%) \u2014 looks good, but a 16-month window can't distinguish skill from market timing."
+        "note": "\u26a0\ufe0f 1 of 2 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.8%/yr median alpha across 13 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -238494,8 +238494,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 2.1,
           "fundReturn": 8.2,
@@ -238544,7 +238544,7 @@
           "avgAddWeight": 2.01,
           "avgExitWeight": 4.24
         },
-        "note": "Across 27 funds, median alpha +3.1%/yr with 56% beating their category. Under the current lead (22 months), this fund has tracked its category closely (+2.1% alpha)."
+        "note": "\u26a0\ufe0f 3 of 5 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+3.1%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -242799,7 +242799,7 @@
           "avgAddWeight": 0.56,
           "avgExitWeight": 0.27
         },
-        "note": "Across 4 funds these managers run, the median peer-relative alpha is +3.1%/yr and 75% beat their category. Confirmed at this fund: since the lead manager took over (20 months), alpha vs the category is +5.7%."
+        "note": "Across 4 funds these managers run, the median peer-relative alpha is +3.1%/yr and 75% beat their category. Confirmed at this fund: since the lead manager took over (20 months), alpha vs the category is +5.7%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 1.7 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -243153,8 +243153,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 228.1,
           "fundReturn": 541.0,
@@ -243215,7 +243215,7 @@
           "avgAddWeight": 0.19,
           "avgExitWeight": 0.14
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (113 months), alpha vs the category is +228.1%."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -243463,8 +243463,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 228.1,
           "fundReturn": 541.0,
@@ -243525,7 +243525,7 @@
           "avgAddWeight": 0.19,
           "avgExitWeight": 0.14
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (113 months), alpha vs the category is +228.1%."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -249395,8 +249395,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 22.0,
           "fundReturn": 52.5,
@@ -249428,7 +249428,7 @@
           "avgAddWeight": 0.96,
           "avgExitWeight": 0
         },
-        "note": "Across 27 funds, median alpha +0.0%/yr with 52% beating their category. Confirmed at this fund: since the lead manager took over (30 months), alpha vs the category is +22.0%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked None/None in its category. Cross-fund record (+0.0%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "capture": {
@@ -251214,7 +251214,7 @@
           "avgAddWeight": 2.03,
           "avgExitWeight": 0.81
         },
-        "note": "Across 5 funds these managers run, the median peer-relative alpha is +4.8%/yr and 80% beat their category. Confirmed at this fund: since the lead manager took over (20 months), alpha vs the category is +14.7%."
+        "note": "Across 5 funds these managers run, the median peer-relative alpha is +4.8%/yr and 80% beat their category. Confirmed at this fund: since the lead manager took over (20 months), alpha vs the category is +14.7%. Note: 1 of 2 managers are new (< 1 year). While the longest-serving manager has been here 1.7 yrs, this level of team turnover means the dynamics may have shifted. Watch for stability."
       },
       "analytics": {
         "rankTrajectory": {
@@ -252265,8 +252265,8 @@
             }
           ]
         },
-        "signal": "Solid",
-        "tenureCaveat": false,
+        "signal": "Mixed",
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": 68.8,
           "fundReturn": 211.1,
@@ -252327,7 +252327,7 @@
           "avgAddWeight": 0.35,
           "avgExitWeight": 0.32
         },
-        "note": "Across 27 funds, median alpha +1.4%/yr with 67% beating their category. Confirmed at this fund: since the lead manager took over (97 months), alpha vs the category is +68.8%."
+        "note": "\u26a0\ufe0f 2 of 4 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's rank is deteriorating. Cross-fund record (+1.4%/yr median alpha across 27 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -255537,7 +255537,7 @@
           ]
         },
         "signal": "Mixed",
-        "tenureCaveat": false,
+        "tenureCaveat": true,
         "tenurePerf": {
           "alpha": -4.0,
           "fundReturn": 60.4,
@@ -255598,7 +255598,7 @@
           "avgAddWeight": 0.96,
           "avgExitWeight": 0.82
         },
-        "note": "Across 3 funds these managers run, the median peer-relative alpha is +3.0%/yr and 100% beat their category. But since the current lead manager took over (37 months ago), this fund returned +60.4% vs the category median's +64.3% \u2014 a -4.0% gap. The category did fine; this fund lagged \u2014 the cross-fund record may not be translating here."
+        "note": "\u26a0\ufe0f 2 of 3 managers joined in the last year \u2014 effectively a new team. Since the change, the fund's ranked 13/23 in its category. Cross-fund record (+3.0%/yr median alpha across 3 funds) looks good on paper, but that record may be from passive/index mandates under these managers and may not transfer to this fund's active mandate. Too early to call \u2014 watch the next 6-12 months."
       },
       "analytics": {
         "rankTrajectory": {
@@ -258849,7 +258849,7 @@
           "avgAddWeight": 0,
           "avgExitWeight": 0.8
         },
-        "note": "Across 11 funds, median alpha -2.2%/yr and 18% beat their category \u2014 an inconsistent record. However, the lead manager has been here only 6 months \u2014 too early to attribute this fund's recent performance to them."
+        "note": "Across 11 funds, median alpha -2.2%/yr and 18% beat their category \u2014 an inconsistent record. However, the lead manager has been here only 1 months \u2014 too early to attribute this fund's recent performance to them."
       },
       "analytics": {
         "rankTrajectory": {
