@@ -55,7 +55,13 @@ SLUG_MAP_PATH = os.path.join(HIST_DIR, "_slugs.json")
 # Local seed sources (present in the workspace, absent in CI).
 WS_SLUG_CACHE = os.path.join(ROOT, "holdings_cache", "_slugs")
 UNIVERSE_PATH = os.path.join(ROOT, "mf_v6_universe.json")
-FUNDS_JSON = os.path.join(ROOT, "mf-website-v2", "src", "data", "funds.json")
+# funds.json — could be under a nested mf-website-v2/ dir (local workspace) or directly under src/ (CI repo root).
+_FUNDS_CANDIDATES = [
+    os.path.join(ROOT, "mf-website-v2", "src", "data", "funds.json"),  # local workspace layout
+    os.path.join(ROOT, "src", "data", "funds.json"),                   # CI: repo root = mf-website-v2
+    os.path.join(HERE, "..", "src", "data", "funds.json"),             # CI: relative to scripts/
+]
+FUNDS_JSON = next((p for p in _FUNDS_CANDIDATES if os.path.exists(p)), _FUNDS_CANDIDATES[0])
 META_CACHE = os.path.join(ROOT, "scheme_meta_cache")
 
 H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
@@ -244,13 +250,17 @@ def auth_name(code, fallback):
 def load_universe():
     uni = {}
     if os.path.exists(UNIVERSE_PATH):
+        print(f"  loading universe from: {UNIVERSE_PATH}")
         u = json.load(open(UNIVERSE_PATH, encoding="utf-8"))
         for f in u["funds"]:
             c = int(f["code"]); uni[c] = auth_name(c, f["name"])
     elif os.path.exists(FUNDS_JSON):
+        print(f"  loading universe from: {FUNDS_JSON}")
         fj = json.load(open(FUNDS_JSON, encoding="utf-8"))
         for f in fj["funds"]:
             c = int(f["code"]); uni[c] = auth_name(c, f.get("fullName") or f["name"])
+    else:
+        print(f"  ERROR: tried {UNIVERSE_PATH} and {FUNDS_JSON}, neither exists.")
     return uni
 
 
