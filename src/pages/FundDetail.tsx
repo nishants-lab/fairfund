@@ -439,17 +439,17 @@ export default function FundDetail() {
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
       <VerdictCard fund={fund} />
 
-      {/* Forward-looking analytics (v3) */}
-      <ForwardAnalytics fund={fund} nav={allNav} />
-
       {/* Portfolio holdings */}
       <HoldingsTable fund={fund} />
+
+      {/* Portfolio changes (stock-picking intelligence) */}
+      <PortfolioMoves fund={fund} />
 
       {/* Management quality */}
       <ManagementCard fund={fund} />
 
-      {/* Portfolio changes (stock-picking intelligence) */}
-      <PortfolioMoves fund={fund} />
+      {/* Forward-looking analytics (v3) — "If you stay invested for…" + signals */}
+      <ForwardAnalytics fund={fund} nav={allNav} />
 
       {/* Peers */}
       {peers.length > 0 && (
