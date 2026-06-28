@@ -1,4 +1,5 @@
 import type { NavPoint } from '../types'
+import { reportLiveNavDate } from './navFreshness'
 
 // Simple in-memory cache so we don't refetch the same fund repeatedly
 const cache = new Map<number, NavPoint[]>()
@@ -65,6 +66,8 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
       const points = parseLive(json)
       if (points.length > 0) {
         cache.set(code, points)
+        // Report the freshest NAV date to the global tracker
+        reportLiveNavDate(points[points.length - 1].date)
         return points
       }
     }

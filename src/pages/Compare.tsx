@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, Link } from 'react-router-dom'
 import { getFund } from '../lib/data'
 import SearchBox from '../components/SearchBox'
@@ -7,7 +8,7 @@ import CompareChart from '../components/CompareChart'
 import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
-import { pct, signedPct, num, alphaColor } from '../lib/format'
+import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { buildVerdict } from '../lib/verdict'
 import type { Fund, NavPoint } from '../types'
 
@@ -20,6 +21,11 @@ export default function Compare() {
   const [funds, setFunds] = useState<Fund[]>([])
   const [navData, setNavData] = useState<Record<number, NavPoint[]>>({})
   const [loadingCodes, setLoadingCodes] = useState<Set<number>>(new Set())
+
+  usePageMeta(
+    funds.length ? `Compare: ${funds.map(f => f.name.split(" ")[0]).join(" vs ")}` : 'Compare Funds',
+    'Compare up to 5 mutual funds side by side over any time period. Live metrics, growth charts, holdings overlap.'
+  )
 
   // Shared range across all compared funds
   const [start, setStart] = useState('')
@@ -265,7 +271,7 @@ export default function Compare() {
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                 <div>
                   <Link
-                    to={`/fund/${f.code}`}
+                    to={`/fund/${f.code}/${fundSlug(f.name)}`}
                     className="text-sm font-semibold text-fg hover:text-brand-600 hover:underline"
                     title={`Open ${f.name} - use your browser Back to return here`}
                   >
@@ -330,7 +336,7 @@ export default function Compare() {
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                         <Link
-                          to={`/fund/${f.code}`}
+                          to={`/fund/${f.code}/${fundSlug(f.name)}`}
                           className="max-w-[110px] truncate text-xs font-semibold text-fg hover:text-brand-600 hover:underline"
                           title={`Open ${f.name}`}
                         >

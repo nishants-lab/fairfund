@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>FairFund</title>
+  <script>
+    // GitHub Pages SPA redirect: store the requested path and redirect to root
+    // so the React router can handle it client-side.
+    var seg = 1; // number of path segments to keep (fairfund is at /fairfund/)
+    var loc = window.location;
+    var path = loc.pathname.split('/').slice(seg + 1).join('/');
+    var search = loc.search;
+    var hash = loc.hash;
+    sessionStorage.setItem('spa-redirect', '/' + path + search + hash);
+    loc.replace(
+      loc.pathname.split('/').slice(0, seg + 1).join('/') + '/'
+    );
+  </script>
+</head>
+<body></body>
+</html>

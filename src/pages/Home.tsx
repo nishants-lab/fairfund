@@ -1,128 +1,209 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { usePageMeta } from '../lib/usePageMeta'
 import SearchBox from '../components/SearchBox'
-import RiskBadge from '../components/RiskBadge'
-import { data, topFundsForCategory } from '../lib/data'
-import { signedPct, pct, alphaColor } from '../lib/format'
+import { data, topFundsForCategory, categoryOrder } from '../lib/data'
+import { getCategoryColor } from '../lib/categoryColors'
+import { signedPct, pct, alphaColor, fundSlug } from '../lib/format'
+import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
 
-const popularCategories = [
-  { key: 'Flexi Cap', emoji: '🌐' },
-  { key: 'Mid Cap', emoji: '📈' },
-  { key: 'Small Cap', emoji: '🚀' },
-  { key: 'International', emoji: '🌎' },
-  { key: 'Sectoral/Thematic', emoji: '🎯' },
-  { key: 'ELSS', emoji: '🧾' },
-]
+/** Performance tier classification for category cards */
+function cagrTier(cagr: number | null | undefined): 'top' | 'good' | 'average' | 'below' {
+  if (!cagr) return 'average'
+  if (cagr >= 18) return 'top'
+  if (cagr >= 15) return 'good'
+  if (cagr >= 12) return 'average'
+  return 'below'
+}
+
+/** Text color for the CAGR number based on tier */
+const tierCagrColor = {
+  top: 'text-emerald-700 dark:text-emerald-400 font-extrabold',
+  good: 'text-brand-700 dark:text-brand-300 font-bold',
+  average: 'text-fg font-bold',
+  below: 'text-amber-700 dark:text-amber-400 font-bold',
+} as const
 
 export default function Home() {
+  usePageMeta(undefined, 'Forward-looking mutual fund research for India. Compare funds fairly over any time period with scientific, probability-based signals.')
+  const navDate = useNavFreshness()
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    const t = setInterval(() => setTick((i) => (i + 1) % 2), 2500)
+    return () => clearInterval(t)
+  }, [])
   const navigate = useNavigate()
-  // A few standout picks for the hero strip (best alpha across the board, 3Y)
-  const highlights = ['Flexi Cap', 'Mid Cap', 'Small Cap']
+
+  // Category leaders (top 1 per category, for the grid)
+  const categoryCards = categoryOrder
+    .filter((c) => data.categories[c])
+    .map((c) => ({
+      key: c,
+      display: data.categories[c].display ?? c,
+      topFund: topFundsForCategory(c, 1)[0],
+      fundCount: data.categories[c].fundCount,
+      medianCagr5Y: data.categories[c].medianCagr5Y,
+      topCagr5Y: data.categories[c].topCagr5Y,
+    }))
+
+  // Determine top 3 categories by median 5Y CAGR for badge
+  const sortedByMedian = [...categoryCards]
+    .filter((c) => c.medianCagr5Y != null)
+    .sort((a, b) => (b.medianCagr5Y ?? 0) - (a.medianCagr5Y ?? 0))
+  const top3Keys = new Set(sortedByMedian.slice(0, 3).map((c) => c.key))
+
+  // Standout picks: highest alpha across key categories
+  const highlights = ['Flexi Cap', 'Large Cap', 'Mid Cap', 'Small Cap', 'ELSS', 'Sectoral/Thematic']
     .map((c) => topFundsForCategory(c, 1)[0])
     .filter(Boolean)
+    .slice(0, 6)
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-50 to-canvas dark:from-brand-900/20 dark:to-canvas">
-        <div className="mx-auto max-w-4xl px-4 py-16 text-center md:py-24">
-          <h1 className="text-center text-3xl font-extrabold leading-tight text-fg md:text-4xl">
-            <span className="block">Mutual Fund Research</span>
-            <span className="mt-1 block text-brand-600 dark:text-brand-400">
-              Backward-tested and Forward-looking
+    <div className="overflow-x-hidden">
+      {/* Hero - tight, action-first */}
+      <section className="relative bg-gradient-to-b from-brand-50 via-brand-50/50 to-canvas dark:from-brand-900/30 dark:via-brand-900/10 dark:to-canvas">
+        {/* Decorative radial glow */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-96 w-[600px] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl dark:bg-brand-600/10" />
+        </div>
+        <div className="relative mx-auto max-w-4xl px-4 pt-12 pb-6 text-center md:pt-16 md:pb-8">
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-fg md:text-5xl">
+            Research funds with{' '}
+            <span className="bg-gradient-to-r from-brand-600 to-emerald-600 bg-clip-text text-transparent dark:from-brand-400 dark:to-emerald-400">
+              clarity and confidence
             </span>
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted">
-            Most fund tools are a rear-view mirror - trailing returns and a point-in-time rank. We add
-            scientific, <strong>forward-looking signals</strong> - consistency, skill-vs-luck, downside
-            protection, and probability-based outlooks - across {data.totalFunds} funds, over <strong>any time period
-            you choose</strong>. Evidence and probabilities, never advice.
+          <p className="mx-auto mt-5 max-w-xl text-lg text-muted leading-relaxed">
+            Scientific, probability-based analysis across{' '}
+            <strong className="text-fg">{data.totalFunds}</strong> Indian equity mutual funds.
+            Any time period you choose.
           </p>
 
-          <div className="mx-auto mt-8 max-w-2xl">
+          <div className="relative z-30 mx-auto mt-9 max-w-2xl">
             <SearchBox large autoFocus />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-muted">
-            <span>Popular:</span>
-            {popularCategories.slice(0, 4).map((c) => (
-              <Link
-                key={c.key}
-                to={`/explore?cat=${encodeURIComponent(c.key)}`}
-                className="rounded-full border border-line bg-surface px-3 py-1 font-medium text-muted hover:border-brand-300 hover:text-brand-600"
-              >
-                {c.emoji} {data.categories[c.key]?.display ?? c.key}
-              </Link>
-            ))}
+          {/* Live stats strip */}
+          <div className="mt-5 flex items-center justify-center gap-2 text-sm text-muted">
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
+            <span><strong className="text-fg">{data.totalFunds}</strong> funds tracked</span>
+            <span className="text-faint">·</span>
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1">
+              NAV updated
+              <span className="relative inline-flex h-[1.4em] w-[6.5rem] items-center overflow-hidden">
+                <span
+                  className="absolute left-0 font-semibold text-fg transition-all duration-700 ease-in-out"
+                  style={{ transform: tick === 0 ? 'translateY(0)' : 'translateY(-100%)', opacity: tick === 0 ? 1 : 0 }}
+                >
+                  daily
+                </span>
+                <span
+                  className="absolute left-0 font-semibold text-fg transition-all duration-700 ease-in-out"
+                  style={{ transform: tick === 1 ? 'translateY(0)' : 'translateY(100%)', opacity: tick === 1 ? 1 : 0 }}
+                >
+                  {fmtNavDate(navDate)}
+                </span>
+              </span>
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Quick actions */}
-      <section className="mx-auto -mt-8 max-w-5xl px-4">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link to="/methodology" className="card group p-6 transition hover:shadow-md">
-            <div className="text-3xl">🧪</div>
-            <div className="mt-3 font-bold text-fg">How we rank</div>
-            <p className="mt-1 text-sm text-muted">
-              See the method: identical windows, within-category ranking, peer-relative alpha and forward signals.
-            </p>
-            <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
-              Read the method →
+      {/* Differentiation: one-glance comparison */}
+      <section className="mx-auto -mt-2 max-w-5xl px-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="card border-rose-200 bg-rose-50/60 p-6 dark:border-rose-800/40 dark:bg-rose-900/15">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              What most sites show
             </div>
-          </Link>
-          <Link to="/compare" className="card group p-6 transition hover:shadow-md">
-            <div className="text-3xl">⚖️</div>
-            <div className="mt-3 font-bold text-fg">Compare Funds</div>
-            <p className="mt-1 text-sm text-muted">
-              Put up to 5 funds side by side over any period. Same category or across; we'll flag it.
-            </p>
-            <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
-              Compare now →
+            <ul className="mt-4 space-y-2.5 text-sm text-muted">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-rose-400">✗</span>
+                Returns since inception (flatters younger funds)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-rose-400">✗</span>
+                Star ratings with no explanation
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-rose-400">✗</span>
+                Fixed time periods (1Y, 3Y, 5Y only)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-rose-400">✗</span>
+                No probability framing or confidence levels
+              </li>
+            </ul>
+          </div>
+          <div className="card border-emerald-200 bg-emerald-50/60 p-6 dark:border-emerald-800/40 dark:bg-emerald-900/15">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              What FairFund shows
             </div>
-          </Link>
-          <Link to="/explore" className="card group p-6 transition hover:shadow-md">
-            <div className="text-3xl">🔍</div>
-            <div className="mt-3 font-bold text-fg">Explore by Category</div>
-            <p className="mt-1 text-sm text-muted">
-              Browse the top funds in each category, ranked fairly on risk-adjusted alpha.
-            </p>
-            <div className="mt-3 text-sm font-semibold text-brand-600 group-hover:underline">
-              Explore →
-            </div>
-          </Link>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                Same fixed window for everyone (fair comparison)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                Skill-vs-luck, consistency, capture ratios
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                Any custom date range — every metric recomputes live
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                Probability cones and rolling-return distributions
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* Highlights */}
-      <section className="mx-auto max-w-5xl px-4 py-12">
-        <h2 className="text-xl font-bold text-fg">Category leaders right now</h2>
-        <p className="mt-1 text-sm text-muted">
-          #1 by risk-adjusted score in each category (3-year fixed window). Alpha = how much it beat
-          the median peer fund per year.
-        </p>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+      {/* Category Leaders */}
+      <section className="mx-auto max-w-5xl px-4 py-14">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-fg">Top fund in each category</h2>
+            <p className="mt-1 text-sm text-muted">
+              #1 by risk-adjusted composite score (3-year fixed window)
+            </p>
+          </div>
+          <Link to="/explore" className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">
+            All categories →
+          </Link>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {highlights.map((f) => {
             const m = f.metrics['3Y']
             return (
               <button
                 key={f.code}
-                onClick={() => navigate(`/fund/${f.code}`)}
-                className="card p-5 text-left transition hover:shadow-md"
+                onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)}
+                className="card group p-4 text-left transition hover:shadow-md hover:border-brand-300 dark:hover:border-brand-600"
               >
                 <div className="flex items-center justify-between">
-                  <span className="pill bg-surface2 text-muted">{f.categoryDisplay}</span>
-                  <RiskBadge level={f.riskLevel} showWord={false} />
+                  <span className={`pill text-xs ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>{f.categoryDisplay}</span>
+                  <span className="text-xs text-faint">#{m?.catRank}/{m?.catSize}</span>
                 </div>
-                <div className="mt-3 font-bold text-fg">{f.name}</div>
-                <div className="text-xs text-faint">{f.amc}</div>
-                <div className="mt-4 flex items-end justify-between">
+                <div className="mt-2 font-bold text-fg leading-snug group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">{f.name}</div>
+                <div className="mt-3 flex items-end justify-between border-t border-line/50 pt-3">
                   <div>
-                    <div className="text-xs text-faint">3Y CAGR</div>
-                    <div className="text-2xl font-bold text-fg">{pct(m?.cagr)}</div>
+                    <div className="text-[11px] uppercase tracking-wide text-faint">3Y CAGR</div>
+                    <div className="text-xl font-extrabold text-fg">{pct(m?.cagr)}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-faint">Alpha vs peers</div>
-                    <div className={`text-lg font-bold ${alphaColor(m?.alpha ?? 0)}`}>
+                    <div className="text-[11px] uppercase tracking-wide text-faint">Alpha</div>
+                    <div className={`text-base font-bold ${alphaColor(m?.alpha ?? 0)}`}>
                       {signedPct(m?.alpha)}
                     </div>
                   </div>
@@ -133,63 +214,127 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why different */}
-      <section className="border-y border-line bg-surface">
-        <div className="mx-auto max-w-5xl px-4 py-12">
-          <h2 className="text-xl font-bold text-fg">More than a rear-view mirror</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            We do the rigorous backward-looking work every site should - then go further with
-            forward-looking, probability-based signals. All evidence-based, with clear caveats.
-            Never financial advice.
-          </p>
-          <div className="mt-6 grid gap-6 md:grid-cols-3">
+      {/* Category Browser - color-coded performance grid */}
+      <section className="border-y border-line bg-surface2/50 dark:bg-surface">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <div className="flex items-end justify-between">
             <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Forward-looking signals</div>
+              <h2 className="text-xl font-bold text-fg">Browse by category</h2>
               <p className="mt-1 text-sm text-muted">
-                Consistency, skill-vs-luck (is the edge real or chance?), up/down capture, “running
-                hot?”, and probability-based outcome ranges - framed as evidence and confidence, never
-                a guarantee.
+                {categoryOrder.length} categories covering the full AMFI equity universe
               </p>
             </div>
-            <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Any time period</div>
-              <p className="mt-1 text-sm text-muted">
-                Analyze the last 6 months, a specific year, or drag to any custom range. Every metric
-                recomputes live. No other free tool does this.
-              </p>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Peer-relative alpha</div>
-              <p className="mt-1 text-sm text-muted">
-                We show whether a manager beat the median fund in their own category - real skill, not
-                just riding a hot asset class.
-              </p>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Holdings &amp; overlap</div>
-              <p className="mt-1 text-sm text-muted">
-                See what a fund actually owns, and how much two funds overlap - so you don't
-                unknowingly buy the same stocks three times.
-              </p>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Management quality</div>
-              <p className="mt-1 text-sm text-muted">
-                Manager tenure plus a cross-fund track record - does the person running it have a
-                repeatable record across the other funds they manage?
-              </p>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-brand-700 dark:text-brand-400">Fair, like-for-like ranking</div>
-              <p className="mt-1 text-sm text-muted">
-                Identical fixed windows so a fund born at a market bottom can’t look artificially
-                great, and we never rank a small-cap against a large-cap.
-              </p>
+            <div className="hidden sm:flex items-center gap-3 text-[11px] text-faint">
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> ≥18%
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-400/60" /> 15–18%
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-400/60" /> &lt;12%
+              </span>
             </div>
           </div>
-          <Link to="/methodology" className="mt-6 inline-block text-sm font-semibold text-brand-600 hover:underline">
-            Read the full methodology →
+          <div className="mt-6 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {categoryCards.map((c) => {
+              const tier = cagrTier(c.medianCagr5Y)
+              const isTop3 = top3Keys.has(c.key)
+              const catColor = getCategoryColor(c.key)
+              return (
+                <Link
+                  key={c.key}
+                  to={`/explore?cat=${encodeURIComponent(c.key)}`}
+                  className={`group relative flex items-center justify-between rounded-lg border border-line border-l-[3px] ${catColor.border} px-4 py-3.5 min-h-[56px] transition hover:shadow-sm hover:border-brand-300 dark:hover:border-brand-500 bg-canvas dark:bg-surface`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`inline-block h-7 w-1 rounded-full ${catColor.bg}`} />
+                    <div>
+                      <div className="flex items-center gap-1.5 font-semibold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
+                        {c.display}
+                        {isTop3 && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                            ★ Top 5Y
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-faint">{c.fundCount} funds</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm ${tierCagrColor[tier]}`}>
+                      {c.medianCagr5Y?.toFixed(1) ?? '—'}%
+                    </div>
+                    <div className="text-[11px] text-faint">median 5Y</div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Actions row */}
+      <section className="mx-auto max-w-5xl px-4 py-14">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Link to="/compare" className="card group p-6 transition hover:shadow-md hover:border-brand-300 dark:hover:border-brand-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M3 12h18M3 18h18" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 6v12M15 6v12" />
+              </svg>
+            </div>
+            <div className="mt-3 font-bold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">Compare side by side</div>
+            <p className="mt-1.5 text-sm text-muted leading-relaxed">
+              Up to 5 funds over any period. Holdings overlap, risk metrics, conviction scores.
+            </p>
           </Link>
+          <Link to="/methodology" className="card group p-6 transition hover:shadow-md hover:border-brand-300 dark:hover:border-brand-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5m-4.25-11.396c.251.023.501.05.75.082M5 14.5l-1.703 4.258A1.125 1.125 0 004.347 20h15.306a1.125 1.125 0 001.05-1.242L19 14.5" />
+              </svg>
+            </div>
+            <div className="mt-3 font-bold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">Our methodology</div>
+            <p className="mt-1.5 text-sm text-muted leading-relaxed">
+              Fully transparent scoring. No black-box stars, no hidden weights.
+            </p>
+          </Link>
+          <Link to="/explore" className="card group p-6 transition hover:shadow-md hover:border-brand-300 dark:hover:border-brand-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+              </svg>
+            </div>
+            <div className="mt-3 font-bold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">Explore all {data.totalFunds} funds</div>
+            <p className="mt-1.5 text-sm text-muted leading-relaxed">
+              Filter by category, sort by any metric, find your next investment.
+            </p>
+          </Link>
+        </div>
+      </section>
+
+      {/* Trust strip */}
+      <section className="border-t border-line bg-surface2/30 dark:bg-surface2/10">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-8 text-xs text-muted">
+          <span className="flex items-center gap-1.5">
+            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            Data from AMFI &amp; mfapi.in
+          </span>
+          <span className="text-line">|</span>
+          <span className="flex items-center gap-1.5">
+            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            Open methodology
+          </span>
+          <span className="text-line">|</span>
+          <span className="flex items-center gap-1.5">
+            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+            No affiliate bias
+          </span>
+          <span className="text-line">|</span>
+          <span>No login required</span>
+          <span className="text-line">|</span>
+          <span className="italic">Not investment advice</span>
         </div>
       </section>
     </div>

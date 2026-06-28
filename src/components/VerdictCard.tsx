@@ -78,7 +78,7 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       <p className="mt-4 text-xs text-faint">
         Conviction blends backward-tested rank, peer-relative alpha and risk-adjusted ratios with
         forward-looking consistency, skill confidence, downside capture and management quality. A
-        reading of evidence, not advice or a guarantee.
+        reading of the data, not a recommendation.
       </p>
     </div>
   )

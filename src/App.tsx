@@ -1,14 +1,30 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
-import Explore from './pages/Explore'
-import FundDetail from './pages/FundDetail'
-import Compare from './pages/Compare'
-import Methodology from './pages/Methodology'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
 import ChatWidget from './components/ChatWidget'
+import NotFound from './pages/NotFound'
+
+// Lazy-load heavy pages to reduce initial bundle size.
+// Home stays eager (it's the landing page).
+const Explore = lazy(() => import('./pages/Explore'))
+const FundDetail = lazy(() => import('./pages/FundDetail'))
+const Compare = lazy(() => import('./pages/Compare'))
+const Methodology = lazy(() => import('./pages/Methodology'))
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        <span className="text-sm text-muted">Loading…</span>
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -16,13 +32,16 @@ export default function App() {
       <ScrollToTop />
       <Navbar />
       <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/fund/:code" element={<FundDetail />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/methodology" element={<Methodology />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/fund/:code/:slug?" element={<FundDetail />} />
+            <Route path="/compare" element={<Compare />} />
+            <Route path="/methodology" element={<Methodology />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
       <Onboarding />

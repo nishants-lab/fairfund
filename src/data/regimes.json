@@ -1,0 +1,82 @@
+[
+  {
+    "name": "COVID crash",
+    "start": "2020-02-19",
+    "end": "2020-03-23",
+    "market": "down",
+    "auto": false,
+    "desc": "The fastest crash in history when COVID hit. A pure stress test of downside protection."
+  },
+  {
+    "name": "COVID recovery",
+    "start": "2020-03-24",
+    "end": "2021-10-18",
+    "market": "up",
+    "auto": false,
+    "desc": "The liquidity-fuelled V-shaped rebound and bull run."
+  },
+  {
+    "name": "2022 correction",
+    "start": "2021-10-19",
+    "end": "2022-06-17",
+    "market": "down",
+    "auto": false,
+    "desc": "Rate hikes and foreign outflows dragged markets down."
+  },
+  {
+    "name": "2022-24 bull run",
+    "start": "2022-06-18",
+    "end": "2024-09-27",
+    "market": "up",
+    "auto": false,
+    "desc": "A strong, broad-based bull led by mid and small caps."
+  },
+  {
+    "name": "2024-25 correction",
+    "start": "2024-09-28",
+    "end": "2025-03-31",
+    "market": "down",
+    "auto": false,
+    "desc": "Heavy FII outflows and stretched valuations drove a domestic correction before the global shocks of 2025."
+  },
+  {
+    "name": "Liberation Day tariff shock",
+    "start": "2025-04-01",
+    "end": "2025-04-22",
+    "market": "down",
+    "auto": false,
+    "desc": "Trump's 'Liberation Day' tariffs (Apr 2) triggered the year's sharpest crash. Nifty fell 3.24% on Apr 7 alone."
+  },
+  {
+    "name": "Tariff-pause recovery",
+    "start": "2025-04-23",
+    "end": "2025-05-30",
+    "market": "up",
+    "auto": false,
+    "desc": "A sharp V-shaped rebound after the 90-day tariff pause announcement. Markets recovered to pre-Liberation Day levels."
+  },
+  {
+    "name": "H2 2025 rally",
+    "start": "2025-06-01",
+    "end": "2025-11-28",
+    "market": "up",
+    "auto": false,
+    "desc": "Post-tariff recovery extended through H2 2025, with Nifty reaching all-time highs by November. Strong DII flows and robust domestic earnings drove a broad rally."
+  },
+  {
+    "name": "US-Iran war",
+    "start": "2026-02-25",
+    "end": "2026-03-31",
+    "market": "down",
+    "auto": false,
+    "desc": "US military strikes on Iran in late February 2026 triggered a sharp selloff. Crude surged above $95, FII selling intensified, and Nifty fell ~12% in five weeks."
+  },
+  {
+    "name": "Post-war recovery",
+    "start": "2026-04-01",
+    "end": "2026-06-25",
+    "market": "up",
+    "auto": false,
+    "desc": "Strong April rebound on ceasefire signals and cooling oil prices. Markets recovered about half the war-driven losses by mid-June."
+  }
+]

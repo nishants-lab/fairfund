@@ -109,3 +109,30 @@ export function categoryMetricStats(
   const max = vals[vals.length - 1]
   return { min, max, median, best: higherBetter ? max : min, n: vals.length }
 }
+
+// Category search – returns categories whose display name or key matches the query
+export interface CategoryResult {
+  key: string
+  display: string
+  fundCount: number
+  medianCagr5Y?: number
+}
+
+export function searchCategories(query: string): CategoryResult[] {
+  const q = query.trim().toLowerCase()
+  if (q.length < 2) return []
+  const tokens = q.split(/\s+/)
+  return categoryOrder
+    .filter((c) => {
+      const cat = data.categories[c]
+      if (!cat) return false
+      const hay = `${cat.display ?? c} ${c}`.toLowerCase()
+      return tokens.every((t) => hay.includes(t))
+    })
+    .map((c) => ({
+      key: c,
+      display: data.categories[c].display ?? c,
+      fundCount: data.categories[c].fundCount,
+      medianCagr5Y: data.categories[c].medianCagr5Y ?? undefined,
+    }))
+}

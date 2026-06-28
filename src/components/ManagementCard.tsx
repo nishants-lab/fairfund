@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { Fund } from '../types'
-import { signedPct } from '../lib/format'
+import { signedPct, fundSlug } from '../lib/format'
 
 function signalStyle(signal?: string): { tone: string; ring: string } {
   switch (signal) {
@@ -95,7 +95,7 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
                 {tr.sampleFunds.map((sf) => (
                   <button
                     key={sf.code}
-                    onClick={() => navigate(`/fund/${sf.code}`)}
+                    onClick={() => navigate(`/fund/${sf.code}/${fundSlug(sf.name)}`)}
                     className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs hover:border-brand-300"
                     title={sf.name}
                   >

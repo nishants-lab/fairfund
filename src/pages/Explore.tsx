@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
+import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { data, fundsByCategory, categoryOrder } from '../lib/data'
-import { pct, signedPct, num, riskColor, alphaColor } from '../lib/format'
+import { pct, signedPct, num, riskColor, alphaColor, fundSlug } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
 import type { Horizon, Fund } from '../types'
@@ -226,7 +227,7 @@ export default function Explore() {
                     <tr key={f.code} className="border-b border-line text-faint">
                       <td className="px-4 py-3">—</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => navigate(`/fund/${f.code}`)} className="font-semibold text-muted hover:text-brand-600">
+                        <button onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)} className="font-semibold text-muted hover:text-brand-600">
                           {f.name}
                         </button>
                         <div className="text-xs text-faint">No full {horizon} history</div>
@@ -237,12 +238,12 @@ export default function Explore() {
                 return (
                   <tr
                     key={f.code}
-                    onClick={() => navigate(`/fund/${f.code}`)}
+                    onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)}
                     className="cursor-pointer border-b border-line transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
                   >
                     <td className="px-4 py-3">
                       <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                        m.catRank === 1 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : m.catRank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-surface2 text-muted'
+                        m.catRank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : m.catRank <= 5 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-surface2 text-muted'
                       }`}>
                         {m.catRank}
                       </span>
