@@ -5,7 +5,7 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
-import ChatWidget from './components/ChatWidget'
+
 import NotFound from './pages/NotFound'
 
 // Lazy-load heavy pages to reduce initial bundle size.
@@ -45,7 +45,7 @@ export default function App() {
       </main>
       <Footer />
       <Onboarding />
-      <ChatWidget />
+
     </div>
   )
 }
