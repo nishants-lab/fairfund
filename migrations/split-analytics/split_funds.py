@@ -24,7 +24,7 @@ DETAIL_DIR = PROJECT / "public" / "fund-data"
 
 # Fields to keep in the lightweight index (needed for search, explore, home page)
 LIGHT_FIELDS = {"code", "name", "fullName", "amc", "category", "categoryDisplay",
-                "riskLevel", "categorySize", "metrics", "verdict"}
+                "riskLevel", "categorySize", "metrics", "verdict", "analytics"}
 
 # Fields to move to per-fund detail files (loaded on demand on fund page)
 HEAVY_FIELDS = {"analytics", "holdings", "holdingsMeta", "management", "stockMoves"}
@@ -44,6 +44,23 @@ def main():
         for key in HEAVY_FIELDS:
             if key in fund and fund[key]:
                 detail[key] = fund[key]
+
+        # Keep minimal analytics in index (Explore page needs battingAverage + rankTrajectory)
+        analytics = fund.get("analytics")
+        if analytics:
+            mini = {}
+            if "battingAverage" in analytics:
+                mini["battingAverage"] = analytics["battingAverage"]
+            if "rankTrajectory" in analytics:
+                # Keep direction and limited flag, drop the spark array (saves ~200 bytes/fund)
+                rt = analytics["rankTrajectory"]
+                mini["rankTrajectory"] = {
+                    "direction": rt.get("direction"),
+                    "currentRank": rt.get("currentRank"),
+                    "currentPeers": rt.get("currentPeers"),
+                    "limited": rt.get("limited", False),
+                }
+            fund["analytics"] = mini
 
         # Write per-fund detail file (only if it has heavy data)
         if detail:
