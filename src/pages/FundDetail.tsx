@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getFund, fundsByCategory, categoryMetricStats } from '../lib/data'
 import { data } from '../lib/data'
-import { pct, signedPct, num, alphaColor } from '../lib/format'
+import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
+import { getCategoryColor } from '../lib/categoryColors'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth } from '../lib/metrics'
 import { ratioSpectrum, lowerBetterSpectrum } from '../lib/spectrum'
@@ -16,43 +17,21 @@ import PortfolioMoves from '../components/PortfolioMoves'
 import ForwardAnalytics from '../components/ForwardAnalytics'
 import VerdictCard from '../components/VerdictCard'
 import type { NavPoint } from '../types'
+import ShareButton from '../components/ShareButton'
+import { usePageMeta } from '../lib/usePageMeta'
 
-// Fixed market regimes (mirror scripts/build_analytics.py) with ISO bounds, so we
-// can explain WHY a drawdown / weak month happened: did it overlap a market-wide
-// downturn (likely not fund-specific) or not? Honest context, no fabrication.
-const REGIMES: { name: string; short: string; start: string; end: string; market: 'down' | 'up' | 'mixed' }[] = [
-  { name: 'the COVID crash', short: 'the COVID crash (early 2020)', start: '2020-02-19', end: '2020-03-23', market: 'down' },
-  { name: 'the COVID recovery rally', short: 'the 2020-21 recovery rally', start: '2020-03-24', end: '2021-10-18', market: 'up' },
-  { name: 'the 2022 correction', short: 'the 2022 correction', start: '2021-10-19', end: '2022-06-17', market: 'down' },
-  { name: 'the 2022-24 bull run', short: 'the 2022-24 bull run', start: '2022-06-18', end: '2024-09-27', market: 'up' },
-  { name: 'the 2024-25 correction', short: 'the 2024-25 correction', start: '2024-09-28', end: '2025-03-31', market: 'down' },
-  { name: 'the tariff & Iran-war era', short: 'the 2025 tariff/Iran-war shocks', start: '2025-04-01', end: '2026-05-29', market: 'mixed' },
-]
-
-/** Which regimes a [start,end] window overlaps - used to explain a drawdown/month. */
-function overlappingRegimes(start: string, end: string) {
-  return REGIMES.filter((r) => start <= r.end && end >= r.start)
-}
-
-/** Short "potential reason" for a fall: did it overlap a market-wide downturn?
- *  Kept to one short sentence (the long version was hard to read on mobile). */
-function fallReason(start: string, end: string): string | null {
-  const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'up')
-  if (hits.length === 0) return null
-  return `Overlaps ${hits[0].short} - likely a market-wide fall, not specific to this fund.`
-}
-
-/** Short positive context for a strong month: did it ride a broad rally? */
-function riseContext(start: string, end: string): string | null {
-  const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'down')
-  if (hits.length === 0) return null
-  return `Came during ${hits[0].short} - a broad rally lifted most funds.`
-}
+// Regime data imported from auto-generated regimes.json (pipeline/detect_regimes.py)
+import { fallReason, riseContext } from '../lib/regimes'
 
 export default function FundDetail() {
-  const { code } = useParams()
+  const { code, slug } = useParams()
   const navigate = useNavigate()
   const fund = getFund(Number(code))
+
+  usePageMeta(
+    fund ? `${fund.name} - ${fund.categoryDisplay}` : 'Fund not found',
+    fund ? `${fund.name} by ${fund.amc}: CAGR, Sharpe, Sortino, max drawdown, peer alpha and forward-looking signals over any time period.` : undefined
+  )
 
   const [allNav, setAllNav] = useState<NavPoint[]>([])
   const [peerNav, setPeerNav] = useState<NavPoint[]>([])
@@ -190,8 +169,8 @@ export default function FundDetail() {
   // A near-tie reads neutral so tiny differences don't flip color.
   function volatilityTone(v: number | undefined): 'default' | 'good' | 'bad' {
     if (v == null || catMedianVol == null) return 'default'
-    if (v < catMedianVol - 0.5) return 'good'
-    if (v > catMedianVol + 0.5) return 'bad'
+    if (v < catMedianVol) return 'good'
+    if (v > catMedianVol) return 'bad'
     return 'default'
   }
   // Drawdown is ALWAYS a loss - never green. Neutral when shallow, amber when
@@ -208,7 +187,7 @@ export default function FundDetail() {
   function ratioTone(v: number | undefined): 'default' | 'good' | 'bad' {
     if (v == null || isNaN(v)) return 'default'
     if (v < 0) return 'bad'
-    if (v >= 1) return 'good'
+    if (v >= 0.7) return 'good'
     return 'default'
   }
 
@@ -245,17 +224,25 @@ export default function FundDetail() {
     setPreset(p)
   }
 
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (fund) {
+      const correctSlug = fundSlug(fund.name)
+      if (slug !== correctSlug) {
+        navigate(`/fund/${fund.code}/${correctSlug}`, { replace: true })
+      }
+    }
+  }, [fund, slug, navigate])
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link to={`/explore?cat=${encodeURIComponent(fund.category)}`} className="text-sm text-muted hover:text-brand-600">
-        ← {fund.categoryDisplay}
-      </Link>
 
       {/* Header */}
       <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="pill bg-surface2 text-muted">{fund.categoryDisplay}</span>
+            <Link to={`/explore?cat=${encodeURIComponent(fund.category)}`} className={`pill ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
             <RiskBadge level={fund.riskLevel} />
             {fund.metrics['3Y'] && (
               <span className="pill bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
@@ -266,9 +253,12 @@ export default function FundDetail() {
           <h1 className="mt-2 text-2xl font-extrabold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
         </div>
-        <button onClick={() => navigate(`/compare?codes=${fund.code}`)} className="btn-ghost">
-          ⚖️ Compare
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <ShareButton fund={fund} />
+          <button onClick={() => navigate(`/compare?codes=${fund.code}`)} className="btn-ghost">
+            ⚖️ Compare
+          </button>
+        </div>
       </div>
 
       {/* Range selector - the differentiator */}
@@ -330,7 +320,7 @@ export default function FundDetail() {
             <MetricCard
               label="Max Drawdown"
               value={pct(live.maxDrawdown)}
-              sub={`${fmtMonth(live.maxDrawdownStart)} → ${fmtMonth(live.maxDrawdownEnd)}`}
+              sub={`${fmtDate(live.maxDrawdownStart)} → ${fmtDate(live.maxDrawdownEnd)}`}
               tone={drawdownTone(live.maxDrawdown)}
               note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
               hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is always a loss; shallower is better."
@@ -359,7 +349,7 @@ export default function FundDetail() {
             <MetricCard
               label="Best Month"
               value={signedPct(live.best1M)}
-              sub={`${fmtMonth(live.best1MStart)} → ${fmtMonth(live.best1MEnd)}`}
+              sub={`${fmtDate(live.best1MStart)} → ${fmtDate(live.best1MEnd)}`}
               tone="good"
               note={riseContext(live.best1MStart, live.best1MEnd) ?? undefined}
               hint="Best rolling 1-month return in this period, and when it happened."
@@ -367,7 +357,7 @@ export default function FundDetail() {
             <MetricCard
               label="Worst Month"
               value={signedPct(live.worst1M)}
-              sub={`${fmtMonth(live.worst1MStart)} → ${fmtMonth(live.worst1MEnd)}`}
+              sub={`${fmtDate(live.worst1MStart)} → ${fmtDate(live.worst1MEnd)}`}
               tone="bad"
               note={fallReason(live.worst1MStart, live.worst1MEnd) ?? undefined}
               hint="Worst rolling 1-month return in this period, and when it happened."
@@ -467,7 +457,7 @@ export default function FundDetail() {
             {peers.map((p) => {
               const pm = p.metrics['3Y']
               return (
-                <button key={p.code} onClick={() => navigate(`/fund/${p.code}`)} className="card p-4 text-left transition hover:shadow-md">
+                <button key={p.code} onClick={() => navigate(`/fund/${p.code}/${fundSlug(p.name)}`)} className="card p-4 text-left transition hover:shadow-md">
                   <div className="text-xs text-faint">#{pm?.catRank} in category</div>
                   <div className="mt-1 font-semibold text-fg line-clamp-2">{p.name}</div>
                   <div className="mt-2 flex items-center justify-between">

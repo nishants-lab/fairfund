@@ -37,12 +37,6 @@ export default function Spectrum(
   return <LegacySpectrum {...props} />
 }
 
-const TONE_TEXT: Record<string, string> = {
-  good: 'text-emerald-600 dark:text-emerald-400',
-  warn: 'text-amber-600 dark:text-amber-400',
-  bad: 'text-rose-600 dark:text-rose-400',
-  neutral: 'text-fg',
-}
 const TONE_CARET: Record<string, string> = {
   good: 'border-t-emerald-600',
   warn: 'border-t-amber-500',
@@ -75,8 +69,8 @@ interface BelowLabel {
  * (~150px mobile) so the layout is collision-free at every width. Pure function.
  */
 const LANE_BAR_PX = 150
-const LANE_CHAR_PX = 6
-const LANE_GAP = 0.03
+const LANE_CHAR_PX = 7
+const LANE_GAP = 0.06
 function layoutLanes(items: BelowLabel[]): { lane: number; lanes: number; placed: { item: BelowLabel; lane: number }[] } {
   const order = items.map((item, i) => ({ item, i })).sort((a, b) => a.item.pos - b.item.pos)
   const laneRightEdge: number[] = []
@@ -102,108 +96,53 @@ function ModelSpectrum({ model, className }: { model: SpectrumModel; className?:
   const others = model.markers.filter((m) => m.kind !== 'primary')
   const tone = model.primaryTone ?? 'neutral'
   const primaryPos = primary ? cl01(primary.pos) : 0.5
-
-  // Build the below-bar value labels: the category median/best ticks and the
-  // "good ≥ pivot" reference — each carrying its own value so nothing relies on
-  // a hover or a legend.
-  const belowLabels: BelowLabel[] = others.map((m) => ({
-    pos: cl01(m.pos),
-    text: m.label ?? '',
-    cls: 'text-muted',
-    title: m.kind === 'best' ? `Category best ${m.label ?? ''}` : `Category median ${m.label ?? ''}`,
-  }))
-  if (model.pivotPos != null) {
-    belowLabels.push({
-      pos: cl01(model.pivotPos),
-      text: `≥${model.pivotLabel ?? ''}`,
-      cls: 'text-faint',
-      title: `Good ≥ ${model.pivotLabel ?? ''}`,
-    })
-  }
-  const { lanes, placed } = layoutLanes(belowLabels.filter((l) => l.text))
+  const medianMarker = others.find((m) => m.kind === 'median')
 
   const hasEndValues = model.minLabel != null && model.maxLabel != null
 
   return (
     <div className={`mt-2 ${className ?? ''}`}>
-      {/* THIS FUND's value — printed in its tone just above the caret, so the
-          marker itself states "where this fund sits" with zero reading. The big
-          headline shows it too; here it is anchored to its real bar position. */}
-      {primary && (
-        <div className="relative h-[15px]">
-          <span
-            className={`absolute bottom-0 whitespace-nowrap text-[11px] font-bold leading-none ${TONE_TEXT[tone]}`}
-            style={anchor(primaryPos)}
-          >
-            {primary.label}
-          </span>
-        </div>
-      )}
-
+      {/* The bar with gradient, ticks, and caret */}
       <div className="relative h-2.5 w-full rounded-full" style={{ background: gradientCss(model.stops) }}>
-        {/* "good ≥ pivot" reference — a dashed line, drawn only when it falls on
-            the real scale (so we never imply a "good" zone no peer reaches). */}
+        {/* pivot reference (dashed line) */}
         {model.pivotPos != null && (
           <div
-            className="absolute top-1/2 h-4 w-0 -translate-x-1/2 -translate-y-1/2 border-l border-dashed border-fg/55 dark:border-white/55"
+            className="absolute top-1/2 h-3.5 w-0 -translate-x-1/2 -translate-y-1/2 border-l border-dashed border-fg/40 dark:border-white/40"
             style={{ left: `${model.pivotPos * 100}%` }}
             title={model.pivotLabel ? `Good ≥ ${model.pivotLabel}` : undefined}
           />
         )}
-        {/* category median / best — solid ticks */}
+        {/* category median/best ticks */}
         {others.map((m, i) => (
           <div
             key={i}
-            className="absolute top-1/2 h-3 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-sm bg-slate-600/85 dark:bg-slate-200/80"
+            className="absolute top-1/2 h-3 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-sm bg-slate-600/70 dark:bg-slate-300/70"
             style={{ left: `${cl01(m.pos) * 100}%` }}
             title={m.label}
           />
         ))}
-        {/* THIS FUND — a tone-coloured downward caret sitting on the bar */}
+        {/* This fund: tone-coloured dot on the bar */}
         {primary && (
           <div
-            className={`absolute -top-1.5 -translate-x-1/2 border-x-[5px] border-t-[7px] border-x-transparent ${TONE_CARET[tone]}`}
+            className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-slate-900 ${
+              tone === 'good' ? 'bg-emerald-500' : tone === 'bad' ? 'bg-rose-500' : tone === 'warn' ? 'bg-amber-500' : 'bg-slate-500'
+            }`}
             style={{ left: `${primaryPos * 100}%` }}
             aria-label={`This fund: ${primary.label}`}
           />
         )}
       </div>
 
-      {/* below-bar value labels (median / best / pivot), de-collided into lanes */}
-      {placed.length > 0 && (
-        <div className="relative mt-1" style={{ height: lanes * LANE_H }}>
-          {placed.map(({ item, lane }, i) => (
-            <span
-              key={i}
-              className={`absolute whitespace-nowrap text-[10px] leading-none ${item.cls}`}
-              style={{ ...anchor(item.pos), top: lane * LANE_H }}
-              title={item.title}
-            >
-              {item.text}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* scale ends — REAL endpoint values + a one-word direction. This replaces
-          the old, uninformative "weakest peer / strongest peer" strings. The
-          value sits above the direction word so each end stays narrow and never
-          clips, even on a ~140px mobile card. */}
-      <div className="mt-1 flex items-start justify-between gap-2 text-[10px] leading-tight text-faint">
-        <span className="flex flex-col items-start">
-          {hasEndValues && <span className="font-semibold text-muted">{model.minLabel}</span>}
-          <span className="uppercase tracking-wide">{model.leftLabel}</span>
-        </span>
-        <span className="flex flex-col items-end text-right">
-          {hasEndValues && <span className="font-semibold text-muted">{model.maxLabel}</span>}
-          <span className="uppercase tracking-wide">{model.rightLabel}</span>
-        </span>
+      {/* Compact annotation line below bar */}
+      <div className="mt-1.5 flex items-center justify-between text-[9px] leading-tight text-faint">
+        <span>{hasEndValues ? model.minLabel : ''} <span className="uppercase">{model.leftLabel}</span></span>
+        {medianMarker && (
+          <span className="text-muted">{medianMarker.label}</span>
+        )}
+        <span><span className="uppercase">{model.rightLabel}</span> {hasEndValues ? model.maxLabel : ''}</span>
       </div>
 
-      {/* one-line plain-English placement (extra context, not required to read) */}
-      {model.gloss && (
-        <p className={`mt-1.5 text-xs font-medium ${TONE_TEXT[model.glossTone ?? 'neutral']}`}>{model.gloss}</p>
-      )}
+      {/* Verdict moved to MetricCard header; gloss hidden to save space */}
     </div>
   )
 }

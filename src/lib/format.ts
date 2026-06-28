@@ -41,6 +41,10 @@ export function riskColor(level: string): string {
   }
 }
 
+export function fundSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+}
+
 export function alphaColor(alpha: number): string {
   if (alpha > 2) return 'text-emerald-600'
   if (alpha > 0) return 'text-emerald-500'

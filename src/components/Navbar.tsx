@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
+import SearchBox from './SearchBox'
 
 const links = [
   { to: '/explore', label: 'Explore' },
@@ -11,10 +12,16 @@ const links = [
 export default function Navbar() {
   const loc = useLocation()
   const [open, setOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+  const searchRefMobile = useRef<HTMLDivElement>(null)
+
+  const isHome = loc.pathname === '/'
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setOpen(false)
+    setSearchOpen(false)
   }, [loc.pathname])
 
   // Lock body scroll while the mobile menu overlay is open.
@@ -24,6 +31,22 @@ export default function Navbar() {
       document.body.style.overflow = ''
     }
   }, [open])
+
+  // Close search when clicking outside (check both desktop and mobile containers)
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      const t = e.target as Node
+      const inDesktop = searchRef.current?.contains(t)
+      const inMobile = searchRefMobile.current?.contains(t)
+      if (!inDesktop && !inMobile) {
+        setSearchOpen(false)
+      }
+    }
+    if (searchOpen) {
+      document.addEventListener('mousedown', onClick)
+      return () => document.removeEventListener('mousedown', onClick)
+    }
+  }, [searchOpen])
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/80 backdrop-blur">
@@ -58,7 +81,45 @@ export default function Navbar() {
               </Link>
             ))}
           </nav>
+
+          {/* Desktop search (hidden on Home) */}
+          {!isHome && (
+            <div className="relative hidden md:block" ref={searchRef}>
+              {searchOpen ? (
+                <div className="w-72">
+                  <SearchBox placeholder="Search funds…" autoFocus />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Search funds"
+                  onClick={() => setSearchOpen(true)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:bg-surface2 hover:text-fg"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+
           <ThemeToggle />
+
+          {/* Mobile search icon (hidden on Home) */}
+          {!isHome && (
+            <button
+              type="button"
+              aria-label="Search funds"
+              onClick={() => setSearchOpen((s) => !s)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:bg-surface2 hover:text-fg md:hidden"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+              </svg>
+            </button>
+          )}
+
           {/* Mobile hamburger button */}
           <button
             type="button"
@@ -77,6 +138,13 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Mobile search dropdown (full width below navbar) */}
+      {searchOpen && !isHome && (
+        <div className="border-t border-line bg-surface px-4 py-3 md:hidden" ref={searchRefMobile}>
+          <SearchBox placeholder="Search funds…" autoFocus />
+        </div>
+      )}
 
       {/* Mobile slide-down menu + backdrop */}
       {open && (

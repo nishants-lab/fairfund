@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Fund, NavPoint } from '../types'
-import { pct, signedPct, num, inr } from '../lib/format'
+import { pct, signedPct, num, inr, fundSlug } from '../lib/format'
 import { rollingReturnsDistribution, deepestDrawdown, outcomeCone } from '../lib/forward'
 import { fmtDate, fmtMonth } from '../lib/metrics'
 import { funds, data } from '../lib/data'
@@ -8,6 +8,8 @@ import { bandSpectrum } from '../lib/spectrum'
 import Sparkline from './Sparkline'
 import InfoTip from './InfoTip'
 import Spectrum from './Spectrum'
+import { matchRegime, regimeInfo } from '../lib/regimes'
+import SearchBox from './SearchBox'
 
 const DIR_STYLE: Record<string, { txt: string; tone: string; arrow: string }> = {
   climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400', arrow: '↑' },
@@ -15,15 +17,7 @@ const DIR_STYLE: Record<string, { txt: string; tone: string; arrow: string }> = 
   steady: { txt: 'Steady', tone: 'text-muted', arrow: '→' },
 }
 
-// Fixed market regimes (mirrors REGIMES in scripts/build_analytics.py).
-const REGIME_INFO: Record<string, { range: string; desc: string }> = {
-  'COVID crash': { range: 'Feb-Mar 2020', desc: 'The fastest crash in history when COVID hit. A pure stress test of downside protection.' },
-  'COVID recovery': { range: 'Mar 2020 - Oct 2021', desc: 'The liquidity-fuelled V-shaped rebound and bull run.' },
-  '2022 correction': { range: 'Oct 2021 - Jun 2022', desc: 'Rate hikes and foreign outflows dragged markets down.' },
-  '2022-24 bull run': { range: 'Jun 2022 - Sep 2024', desc: 'A strong, broad-based bull led by mid and small caps.' },
-  '2024-25 correction': { range: 'Sep 2024 - Mar 2025', desc: 'A domestic correction driven by heavy foreign-investor outflows and stretched valuations, before the global shocks of 2025.' },
-  'Tariff & Iran-war era': { range: 'Apr 2025 - today', desc: 'The US "Liberation Day" tariff escalation (Apr 2025) and the Israel-Iran war (Jun 2025) and the recovery since - a geopolitically turbulent phase, right up to today.' },
-}
+
 
 function shortName(f: Fund): string {
   return f.name.length > 30 ? f.name.slice(0, 29) + '…' : f.name
@@ -66,6 +60,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
   const [invMode, setInvMode] = useState<'lumpsum' | 'sip'>('lumpsum')
   const [sipAmount, setSipAmount] = useState(SIP_DEFAULT)
   const [lumpAmount] = useState(100000)
+  const [regimeCompare, setRegimeCompare] = useState<Fund | undefined>(undefined)
+  const [regimeCompareOpen, setRegimeCompareOpen] = useState(false)
 
   const rollDist = useMemo(() => rollingReturnsDistribution(nav, horizon), [nav, horizon])
   const dd = useMemo(() => deepestDrawdown(nav), [nav])
@@ -132,7 +128,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
       </div>
       <p className="mb-4 text-xs text-muted">
         Beyond past returns: how consistent, skilled and sustainable this fund looks, framed as
-        evidence and probability, never a guarantee.
+        past data, not a prediction.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -286,7 +282,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                     {peers.skill.map((p, i) => (
                       <span key={p.code}>
                         {i > 0 && ', '}
-                        <a href={`#/fund/${p.code}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
+                        <a href={`#/fund/${p.code}/${fundSlug(p.name)}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
                         {Math.round(p.analytics!.alpha!.confidence!)}%
                       </span>
                     ))}.
@@ -334,7 +330,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 {peers.capture.map((p, i) => (
                   <span key={p.code}>
                     {i > 0 && ', '}
-                    <a href={`#/fund/${p.code}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
+                    <a href={`#/fund/${p.code}/${fundSlug(p.name)}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
                     {p.analytics!.capture!.down}%
                   </span>
                 ))}.
@@ -380,6 +376,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           </div>
         )}
       </div>
+
+
 
       {/* ---- "If you stay invested" outcomes (horizon + SIP/lumpsum driven) ---- */}
       {(rollDist || cone) && (
@@ -506,84 +504,226 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
         </div>
       )}
 
-      {/* Worst fall & recovery (#7 peak→trough dates) */}
-      {dd && (
-        <div className="mt-4 card p-4">
-          <h4 className="flex items-center gap-1.5 font-semibold text-fg">
-            Worst fall & recovery
-            <InfoTip width={260} label="About worst fall">
-              The deepest peak-to-trough drop in the fund's full history, and how long it took to
-              climb back to that prior peak. A shorter recovery means quicker to make investors whole.
-            </InfoTip>
-          </h4>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">{pct(dd.depthPct)}</span>
-            <span className="text-xs text-faint">deepest drawdown</span>
-          </div>
-          <p className="mt-1 text-xs text-muted">
-            Fell from its peak on {fmtDate(dd.peakDate)} to the trough on {fmtDate(dd.troughDate)}.{' '}
-            {dd.recovered
-              ? `Recovered to that prior peak in ${humanDuration(dd.recoveryDays as number)}.`
-              : `Still recovering after ${humanDuration(dd.daysSinceTrough)}.`}
-          </p>
-        </div>
-      )}
+
 
       {/* Regime performance */}
       {a?.regimes && a.regimes.some((r) => r.active) && (
         <div className="mt-4 card p-4">
-          <h4 className="flex items-center gap-1.5 font-semibold text-fg">
-            How it behaved in each market regime
-            <InfoTip width={290}>
-              We split the last ~6 years into five distinct market phases, from the COVID crash right
-              up to today (May 2026), and show how the fund did in each, plus how that compared to its
-              category. "vs category" is the fund's return minus the category-median fund's return in
-              that phase. A positive, green number means it beat its peers in that phase.
-            </InfoTip>
-          </h4>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h4 className="font-semibold text-fg">How it behaved in each market regime</h4>
+            {!regimeCompare && (
+              <button
+                onClick={() => setRegimeCompareOpen(true)}
+                className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-muted hover:border-brand-400 hover:text-brand-600 transition"
+              >
+                + Compare
+              </button>
+            )}
+          </div>
+
+          {/* Comparison fund picker */}
+          {regimeCompareOpen && !regimeCompare && (
+            <div className="mt-2 flex justify-end">
+              <div className="w-72">
+                <SearchBox placeholder="Pick a fund to compare…" onPick={(f) => { setRegimeCompare(f); setRegimeCompareOpen(false) }} />
+              </div>
+            </div>
+          )}
+          {regimeCompare && (
+            <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
+              <span className="text-xs text-faint">Comparing with:</span>
+              <a href={`#/fund/${regimeCompare.code}/${fundSlug(regimeCompare.name)}`} className="text-xs font-semibold text-brand-600 hover:underline">{shortName(regimeCompare)}</a>
+              <button
+                onClick={() => setRegimeCompareOpen(true)}
+                className="text-xs text-muted hover:text-brand-600 underline"
+              >change</button>
+              <button
+                onClick={() => { setRegimeCompare(undefined); setRegimeCompareOpen(false) }}
+                className="text-xs text-muted hover:text-rose-600"
+              >× remove</button>
+            </div>
+          )}
+          {regimeCompareOpen && regimeCompare && (
+            <div className="mt-2 flex justify-end">
+              <div className="w-72">
+                <SearchBox placeholder="Pick a different fund…" onPick={(f) => { setRegimeCompare(f); setRegimeCompareOpen(false) }} />
+              </div>
+            </div>
+          )}
+
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-sm" style={{ minWidth: 420 }}>
+            <table className={`w-full text-sm ${regimeCompare ? 'min-w-[420px]' : ''}`}>
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-faint">
                   <th className="px-2 py-1.5 text-left">Regime</th>
                   <th className="px-2 py-1.5 text-right">Fund return</th>
-                  <th className="px-2 py-1.5 text-right">vs category</th>
+                  {regimeCompare && <th className="px-2 py-1.5 text-right max-w-[120px] truncate">{shortName(regimeCompare)}</th>}
                 </tr>
               </thead>
               <tbody>
-                {a.regimes.map((r) => (
+                {a.regimes.map((r) => {
+                  const ri = regimeInfo(r.name)
+                  return (
                   <tr key={r.name} className="border-b border-line last:border-0">
-                    <td className="px-2 py-1.5 text-muted">
-                      <span className="flex items-center gap-1.5">
-                        <span>{r.name}</span>
-                        {REGIME_INFO[r.name] && (
-                          <InfoTip width={250} label={`About ${r.name}`}>
-                            {REGIME_INFO[r.name].desc}
-                          </InfoTip>
-                        )}
-                      </span>
-                      {REGIME_INFO[r.name] && (
-                        <span className="block text-xs text-faint">{REGIME_INFO[r.name].range}</span>
-                      )}
+                    <td className="px-2 py-1.5 group cursor-pointer" onClick={(e) => { const el = (e.currentTarget as HTMLElement).querySelector('[data-desc]'); if (el) el.classList.toggle('hidden') }}>
+                      <span className={ri?.market === 'down' ? 'text-rose-600 dark:text-rose-400' : ri?.market === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'}>{r.name}</span>
+                      {ri && <span className="block text-xs text-faint">{ri.range}{ri.desc && <span className="ml-1 opacity-50">ⓘ</span>}</span>}
+                      {ri?.desc && <span data-desc className="hidden block text-xs text-faint/80 mt-0.5 leading-snug">{ri.desc}</span>}
                     </td>
-                    {r.active ? (
+                    {r.active ? (() => {
+                      const compRegime = regimeCompare?.analytics?.regimes?.find(x => x.name === r.name)
+                      const compRet = compRegime?.active ? compRegime.ret : null
+                      const fundRet = r.ret ?? 0
+                      // For down markets, less negative is better; for up markets, more positive is better — in both cases, higher number wins
+                      const fundWins = compRet != null && fundRet > compRet
+                      const compWins = compRet != null && compRet > fundRet
+                      const winBg = 'rounded-md bg-emerald-50 dark:bg-emerald-900/30 px-1.5'
+                      return (
                       <>
-                        <td className={`px-2 py-1.5 text-right font-semibold ${(r.ret ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{pct(r.ret)}</td>
-                        <td className={`px-2 py-1.5 text-right font-semibold ${(r.alpha ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{r.alpha != null ? signedPct(r.alpha) : '—'}</td>
+                        <td className={`px-2 py-1.5 text-right font-semibold ${fundRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          <span className={fundWins ? winBg : ''}>{pct(r.ret)}</span>
+                        </td>
+                        {regimeCompare && (
+                          <td className={`px-2 py-1.5 text-right font-semibold ${compRet == null ? 'text-muted' : compRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            <span className={compWins ? winBg : ''}>{compRet != null ? pct(compRet) : '—'}</span>
+                          </td>
+                        )}
                       </>
-                    ) : (
-                      <td colSpan={2} className="px-2 py-1.5 text-right text-xs text-faint">fund not active in this period</td>
+                      )
+                    })() : (
+                      <td colSpan={regimeCompare ? 2 : 1} className="px-2 py-1.5 text-right text-xs text-faint">fund not active</td>
                     )}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
+          </div>
+
+          {/* Worst fall & recovery - nested in regime context */}
+          {dd && (() => {
+            const regime = matchRegime(dd.peakDate, dd.troughDate)
+            // Category median max drawdown
+            const catDrawdowns = funds
+              .filter(f => f.category === fund.category)
+              .map(f => f.metrics['3Y']?.maxDrawdown)
+              .filter((v): v is number => typeof v === 'number' && !isNaN(v))
+              .sort((a, b) => a - b)
+            const catMedianDD = catDrawdowns.length >= 3
+              ? catDrawdowns[Math.floor(catDrawdowns.length / 2)]
+              : null
+            // Top peer (rank 1 in category, excluding this fund)
+            const topPeer = funds
+              .filter(f => f.category === fund.category && f.code !== fund.code)
+              .sort((a, b) => (a.metrics['3Y']?.catRank ?? 999) - (b.metrics['3Y']?.catRank ?? 999))[0]
+            const peerDD = topPeer?.metrics['3Y']?.maxDrawdown
+            const peerName = topPeer ? (topPeer.name.length > 25 ? topPeer.name.slice(0, 24) + '\u2026' : topPeer.name) : null
+            return (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-fg">
+                Worst historical fall & recovery
+                <InfoTip width={280} label="About worst fall">
+                  The deepest peak-to-trough drop in the fund's full history (not just the selected range), and how long it took to climb back. Category and peer comparisons use the 3-year max drawdown metric.
+                </InfoTip>
+              </div>
+
+              {/* Row 1: Fall depth + reason */}
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">{pct(dd.depthPct)}</span>
+                <span className="text-sm text-muted">
+                  {fmtDate(dd.peakDate)} to {fmtDate(dd.troughDate)}
+                  {regime && <span className="ml-1 text-faint">(during {regime})</span>}
+                </span>
+              </div>
+
+              {/* Row 2: Recovery */}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs font-medium text-faint uppercase tracking-wide">Recovery:</span>
+                {dd.recovered ? (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-sm font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    {humanDuration(dd.recoveryDays as number)}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-sm font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    Not yet ({humanDuration(dd.daysSinceTrough)} and counting)
+                  </span>
+                )}
+              </div>
+
+              {/* Row 3: Comparison context */}
+              {(catMedianDD != null || peerDD != null) && (
+                <div className="mt-2.5 rounded-lg border border-line bg-surface2/30 px-3 py-2">
+                  <div className="text-xs font-medium text-faint uppercase tracking-wide mb-1.5">How does this compare?</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    {catMedianDD != null && (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">{pct(catMedianDD)}</span>
+                        <span className="text-faint">category median max drawdown</span>
+                      </div>
+                    )}
+                    {peerDD != null && peerName && (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">{pct(peerDD)}</span>
+                        <span className="text-faint">top peer ({peerName})</span>
+                      </div>
+                    )}
+                  </div>
+                  {catMedianDD != null && dd.depthPct > catMedianDD && (
+                    <div className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                      This fund fell less than the category median, suggesting better downside protection.
+                    </div>
+                  )}
+                  {catMedianDD != null && dd.depthPct <= catMedianDD && catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2 && (
+                    <div className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">
+                      This fund fell significantly more than its category median — weak downside protection.
+                    </div>
+                  )}
+                  {catMedianDD != null && dd.depthPct <= catMedianDD && !(catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2) && (
+                    <div className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      This fund fell roughly in line with or slightly more than the category median.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            )
+          })()}
+        </div>
+      )}
+
+      {/* Fallback: show worst fall standalone if no regime data */}
+      {dd && !(a?.regimes && a.regimes.some((r) => r.active)) && (
+        <div className="mt-4 card p-4">
+          <h4 className="flex items-center gap-1.5 font-semibold text-fg">
+            Worst historical fall & recovery
+            <InfoTip width={260} label="About worst fall">
+              The deepest peak-to-trough drop in the fund's full history, and how long it took to climb back.
+            </InfoTip>
+          </h4>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs text-faint">Deepest fall</div>
+              <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">{pct(dd.depthPct)}</span>
+              <div className="text-xs text-faint">{fmtDate(dd.peakDate)} to {fmtDate(dd.troughDate)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-faint">Recovery</div>
+              {dd.recovered ? (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-base font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  {humanDuration(dd.recoveryDays as number)}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-base font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  Not yet ({humanDuration(dd.daysSinceTrough)})
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       <p className="mt-3 text-xs text-faint">
-        These are probabilistic, data-backed signals, not advice or guarantees. See{' '}
+        Based on this fund's actual history. See{' '}
         <a href="#/methodology" className="text-brand-600 hover:underline">Methodology</a> for formulas and caveats.
       </p>
     </div>

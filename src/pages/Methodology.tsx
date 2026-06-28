@@ -1,7 +1,9 @@
 import { data } from '../lib/data'
+import { usePageMeta } from '../lib/usePageMeta'
 import MethodologySummary from '../components/MethodologySummary'
 
 export default function Methodology() {
+  usePageMeta('How FairFund Works - Methodology', 'Full transparency on how FairFund ranks mutual funds: identical windows, within-category ranking, peer-relative alpha, forward-looking signals.')
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-2xl font-bold text-fg">How FairFund works</h1>
@@ -20,7 +22,7 @@ export default function Methodology() {
           <li><strong>A fair, like-for-like ranking</strong> using identical time windows and within-category comparison (most sites rank on inception-to-date returns, which favours younger funds).</li>
           <li><strong>Analysis over any date range you pick</strong>, recomputed live in your browser from daily NAV.</li>
           <li><strong>Forward-looking, probability-based signals</strong> (consistency, skill-vs-luck, downside capture, momentum, a modeled outcome range) on top of the backward metrics.</li>
-          <li><strong>An overall conviction verdict</strong> that fuses the backward and forward evidence into one transparent read, with the drivers spelled out.</li>
+          <li><strong>An overall conviction verdict</strong> that fuses the backward and forward evidence into one transparent read.</li>
           <li><strong>Holdings and overlap</strong> so you can see what a fund actually owns and whether two funds duplicate each other.</li>
           <li><strong>Management quality</strong> judged by the managers' track record across their <em>other</em> funds.</li>
         </ul>
@@ -106,7 +108,7 @@ export default function Methodology() {
       <h2 className="mt-10 text-xl font-bold text-fg">Part 2: Forward-looking signals</h2>
       <p className="mt-2 text-muted leading-relaxed">
         Trailing returns are a rear-view mirror. These signals, all computed from the same daily NAV,
-        estimate how repeatable and sustainable a fund's edge looks. Every one is framed as evidence,
+        estimate how repeatable and sustainable a fund's edge looks. Every signal is based on actual history,
         confidence, or probability, never a guarantee.
       </p>
 
@@ -230,7 +232,7 @@ export default function Methodology() {
           backward pillars) plus consistency, skill confidence, downside capture and management quality
           (the forward pillars), with a momentum caution if the fund is running hot. The card lists exactly
           what worked for it and what to watch, and the same score drives the "overall verdict" row when you
-          compare funds. It is a weighted reading of evidence, not advice.
+          compare funds. It is a weighted reading of the data, not a recommendation.
         </p>
       </Section>
 

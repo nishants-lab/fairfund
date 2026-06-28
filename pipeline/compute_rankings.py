@@ -1,0 +1,193 @@
+"""
+Recompute within-category rankings and composite scores for all funds.
+=====================================================================
+Called by the daily refresh pipeline after NAV has been updated.
+
+Formula (from Methodology page):
+  score = geometric mean of within-category percentile ranks for:
+    [sharpe, sortino, calmar, maxDrawdown (higher=less loss), alpha, cagr]
+  catRank = rank by score within category (1 = best)
+
+This script operates on the EXISTING metrics in funds.json (the 1Y/3Y/5Y blocks).
+It does NOT recompute metrics from raw NAV - that's done by compute_metrics.py.
+This only re-ranks based on whatever metrics are already present.
+
+Usage:
+  python pipeline/compute_rankings.py                # recompute from funds.json in-place
+  python pipeline/compute_rankings.py --dry-run      # show changes without writing
+"""
+import json
+import sys
+import os
+from math import log, exp
+from datetime import date
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, ".."))
+FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
+
+# The 6 metrics used in the composite score (all higher = better).
+# maxDrawdown is negative, so higher (less negative) = less loss = better.
+SCORE_METRICS = ["sharpe", "sortino", "calmar", "maxDrawdown", "alpha", "cagr"]
+
+# Horizons to rank (each gets its own catRank + score)
+HORIZONS = ["1Y", "3Y", "5Y"]
+
+
+def percentile_rank_higher(val, all_vals):
+    """Fraction of peers with a strictly lower value. Range: [0, 1]."""
+    n = len(all_vals)
+    if n <= 1:
+        return 0.5
+    below = sum(1 for v in all_vals if v < val)
+    return below / (n - 1)
+
+
+def geometric_mean_score(ranks):
+    """Geometric mean of percentile ranks, with floor to prevent log(0)."""
+    n = len(ranks)
+    if n == 0:
+        return 0.0
+    # Floor at a small positive value so a single zero doesn't collapse the entire score
+    floored = [max(r, 0.01) for r in ranks]
+    return exp(sum(log(r) for r in floored) / n)
+
+
+def recompute_rankings(data, dry_run=False):
+    """Recompute catRank and score for all funds, all horizons."""
+    funds = data["funds"]
+    changes = {"rank_changes": 0, "score_changes": 0, "funds_ranked": 0}
+
+    for horizon in HORIZONS:
+        # Group funds by category (only those with this horizon's metrics)
+        by_cat = {}
+        for f in funds:
+            if horizon not in f.get("metrics", {}):
+                continue
+            m = f["metrics"][horizon]
+            # Need all 6 score metrics present
+            if not all(k in m and m[k] is not None for k in SCORE_METRICS):
+                continue
+            cat = f["category"]
+            if cat not in by_cat:
+                by_cat[cat] = []
+            by_cat[cat].append(f)
+
+        for cat, cat_funds in by_cat.items():
+            n = len(cat_funds)
+            if n < 2:
+                # Single fund in category: rank 1, score 1.0
+                for f in cat_funds:
+                    f["metrics"][horizon]["catRank"] = 1
+                    f["metrics"][horizon]["catSize"] = 1
+                    f["metrics"][horizon]["score"] = 1.0
+                continue
+
+            # Compute percentile ranks for each metric across this category
+            metric_values = {}
+            for metric in SCORE_METRICS:
+                metric_values[metric] = [f["metrics"][horizon][metric] for f in cat_funds]
+
+            # Compute composite score for each fund
+            scored = []
+            for f in cat_funds:
+                m = f["metrics"][horizon]
+                ranks = []
+                for metric in SCORE_METRICS:
+                    prank = percentile_rank_higher(m[metric], metric_values[metric])
+                    ranks.append(prank)
+                score = geometric_mean_score(ranks)
+                scored.append((score, f))
+
+            # Sort descending by score -> assign ranks
+            scored.sort(key=lambda x: -x[0])
+            for i, (score, f) in enumerate(scored):
+                new_rank = i + 1
+                old_rank = f["metrics"][horizon].get("catRank")
+                old_score = f["metrics"][horizon].get("score")
+                new_score = round(score, 3)
+
+                if old_rank != new_rank:
+                    changes["rank_changes"] += 1
+                if old_score != new_score:
+                    changes["score_changes"] += 1
+
+                f["metrics"][horizon]["catRank"] = new_rank
+                f["metrics"][horizon]["catSize"] = n
+                f["metrics"][horizon]["score"] = new_score
+                changes["funds_ranked"] += 1
+
+            # Also update the category-level stats in the top-level categories block
+            cagrs = [f["metrics"][horizon]["cagr"] for f in cat_funds]
+            cagrs.sort()
+            median_idx = len(cagrs) // 2
+            median_cagr = cagrs[median_idx] if len(cagrs) % 2 else (cagrs[median_idx-1] + cagrs[median_idx]) / 2
+
+            if horizon == "3Y" and cat in data.get("categories", {}):
+                f["metrics"][horizon]["catMedianCagr"] = round(median_cagr, 2)
+                # Update each fund's catMedianCagr
+                for f2 in cat_funds:
+                    f2["metrics"][horizon]["catMedianCagr"] = round(median_cagr, 2)
+
+    return changes
+
+
+def update_category_metadata(data):
+    """Update top-level category stats (fundCount, medianCagr5Y, topCagr5Y)."""
+    funds = data["funds"]
+    cats = data.get("categories", {})
+
+    for cat_key, cat_info in cats.items():
+        cat_funds = [f for f in funds if f["category"] == cat_key]
+        cat_info["fundCount"] = len(cat_funds)
+
+        # 5Y stats
+        cagrs_5y = [f["metrics"]["5Y"]["cagr"] for f in cat_funds
+                    if "5Y" in f.get("metrics", {}) and "cagr" in f["metrics"]["5Y"]]
+        if cagrs_5y:
+            cagrs_5y.sort()
+            mid = len(cagrs_5y) // 2
+            cat_info["medianCagr5Y"] = round(
+                cagrs_5y[mid] if len(cagrs_5y) % 2 else (cagrs_5y[mid-1] + cagrs_5y[mid]) / 2, 2
+            )
+            cat_info["topCagr5Y"] = round(max(cagrs_5y), 2)
+
+
+def main():
+    dry_run = "--dry-run" in sys.argv
+
+    if not os.path.exists(FUNDS_JSON):
+        print(f"ERROR: {FUNDS_JSON} not found")
+        sys.exit(1)
+
+    with open(FUNDS_JSON, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    print(f"Loaded {len(data['funds'])} funds from {FUNDS_JSON}")
+    print(f"Current anchor: {data.get('anchor', 'unknown')}")
+
+    changes = recompute_rankings(data, dry_run=dry_run)
+    update_category_metadata(data)
+
+    print(f"\nRanking results:")
+    print(f"  Funds ranked: {changes['funds_ranked']}")
+    print(f"  Rank changes: {changes['rank_changes']}")
+    print(f"  Score changes: {changes['score_changes']}")
+
+    if dry_run:
+        print("\n--dry-run: no file written.")
+        return
+
+    # Update anchor and generation date
+    data["anchor"] = date.today().isoformat()
+    data["generatedAt"] = date.today().isoformat()
+
+    with open(FUNDS_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, separators=(",", ":"))
+
+    print(f"\nWrote updated {FUNDS_JSON}")
+    print(f"New anchor: {data['anchor']}")
+
+
+if __name__ == "__main__":
+    main()

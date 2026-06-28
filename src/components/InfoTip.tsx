@@ -4,16 +4,9 @@ import { useState, useRef, useEffect, useLayoutEffect, type ReactNode } from 're
  * Accessible "ⓘ" info button with a tooltip that works on pointer AND touch and
  * is ALWAYS kept inside the viewport.
  *
- * Touch behaviour: mobile browsers emulate mouseenter on tap but never fire
- * mouseleave, so a hover+pin model gets stuck open. We therefore:
- *   - only treat hover as hover when pointerType === 'mouse'
- *   - toggle on click/tap; close on tap-outside and Escape
- *   - NEVER open on focus (focus fires right before click on touch and would
- *     cancel the toggle)
- *
- * Positioning: the tooltip is rendered, measured, then shifted horizontally so
- * its full box stays within an 8px margin of the viewport - fixing the bug where
- * a left/right-aligned tip ran off-screen on a phone.
+ * Positioning: rendered, measured, then nudged horizontally AND vertically so the
+ * full tooltip stays within an 8px margin of the viewport. If it would overflow
+ * below, it flips above the button instead.
  */
 export default function InfoTip({
   children,
@@ -27,7 +20,8 @@ export default function InfoTip({
   align?: 'center' | 'left' | 'right'
 }) {
   const [open, setOpen] = useState(false)
-  const [shift, setShift] = useState(0) // px horizontal nudge to keep on-screen
+  const [shift, setShift] = useState(0)
+  const [flipUp, setFlipUp] = useState(false)
   const wrapRef = useRef<HTMLSpanElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const tipRef = useRef<HTMLSpanElement>(null)
@@ -48,21 +42,32 @@ export default function InfoTip({
     }
   }, [open])
 
-  // Measure after paint and nudge horizontally so the whole tip is on-screen.
+  // Measure after paint: nudge horizontally and flip vertically if needed.
   useLayoutEffect(() => {
     if (!open || !tipRef.current) return
     const M = 8
     const r = tipRef.current.getBoundingClientRect()
     const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    // Horizontal nudge
     let dx = 0
     if (r.left < M) dx = M - r.left
     else if (r.right > vw - M) dx = vw - M - r.right
     if (dx !== 0) setShift((s) => s + dx)
-  }, [open])
 
-  // reset the nudge whenever it closes so the next open re-measures cleanly
+    // Vertical flip: if bottom overflows viewport, show above the button
+    if (r.bottom > vh - M && !flipUp) {
+      setFlipUp(true)
+    }
+  }, [open, flipUp])
+
+  // Reset positioning state on close
   useEffect(() => {
-    if (!open) setShift(0)
+    if (!open) {
+      setShift(0)
+      setFlipUp(false)
+    }
   }, [open])
 
   const effWidth = `min(${width}px, calc(100vw - 16px))`
@@ -95,7 +100,9 @@ export default function InfoTip({
         <span
           ref={tipRef}
           role="tooltip"
-          className="absolute left-1/2 top-6 z-50 rounded-lg border border-line bg-surface p-2.5 text-left text-xs font-normal normal-case leading-relaxed text-muted shadow-lg"
+          className={`absolute left-1/2 z-50 rounded-lg border border-line bg-surface p-2.5 text-left text-xs font-normal normal-case leading-relaxed text-muted shadow-lg ${
+            flipUp ? 'bottom-6' : 'top-6'
+          }`}
           style={{ width: effWidth, transform: `translateX(calc(-50% + ${shift}px))` }}
         >
           {children}
