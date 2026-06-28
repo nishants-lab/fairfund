@@ -8,6 +8,29 @@ export const funds: Fund[] = data.funds
 const byCode = new Map<number, Fund>()
 funds.forEach((f) => byCode.set(f.code, f))
 
+// --- Lazy-load per-fund detail (analytics, holdings, management, stockMoves) ---
+const detailCache = new Map<number, Promise<Partial<Fund>>>()
+
+export function fetchFundDetail(code: number): Promise<Partial<Fund>> {
+  if (detailCache.has(code)) return detailCache.get(code)!
+  const base = import.meta.env.BASE_URL || './'
+  const p = fetch(base + 'fund-data/' + code + '.json')
+    .then((r) => (r.ok ? r.json() : {}))
+    .catch(() => ({}))
+  detailCache.set(code, p)
+  return p
+}
+
+// Merge fetched detail into a fund object (mutates for caching)
+export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
+  if (detail.analytics) fund.analytics = detail.analytics
+  if (detail.holdings) fund.holdings = detail.holdings
+  if (detail.holdingsMeta) fund.holdingsMeta = detail.holdingsMeta
+  if (detail.management) fund.management = detail.management
+  if (detail.stockMoves !== undefined) fund.stockMoves = detail.stockMoves
+  return fund
+}
+
 export function getFund(code: number): Fund | undefined {
   return byCode.get(code)
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getFund, fundsByCategory, categoryMetricStats } from '../lib/data'
+import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFundDetail } from '../lib/data'
 import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
@@ -43,6 +43,17 @@ export default function FundDetail() {
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [preset, setPreset] = useState<Preset>('3Y')
+  const [, setDetailTick] = useState(0)
+
+  // Lazy-load heavy per-fund data (analytics, holdings, management, stockMoves)
+  useEffect(() => {
+    if (!fund) return
+    if (fund.analytics) return
+    fetchFundDetail(fund.code).then((detail) => {
+      mergeFundDetail(fund, detail)
+      setDetailTick((t) => t + 1)
+    })
+  }, [fund?.code])
 
   useEffect(() => {
     if (!fund) return
