@@ -1,113 +1,99 @@
-# FairFund v2 — Honest Mutual Fund Research for India
+# FairFund — Honest Mutual Fund Research for India
 
-> **This is a separate, enhanced version** of the FairFund site. It is deployed to its
-> own URL and is independent of the original `mf-website` project. It adds first-time
-> onboarding, an AI assistant, a one-tap methodology summary, and friendlier copy.
+Live site: [nishants-lab.github.io/fairfund](https://nishants-lab.github.io/fairfund/)
 
-A modern, data-driven mutual fund research website that ranks funds **fairly** —
-comparing every fund over the same time windows, within its own category, and showing
-whether the manager truly beat its peers. Plus: analyze any fund over **any custom
-time period**.
+A data-driven mutual fund research tool that compares **838 active Indian equity funds** across fixed time windows, within their own category, using metrics that actually matter. No ads, no affiliate links, no sponsored rankings.
 
-## What's new in v2
+## What it does
 
-- 👋 **First-visit onboarding** — a friendly 4-step tour that explains the value in plain
-  English and routes new users to the Goal Planner or fund explorer. Re-openable any time
-  via "Take the tour" in the footer.
-- 💬 **AI assistant (chat)** — a floating assistant that answers questions about any fund,
-  metric, or the methodology. Works instantly with built-in, data-grounded answers; users
-  can optionally add their own AI API key (stored only in their browser) for fuller,
-  conversational replies.
-- ✨ **"Explain this simply" methodology summary** — a one-tap plain-English summary at the
-  top of the methodology page (LLM-powered when a key is set, curated fallback otherwise).
-- 🎨 **Friendlier copy** — removed jargon like "fair fixed-window method" and raw fund
-  counts from the hero so new users aren't put off.
-
-## Features
-
-- 🔍 **Smart search** — autocomplete across 290+ funds by name, AMC, or category
-- 📊 **Standalone fund pages** — CAGR, Sharpe, Sortino, max drawdown, Calmar, and
-  **peer-relative alpha**, with live NAV growth + drawdown charts
-- 🗓️ **Custom time-period analysis** — analyze any fund over ANY date range: presets
-  (1M/3M/6M/YTD/1Y/3Y/5Y/MAX), a draggable dual-range slider, or explicit From/To
-  dates. Every metric recomputes live in the browser. No other free Indian MF tool
-  does this.
-- ⚖️ **Compare 2–3 funds** — side-by-side metrics over a shared custom period +
-  normalized "growth of ₹100" overlay. Cross-category comparison allowed, with a
-  clear risk-profile warning
-- 🎯 **Goal Planner** — set a target corpus, horizon, current corpus, SIP/lumpsum;
-  see if it's achievable, the required return, and matching fund categories
-- 🌗 **Dark / light mode** — toggle in the navbar, remembers your choice
-- 📚 **Methodology page** — full transparency on how funds are scored
+- **Fair rankings** — every fund scored within its own category over the same time windows (1Y/3Y/5Y), so a small-cap isn'"'"'t penalized for being riskier than a large-cap
+- **Forward-looking signals** — skill consistency (rolling alpha), capture ratios, regime stress-test performance, worst-case drawdown analysis
+- **10 market regimes** — how each fund performed during COVID crash, 2022-24 bull run, H2 2025 rally, US-Iran war, post-war recovery, etc. with a "+ Compare" picker to benchmark against any other fund
+- **Custom time-period analysis** — analyze any fund over ANY date range with live-computed CAGR, Sharpe, Sortino, max drawdown, and more
+- **Fund comparison** — side-by-side metrics over a shared custom period + normalized growth chart + green-highlight on winner per metric
+- **Verdict system** — automated plain-English assessment per fund (green/amber/red) based on quantitative signals, not opinion
+- **Smart search** — autocomplete across all funds by name, AMC, or category
+- **Dark/light mode** — remembers your choice
+- **Mobile-first responsive** — works cleanly on all screen sizes
 
 ## Tech Stack
 
-- **Vite** + **React 18** + **TypeScript**
-- **Tailwind CSS** (class-based dark mode via CSS variables)
-- **Recharts** for charts
-- **React Router** (HashRouter — works on any static host with no config)
-- Base data: static `src/data/funds.json` (generated from our quantitative analysis)
-- Live NAV: fetched client-side from the public [mfapi.in](https://www.mfapi.in) API
-- Client-side metrics engine (`src/lib/metrics.ts`) computes CAGR/Sharpe/Sortino/
-  drawdown/etc. for any arbitrary date range — this powers the custom-period feature
+| Layer | Tech |
+|-------|------|
+| Frontend | Vite + React 18 + TypeScript |
+| Styling | Tailwind CSS (class-based dark mode) |
+| Charts | Recharts |
+| Routing | React Router (HashRouter, works on any static host) |
+| Data | Static JSON (funds.json + fund_analytics.json) |
+| NAV history | Self-hosted cache (public/nav/*.json) + live mfapi.in fallback |
+| Hosting | GitHub Pages (free) via GitHub Actions |
+| Pipeline | Python (pandas, numpy) — offline batch compute |
 
-> **A note on fonts:** The design targets a clean, Ember-like look using **Inter**
-> (free, used by GitHub/Vercel). Amazon Ember is proprietary and licensed for Amazon
-> use only, so it isn't bundled here. If you have an Ember license, swap the
-> `fontFamily.sans` value in `tailwind.config.js`.
+## Data Pipeline
+
+All analytics are pre-computed offline and shipped as static JSON:
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/build_analytics.py` | Main pipeline: computes regime returns, skill metrics, capture ratios, drawdown analysis for all 824 qualifying funds |
+| `pipeline/detect_regimes.py` | Defines market regimes (known + auto-detected) |
+| `pipeline/compute_metrics.py` | Fixed-window metric computation (CAGR, alpha, ranks) |
+| `pipeline/compute_rankings.py` | Within-category percentile rankings |
+| `pipeline/refresh.py` | Orchestrates daily NAV updates |
+| `scripts/build_nav_files.py` | Generates per-fund NAV JSON files from raw data |
+
+### Market Regimes (10 total)
+COVID crash, post-COVID rally, 2021 consolidation, 2022 correction, 2022-24 bull run, mid-cap correction (Oct 2024), H2 2025 rally, US-Iran war, post-war recovery, plus auto-detected recent regimes.
+
+## Forward Analytics (per fund)
+
+Each fund page includes a "Forward-looking Signals" section with:
+
+1. **Rank trajectory** — is the fund'"'"'s category rank improving or declining?
+2. **Skill & consistency** — rolling 12-month alpha hit-rate (batting average)
+3. **Capture ratios** — up-capture vs down-capture (does it capture gains but limit losses?)
+4. **Regime stress test** — performance during each market regime with comparison capability
+5. **Worst historical fall & recovery** — deepest drawdown, recovery time, comparison vs category median (tiered severity: green/amber/red)
 
 ## Getting Started
 
 ```bash
 npm install
-npm run dev      # start dev server at http://localhost:5173
-npm run build    # production build into dist/
-npm run preview  # preview the production build
+npm run dev        # dev server at http://localhost:5173
+npm run build      # production build into dist/
 ```
 
-## Data Pipeline
-
-The base dataset (`src/data/funds.json`) is generated by the Python analysis in the
-parent folder:
-
-1. `mf_analysis_v4.py` — downloads daily NAV for all active equity funds from AMFI,
-   computes fixed-window metrics (1Y/3Y/5Y), within-category ranks, and peer-relative
-   alpha. Outputs `mf_v4_1Y.csv`, `mf_v4_3Y.csv`, `mf_v4_5Y.csv`.
-2. `build_website_data.py` — merges the three windows into `src/data/funds.json` with
-   verdicts and category summaries.
-
-To refresh the data later (e.g., monthly):
+### Rebuilding analytics data
 
 ```bash
-cd ..                       # parent folder with the Python scripts
-python mf_analysis_v4.py    # re-run analysis (uses cached NAV; deletes nav_cache to force refresh)
-python build_website_data.py
+pip install pandas numpy
+python scripts/build_analytics.py    # outputs src/data/fund_analytics.json
 ```
 
-## Deployment (Free)
+## Deployment
 
-### Option A — GitHub Pages (username.github.io) — fully free, all-in-one
-A ready-made GitHub Actions workflow is included at `.github/workflows/deploy.yml`.
-1. Push this repo to GitHub
-2. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**
-3. Push to `main` — it builds and deploys automatically. Your site goes live at
-   `https://<your-username>.github.io/<repo-name>/`
+Deployed automatically via GitHub Actions on push to `main`. The workflow at `.github/workflows/deploy.yml` builds and publishes to GitHub Pages.
 
-Because the app uses relative asset paths (`base: './'`) and HashRouter, it works on
-GitHub Pages project sites with zero extra configuration.
+To deploy manually:
+```bash
+npm run build
+# Upload dist/ to any static host
+```
 
-### Option B — Vercel
-1. Push to GitHub, go to [vercel.com](https://vercel.com), "Add New Project", import the repo
-2. Vercel auto-detects Vite. Click Deploy. Auto-deploys on every push.
+## Project Structure
 
-### Option C — Cloudflare Pages / Netlify
-Connect the repo, set build command `npm run build`, output dir `dist`.
-
-All three are free for a project like this.
+```
+src/
+  components/     # Reusable UI (ForwardAnalytics, VerdictCard, InfoTip, etc.)
+  pages/          # Route pages (Home, FundDetail, Compare, Explore, Methodology)
+  lib/            # Data loading, metrics engine, formatting, verdict logic
+  data/           # Static JSON datasets (funds.json, fund_analytics.json, regimes.json)
+public/
+  nav/            # Per-fund NAV history files (824 funds)
+scripts/          # Python pipeline scripts
+pipeline/         # Core pipeline modules
+```
 
 ## Disclaimer
 
-FairFund is an educational research tool, **not investment advice**. We are not a
-SEBI-registered investment adviser. Mutual fund investments are subject to market
-risks. Past performance does not guarantee future returns. Always consult a qualified
-financial advisor before investing.
+FairFund is an educational research tool, **not investment advice**. Past performance does not guarantee future returns. Always consult a qualified financial advisor before investing.
