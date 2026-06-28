@@ -263,6 +263,26 @@ export default function FundDetail() {
           </div>
           <h1 className="mt-2 text-2xl font-extrabold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
+
+          {/* Latest NAV with day change */}
+          {allNav.length >= 2 && (() => {
+            const curr = allNav[allNav.length - 1]
+            const prev = allNav[allNav.length - 2]
+            const change = curr.nav - prev.nav
+            const changePct = (change / prev.nav) * 100
+            const isUp = change >= 0
+            return (
+              <div className="mt-2 flex items-baseline flex-wrap gap-x-3 gap-y-1">
+                <span className="text-xl font-bold text-fg">{`\u20B9${curr.nav.toFixed(2)}`}</span>
+                <span className={`text-sm font-semibold ${isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{changePct.toFixed(2)}%)
+                </span>
+                <span className="text-xs text-muted">
+                  NAV as of {new Date(curr.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+            )
+          })()}
         </div>
         <div className="flex shrink-0 gap-2">
           <ShareButton fund={fund} />
