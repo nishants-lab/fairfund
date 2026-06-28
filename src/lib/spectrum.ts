@@ -63,6 +63,8 @@ export interface SpectrumModel {
   /** Plain-English "where it sits" line, shown under the bar (extra context). */
   gloss?: string
   glossTone?: Tone
+  /** Short peer-comparison verdict (e.g. "Better than most peers"), shown in card header. */
+  verdict?: string
 }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
@@ -111,10 +113,10 @@ export function bandSpectrum(opts: {
   const primaryTone: Tone = value >= midHigh ? 'good' : value >= lowMid ? 'warn' : 'bad'
   const gloss =
     value >= midHigh
-      ? `Strong — in the green zone (≥${fmt(midHigh)}).`
+      ? `Strong. in the green zone (≥${fmt(midHigh)}).`
       : value >= lowMid
-        ? `Middling — amber zone (${fmt(lowMid)}–${fmt(midHigh)}).`
-        : `Weak — red zone (below ${fmt(lowMid)}).`
+        ? `Middling. amber zone (${fmt(lowMid)}–${fmt(midHigh)}).`
+        : `Weak. red zone (below ${fmt(lowMid)}).`
   // Fixed 0..100 domain → the ends are self-evident, so we don't print numeric
   // endpoint values; the direction words alone carry the meaning.
   return { stops, markers, leftLabel, rightLabel, primaryAbove: true, primaryTone, gloss, glossTone: primaryTone }
@@ -123,8 +125,8 @@ export function bandSpectrum(opts: {
 /**
  * Build the "where does it sit vs peers" gloss + tone for a category-range metric.
  * `higherBetter` flips the language (a high ratio is good; high volatility is bad).
- * The fund's OWN value is intentionally left out of the gloss — it is already shown
- * large in the card headline and again on the bar's caret — so we don't print the
+ * The fund's OWN value is intentionally left out of the gloss. it is already shown
+ * large in the card headline and again on the bar's caret. so we don't print the
  * same number three times. The category median (which is NOT shown elsewhere as a
  * sentence) is named so the comparison is concrete even in prose.
  */
@@ -133,7 +135,7 @@ function categoryGloss(
   stat: { min: number; max: number; median: number },
   fmt: (n: number) => string,
   higherBetter: boolean,
-): { gloss: string; tone: Tone } {
+): { gloss: string; verdict: string; tone: Tone } {
   const { min, max, median } = stat
   const eps = 1e-9
   const med = fmt(median)
@@ -141,15 +143,15 @@ function categoryGloss(
   const isBottom = higherBetter ? value <= min + eps : value >= max - eps
   const beatsMedian = higherBetter ? value > median : value < median
   if (higherBetter) {
-    if (isTop) return { gloss: `Best in its category, above the category median (${med}).`, tone: 'good' }
-    if (isBottom) return { gloss: `Lowest in its category, below the category median (${med}).`, tone: 'bad' }
-    if (beatsMedian) return { gloss: `Above the category median (${med}) — better than most peers.`, tone: 'good' }
-    return { gloss: `Below the category median (${med}) — trails most peers.`, tone: 'warn' }
+    if (isTop) return { gloss: `Above the category median (${med}).`, verdict: 'Best in category', tone: 'good' }
+    if (isBottom) return { gloss: `Below the category median (${med}).`, verdict: 'Lowest in category', tone: 'bad' }
+    if (beatsMedian) return { gloss: `Above the category median (${med}).`, verdict: 'Better than most peers', tone: 'good' }
+    return { gloss: `Below the category median (${med}).`, verdict: 'Trails most peers', tone: 'warn' }
   }
-  if (isTop) return { gloss: `Steadiest in its category, below the category median (${med}).`, tone: 'good' }
-  if (isBottom) return { gloss: `Swingiest in its category, above the category median (${med}).`, tone: 'bad' }
-  if (beatsMedian) return { gloss: `Below the category median (${med}) — steadier than most peers.`, tone: 'good' }
-  return { gloss: `Above the category median (${med}) — swingier than most peers.`, tone: 'warn' }
+  if (isTop) return { gloss: `Below the category median (${med}).`, verdict: 'Steadiest in category', tone: 'good' }
+  if (isBottom) return { gloss: `Above the category median (${med}).`, verdict: 'Swingiest in category', tone: 'bad' }
+  if (beatsMedian) return { gloss: `Below the category median (${med}).`, verdict: 'Steadier than most peers', tone: 'good' }
+  return { gloss: `Above the category median (${med}).`, verdict: 'Swingier than most peers', tone: 'warn' }
 }
 
 /**
@@ -186,10 +188,11 @@ export function ratioSpectrum(opts: {
   const markers: SpectrumMarker[] = [{ pos: sc(opts.value), kind: 'primary', label: fmt(opts.value) }]
   if (opts.cat?.median != null) markers.push({ pos: sc(opts.cat.median), kind: 'median', label: `med ${fmt(opts.cat.median)}`, tick: true })
 
-  const { gloss, tone } = categoryGloss(opts.value, { min: lo, max: hi, median }, fmt, true)
+  const { gloss, verdict, tone } = categoryGloss(opts.value, { min: lo, max: hi, median }, fmt, true)
   // primary tone: absolute quality (negative is bad, ≥pivot is good) so the caret
   // colour carries the absolute read even when the bar shows peer ranking.
-  const primaryTone: Tone = opts.value < 0 ? 'bad' : opts.value >= pivot ? 'good' : 'warn'
+  const relPos = sc(opts.value)
+  const primaryTone: Tone = opts.value < 0 ? 'bad' : (opts.value >= pivot || relPos >= 0.75) ? 'good' : relPos >= 0.4 ? 'warn' : 'bad'
 
   const model: SpectrumModel = {
     stops,
@@ -202,6 +205,7 @@ export function ratioSpectrum(opts: {
     primaryTone,
     gloss,
     glossTone: tone,
+    verdict,
   }
   // Draw the "good ≥ 1.0" reference only where it truly falls on the scale.
   if (pivot >= lo && pivot <= hi) {
@@ -239,7 +243,7 @@ export function lowerBetterSpectrum(opts: {
   const markers: SpectrumMarker[] = [{ pos: sc(opts.value), kind: 'primary', label: fmt(opts.value) }]
   if (opts.cat?.median != null) markers.push({ pos: sc(opts.cat.median), kind: 'median', label: `med ${fmt(opts.cat.median)}`, tick: true })
 
-  const { gloss } = categoryGloss(opts.value, { min: lo, max: hi, median }, fmt, false)
+  const { gloss, verdict } = categoryGloss(opts.value, { min: lo, max: hi, median }, fmt, false)
   // Honor the established rule: below the category median = good (green),
   // above = bad (red). Keep the caret and its gloss tone identical so the
   // colour signal is never mixed (no amber caret over a red value).
@@ -258,6 +262,7 @@ export function lowerBetterSpectrum(opts: {
     primaryTone,
     gloss,
     glossTone: primaryTone,
+    verdict,
   }
 }
 

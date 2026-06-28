@@ -111,7 +111,7 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
             contentStyle={tooltipStyle}
             formatter={(v: number, key: string) => [`${v.toFixed(1)}%`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
           />
-          {hasPeer && <Legend formatter={legendFmt} />}
+          {hasPeer && <Legend formatter={legendFmt} wrapperStyle={{ fontSize: 12 }} />}
           {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
           <Line type="monotone" dataKey="fund" stroke="#f43f5e" strokeWidth={1.8} dot={false} connectNulls />
         </LineChart>
@@ -130,7 +130,7 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
           formatter={(v: number, key: string) => [`₹${(v as number).toFixed(1)}`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
           labelFormatter={(d) => `${d} · growth of ₹100`}
         />
-        {hasPeer && <Legend formatter={legendFmt} />}
+        {hasPeer && <Legend formatter={legendFmt} wrapperStyle={{ fontSize: 12 }} />}
         {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
         <Line type="monotone" dataKey="fund" stroke={FUND_COLOR} strokeWidth={2} dot={false} connectNulls />
       </LineChart>

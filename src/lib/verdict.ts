@@ -8,7 +8,7 @@
  * contributes points; the reasons list spells out what drove the score. Used by
  * the fund-detail verdict card and the Compare verdict row, so they always agree.
  *
- * It is NOT advice - it's a weighted reading of evidence, framed as conviction.
+ * A weighted reading of the data, framed as conviction.
  */
 import type { Fund } from '../types'
 
@@ -60,7 +60,7 @@ export function buildVerdict(fund: Fund): Verdict {
     alphaPts = clamp(50 + base.alpha * 6, 0, 100) // +8%/yr alpha ~ 98
     const p: VerdictPillar = {
       label: `${base.alpha >= 0 ? '+' : ''}${base.alpha.toFixed(1)}%/yr vs peers`,
-      detail: 'beat (or trailed) the category median return',
+      detail: 'vs the category median return',
       tone: base.alpha >= 1 ? 'good' : base.alpha <= -1 ? 'bad' : 'neutral',
     }
     if (base.alpha >= 1) positives.push(p)
@@ -137,10 +137,10 @@ function buildOneLiner(fund: Fund, _score: number, label: string, pos: VerdictPi
   const cat = fund.categoryDisplay
   const lead = pos[0]?.label ?? neg[0]?.label ?? 'a mixed record'
   if (label === 'Standout' || label === 'Strong') {
-    return `A ${label.toLowerCase()} ${cat} pick on the evidence - ${lead.toLowerCase()}${pos[1] ? `, ${pos[1].label.toLowerCase()}` : ''}. ${neg[0] ? `Watch: ${neg[0].label.toLowerCase()}.` : 'Few red flags in the data.'}`
+    return `A ${label.toLowerCase()} ${cat} pick on the data - ${lead.toLowerCase()}${pos[1] ? `, ${pos[1].label.toLowerCase()}` : ''}. ${neg[0] ? `Watch: ${neg[0].label.toLowerCase()}.` : 'Few red flags in the data.'}`
   }
   if (label === 'Solid' || label === 'Average') {
     return `A ${label.toLowerCase()} ${cat} option - ${pos[0] ? pos[0].label.toLowerCase() : 'no standout strengths'}${neg[0] ? `, but ${neg[0].label.toLowerCase()}` : ''}. Weigh it against higher-ranked peers.`
   }
-  return `Lags its ${cat} peers on the evidence - ${neg[0] ? neg[0].label.toLowerCase() : 'weak across the board'}. Higher-ranked funds in the category look stronger.`
+  return `Lags its ${cat} peers on the data - ${neg[0] ? neg[0].label.toLowerCase() : 'weak across the board'}. Higher-ranked funds in the category look stronger.`
 }

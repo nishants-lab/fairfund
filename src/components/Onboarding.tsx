@@ -28,7 +28,7 @@ const STEPS: Step[] = [
   {
     emoji: '🔮',
     title: 'Forward-looking, not just history',
-    body: 'Beyond past returns, we show probability-based signals: how consistent a fund has been, whether its edge looks like skill or luck, how it cushions falls, and a modeled range for the years ahead. Always evidence, never a guarantee.',
+    body: 'Beyond past returns: how consistent the fund has been, whether its edge looks like skill or luck, how it cushions falls, and a modeled range for the years ahead.',
   },
 ]
 
@@ -38,10 +38,11 @@ export default function Onboarding() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const seen = localStorage.getItem(SEEN_KEY)
-    if (!seen) {
-      // small delay so it doesn't flash on first paint
-      const t = setTimeout(() => setOpen(true), 400)
+    // Only open when explicitly triggered via resetOnboarding (sets a flag)
+    const trigger = sessionStorage.getItem('ff-show-tour')
+    if (trigger) {
+      sessionStorage.removeItem('ff-show-tour')
+      const t = setTimeout(() => setOpen(true), 200)
       return () => clearTimeout(t)
     }
   }, [])
@@ -123,6 +124,6 @@ export default function Onboarding() {
 
 /** Allow re-opening onboarding from a help link. */
 export function resetOnboarding() {
-  localStorage.removeItem(SEEN_KEY)
+  sessionStorage.setItem('ff-show-tour', '1')
   window.location.reload()
 }

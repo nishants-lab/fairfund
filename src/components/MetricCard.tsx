@@ -28,6 +28,13 @@ const subToneClasses: Record<NonNullable<Props['tone']>, string> = {
   warn: 'text-amber-600 dark:text-amber-400',
 }
 
+const verdictTone: Record<string, string> = {
+  good: 'text-emerald-600 dark:text-emerald-400',
+  bad: 'text-rose-600 dark:text-rose-400',
+  warn: 'text-amber-600 dark:text-amber-400',
+  neutral: 'text-muted',
+}
+
 export default function MetricCard({ label, value, sub, tone = 'default', hint, note, subTone = 'default', spectrum }: Props) {
   return (
     <div className="card p-4">
@@ -37,6 +44,11 @@ export default function MetricCard({ label, value, sub, tone = 'default', hint, 
           <InfoTip width={240} label={`About ${label}`}>
             {hint}
           </InfoTip>
+        )}
+        {spectrum?.verdict && (
+          <span className={`ml-auto text-[10px] font-semibold normal-case tracking-normal ${verdictTone[spectrum.glossTone ?? 'neutral']}`}>
+            {spectrum.verdict}
+          </span>
         )}
       </div>
       <div className={`mt-1 text-2xl font-bold ${toneClasses[tone]}`}>{value}</div>

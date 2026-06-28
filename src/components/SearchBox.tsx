@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { searchFunds, data } from '../lib/data'
-import RiskBadge from './RiskBadge'
+import { fundSlug } from '../lib/format'
+import { searchFunds, searchCategories, data } from '../lib/data'
+import type { CategoryResult } from '../lib/data'
+import { getCategoryColor } from '../lib/categoryColors'
 import type { Fund } from '../types'
 
 interface Props {
@@ -49,6 +51,7 @@ function shuffle<T>(arr: T[]): T[] {
 export default function SearchBox({ placeholder, autoFocus, onPick, large }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Fund[]>([])
+  const [catResults, setCatResults] = useState<CategoryResult[]>([])
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -95,6 +98,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
 
   useEffect(() => {
     setResults(searchFunds(query, 10))
+    setCatResults(searchCategories(query))
     setActiveIdx(0)
   }, [query])
 
@@ -120,7 +124,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
     setQuery('')
     setOpen(false)
     if (onPick) onPick(fund)
-    else navigate(`/fund/${fund.code}`)
+    else navigate(`/fund/${fund.code}/${fundSlug(fund.name)}`)
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -194,8 +198,30 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
         )}
       </div>
 
-      {open && results.length > 0 && (
-        <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl" ref={listRef}>
+      {open && (results.length > 0 || catResults.length > 0) && (
+        <div className="absolute right-0 z-50 mt-2 max-h-80 min-w-[24rem] w-full overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl" ref={listRef}>
+          {catResults.length > 0 && (
+            <div className="border-b border-line">
+              <div className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-faint">Categories</div>
+              {catResults.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => {
+                    setQuery('')
+                    setOpen(false)
+                    navigate('/explore?cat=' + encodeURIComponent(cat.key))
+                  }}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left transition hover:bg-surface2"
+                >
+                  <span className="text-sm font-semibold text-fg">{cat.display}</span>
+                  <span className="text-xs text-faint">{cat.fundCount} funds</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {results.length > 0 && catResults.length > 0 && (
+            <div className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-faint">Funds</div>
+          )}
           {results.map((f, i) => (
             <button
               key={f.code}
@@ -209,16 +235,13 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
                 <div className="truncate text-sm font-semibold text-fg">{f.name}</div>
                 <div className="text-xs text-faint">{f.amc}</div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="pill bg-surface2 text-muted">{f.categoryDisplay}</span>
-                <RiskBadge level={f.riskLevel} showWord={false} icon={false} />
-              </div>
+              <span className={`pill shrink-0 ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>{f.categoryDisplay}</span>
             </button>
           ))}
         </div>
       )}
-      {open && query.length >= 2 && results.length === 0 && (
-        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-xl">
+      {open && query.length >= 2 && results.length === 0 && catResults.length === 0 && (
+        <div className="absolute right-0 z-50 mt-2 min-w-[24rem] w-full rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-xl">
           No funds match “{query}”. Try a fund name like “HDFC Flexi” or a category like “small cap”.
         </div>
       )}
