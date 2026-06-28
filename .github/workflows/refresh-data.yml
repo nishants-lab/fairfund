@@ -3,7 +3,7 @@ name: Refresh Fund Data
 on:
   schedule:
     - cron: "30 22 * * 1-5"
-    - cron: "30 23 5-14,26 * *"
+    - cron: "30 3 6-15,27 * *"
   workflow_dispatch:
     inputs:
       full_refresh:
@@ -73,7 +73,7 @@ jobs:
           publish_dir: ./dist
 
   monthly-holdings:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 23 5-14,26 * *'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     needs: daily-nav
