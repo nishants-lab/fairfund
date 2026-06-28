@@ -236,7 +236,7 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <Section title="Honest limitations">
+      <Section title="Known limitations">
         <ul className="ml-5 list-disc space-y-1.5">
           <li>All of this is <strong>backward-derived</strong>. Past alpha and past skill do not guarantee future results.</li>
           <li>The 3-year window spans a strong bull market, so most funds look good there. The 5-year window (which includes 2022's correction) is a tougher test.</li>

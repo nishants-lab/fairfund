@@ -1,4 +1,4 @@
-# FairFund — Honest Mutual Fund Research for India
+# FairFund — Data-Backed Mutual Fund Research for India
 
 Live site: [nishants-lab.github.io/fairfund](https://nishants-lab.github.io/fairfund/)
 
