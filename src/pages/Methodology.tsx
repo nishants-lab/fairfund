@@ -71,7 +71,7 @@ export default function Methodology() {
       <Section title="Fix 4: Authoritative universe">
         <p>
           Which funds to include matters as much as how we rank them. We build the universe from
-          <strong> AMFI'"'"'s published scheme category</strong> for every fund, validated against
+          <strong> AMFI's published scheme category</strong> for every fund, validated against
           the official taxonomy. If AMFI classifies it as equity and it is an active Direct-Growth
           plan, it is in. No silent misses.
         </p>
@@ -79,7 +79,7 @@ export default function Methodology() {
 
       <Section title="The composite score">
         <p>
-          Each fund'"'"'s within-category score is the <strong>geometric mean of its percentile ranks</strong> across
+          Each fund's within-category score is the <strong>geometric mean of its percentile ranks</strong> across
           Sharpe, Sortino, Calmar, drawdown protection, alpha, and CAGR. The geometric mean (not a
           simple average) means a fund cannot hide a terrible weakness behind one strong number. There
           are <strong>no arbitrary weights</strong>: every metric contributes equally through its rank.
@@ -97,14 +97,14 @@ export default function Methodology() {
         </ul>
         <p className="mt-2 text-sm text-faint">
           On each fund page, ratios and volatility are shown on a <strong>spectrum bar</strong> spanning
-          the category'"'"'s real range, with markers for this fund, the median, and the best peer.
+          the category's real range, with markers for this fund, the median, and the best peer.
         </p>
       </Section>
 
       <h2 className="mt-10 text-xl font-bold text-fg">Part 2: Forward-looking signals</h2>
       <p className="mt-2 text-muted leading-relaxed">
         Trailing returns are a rear-view mirror. These signals estimate how repeatable and sustainable
-        a fund'"'"'s edge looks. Every signal is based on actual history, confidence, or probability.
+        a fund's edge looks. Every signal is based on actual history, confidence, or probability.
       </p>
 
       <Section title="Consistency (batting average)">
@@ -116,7 +116,7 @@ export default function Methodology() {
 
       <Section title="Skill vs luck">
         <p>
-          A one-sided t-test on the fund'"'"'s monthly excess returns over its category median,
+          A one-sided t-test on the fund's monthly excess returns over its category median,
           converted to a confidence %. We only call it skill above <strong>90%</strong>. Below that,
           we say so plainly (e.g., "70% chance its edge is luck"). Needs at least 36 months of data.
         </p>
@@ -124,14 +124,14 @@ export default function Methodology() {
 
       <Section title="Rank trajectory">
         <p>
-          The fund'"'"'s within-category rank recomputed on a rolling 3-year basis, one step per month.
+          The fund's within-category rank recomputed on a rolling 3-year basis, one step per month.
           "Climbing / Fading / Steady" based on whether its percentile moved more than ±5 points.
         </p>
       </Section>
 
       <Section title="Up / down capture">
         <p>
-          In months the category rose, the fund'"'"'s cumulative return divided by the category'"'"'s
+          In months the category rose, the fund's cumulative return divided by the category's
           (up-capture); same for down months (down-capture). Below 100% on down-capture = better
           downside protection.
         </p>
@@ -139,7 +139,7 @@ export default function Methodology() {
 
       <Section title="Running hot or cold">
         <p>
-          The z-score of the fund'"'"'s most recent 1-year return against its own rolling 1-year history.
+          The z-score of the fund's most recent 1-year return against its own rolling 1-year history.
           Above +1 = "hot" (reversion risk), below -1 = "cold". A caution against chasing, not a prediction.
         </p>
       </Section>
@@ -147,7 +147,7 @@ export default function Methodology() {
       <Section title="Regime stress test (10 market phases)">
         <p>
           How did the fund perform during real market events? We define 10 fixed regimes and show
-          each fund'"'"'s return during each:
+          each fund's return during each:
         </p>
         <ul className="ml-5 mt-2 list-disc space-y-1 text-sm">
           <li><span className="text-rose-600 dark:text-rose-400">COVID crash</span> (Feb-Mar 2020)</li>
@@ -170,7 +170,7 @@ export default function Methodology() {
 
       <Section title="Worst fall and recovery">
         <p>
-          The deepest peak-to-trough drawdown across the fund'"'"'s full history, recovery time, and
+          The deepest peak-to-trough drawdown across the fund's full history, recovery time, and
           comparison against the category median. If the fund fell significantly more than peers (more
           than 1.2x the median drawdown), it is flagged as weak downside protection.
         </p>
@@ -225,7 +225,7 @@ export default function Methodology() {
 
       <Section title="Data source and freshness">
         <p>
-          Fund universe and categories from AMFI'"'"'s published classification. Metrics computed from
+          Fund universe and categories from AMFI's published classification. Metrics computed from
           daily NAV published by AMFI (via mfapi.in). NAV charts fetched live. Holdings from the latest
           monthly disclosure. Forward analytics (regime returns, skill, capture ratios) recomputed from
           self-hosted NAV cache. The footer shows the actual latest NAV date.

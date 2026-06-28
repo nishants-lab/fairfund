@@ -2,12 +2,16 @@ name: Refresh Fund Data
 
 on:
   schedule:
-    # Weekdays at 22:00 IST (16:30 UTC) - after market close + NAV publication
-    - cron: "30 16 * * 1-5"
+    - cron: "30 22 * * 1-5"
+    - cron: "30 23 5-14,26 * *"
   workflow_dispatch:
     inputs:
       full_refresh:
-        description: "Run full metrics recomputation (slower, reads all NAV files)"
+        description: Run full metrics recomputation
+        type: boolean
+        default: false
+      run_monthly:
+        description: Also run monthly holdings refresh
         type: boolean
         default: false
 
@@ -25,21 +29,29 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Append today's NAV from AMFI
+      - name: Install deps
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Append daily NAV from AMFI
         run: python scripts/update_nav_daily.py
 
       - name: Recompute metrics from fresh NAV
-        if: inputs.full_refresh == true || github.event_name == 'schedule'
         run: python pipeline/compute_metrics.py
 
       - name: Recompute rankings
         run: python pipeline/compute_rankings.py
 
+      - name: Rebuild analytics
+        run: python scripts/build_analytics.py
+
+      - name: Split fund data for serving
+        run: python migrations/split-analytics/split_funds.py
+
       - name: Commit updated data
         run: |
-          git config user.name "fairfund-bot"
-          git config user.email "bot@fairfund.in"
-          git add src/data/funds.json public/nav/
+          git config user.name fairfund-bot
+          git config user.email bot@fairfund.in
+          git add src/data/ public/nav/ public/fund-data/
           if git diff --staged --quiet; then
             echo "No data changes"
           else
@@ -47,7 +59,7 @@ jobs:
             git push
           fi
 
-      - name: Build and deploy
+      - name: Build site
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -60,29 +72,33 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
 
-  # Monthly: holdings + stock moves (1st of each month)
   monthly-holdings:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && github.run_number % 20 == 1)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 23 5-14,26 * *'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     needs: daily-nav
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install requests yfinance
+        run: pip install -r pipeline/requirements.txt && pip install requests yfinance
+
+      - name: Pull latest
+        run: git pull --rebase origin main
 
       - name: Discover new equity funds
         run: python pipeline/discover_new_funds.py
 
-      - name: Compute metrics for new funds
+      - name: Recompute metrics
         run: python pipeline/compute_metrics.py
 
-      - name: Recompute rankings (includes new funds)
+      - name: Recompute rankings
         run: python pipeline/compute_rankings.py
 
       - name: Capture holdings snapshots
@@ -95,9 +111,9 @@ jobs:
 
       - name: Commit holdings data
         run: |
-          git config user.name "fairfund-bot"
-          git config user.email "bot@fairfund.in"
-          git add public/holdings-history/ stock_moves.json
+          git config user.name fairfund-bot
+          git config user.email bot@fairfund.in
+          git add public/holdings-history/ src/data/ public/fund-data/
           if git diff --staged --quiet; then
             echo "No holdings changes"
           else
