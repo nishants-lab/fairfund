@@ -1,0 +1,28 @@
+# FairFund robots.txt
+# Allow indexing of pages, block bulk data scraping
+
+User-agent: *
+Allow: /
+Disallow: /fund-data/
+Disallow: /analytics/
+Disallow: /nav/
+Disallow: /holdings-history/
+
+# Block common AI/LLM crawlers from all content
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+# Sitemap (add once you have a custom domain)
+# Sitemap: https://fairfund.in/sitemap.xml
