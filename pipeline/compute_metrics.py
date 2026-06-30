@@ -45,14 +45,23 @@ def load_nav(code):
 
 
 def slice_nav(points, years):
-    """Slice NAV points to the last N years from the latest date."""
+    """Slice NAV points to the last N years from the latest date.
+    Returns None if actual history covers less than 90% of the requested horizon."""
     if not points:
         return None
     latest_date = datetime.strptime(points[-1][0], "%Y-%m-%d")
     cutoff = latest_date - timedelta(days=int(years * 365.25))
     cutoff_str = cutoff.strftime("%Y-%m-%d")
     sliced = [(d, v) for d, v in points if d >= cutoff_str]
-    return sliced if len(sliced) >= 60 else None  # need at least ~60 trading days
+    if len(sliced) < 60:
+        return None
+    # Require at least 90% coverage of the requested horizon
+    actual_start = datetime.strptime(sliced[0][0], "%Y-%m-%d")
+    actual_days = (latest_date - actual_start).days
+    required_days = years * 365.25
+    if actual_days < required_days * 0.90:
+        return None
+    return sliced
 
 
 def compute_metrics(points):
@@ -198,6 +207,9 @@ def main():
         for horizon_key, years in horizons.items():
             sliced = slice_nav(nav_points, years)
             if not sliced:
+                # Remove stale metrics for this horizon if fund lacks sufficient history
+                if horizon_key in f.get("metrics", {}):
+                    del f["metrics"][horizon_key]
                 skipped += 1
                 continue
 

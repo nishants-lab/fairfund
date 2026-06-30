@@ -90,7 +90,7 @@ export const categoryOrder = [
   'Sectoral/Thematic',
   'International',
   'FoF-Equity (Domestic)',
-  'Index-LargeCap',
+  'Index Funds',
   'Index-MidCap',
   'Index-SmallCap',
   'Index-Sectoral/Thematic',

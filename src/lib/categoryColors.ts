@@ -72,7 +72,7 @@ const colorMap: Record<string, CategoryColor> = {
     text: 'text-slate-600 dark:text-slate-300',
     border: 'border-slate-300 dark:border-slate-600',
   },
-  'Index-LargeCap': {
+  'Index Funds': {
     bg: 'bg-blue-100 dark:bg-blue-900/25',
     text: 'text-blue-600 dark:text-blue-300',
     border: 'border-blue-200 dark:border-blue-700',
