@@ -1,1 +1,99 @@
-{"code":140274,"slug":"edelweiss-us-value-equity-offshore-fund-direct","name":"Edelweiss US Value Equity Offshore Fund - Direct Plan - Growth Option","snapshots":{"2026-04-30":{"portfolioDate":"2026-04-30","capturedOn":"2026-05-30","coverage":"feeder_unresolved","aum":218.0174,"holdings":[{"name":"JP Morgan Funds - US Value Fund","pct":98.3078,"sector":"Financial","instrument":"Foreign MF","key":"jp morgan funds - us value fund"}]},"2026-05-31":{"portfolioDate":"2026-05-31","capturedOn":"2026-06-15","coverage":"stock_level","aum":223.9444,"holdings":[{"name":"JP Morgan Funds - US Value Fund","pct":97.5,"sector":"Unspecified","instrument":"Foreign Mutual Funds","key":"jp morgan funds - us value fund"}]}}}
+{
+  "code": 140274,
+  "slug": "edelweiss-us-value-equity-offshore-fund-direct",
+  "name": "Edelweiss US Value Equity Offshore Fund - Direct Plan - Growth Option",
+  "snapshots": {
+    "2026-04-30": {
+      "portfolioDate": "2026-04-30",
+      "capturedOn": "2026-05-30",
+      "coverage": "feeder_unresolved",
+      "aum": 218.0174,
+      "holdings": [
+        {
+          "name": "JP Morgan Funds - US Value Fund",
+          "pct": 98.3078,
+          "sector": "Financial",
+          "instrument": "Foreign MF",
+          "key": "jp morgan funds - us value fund"
+        }
+      ]
+    },
+    "2026-05-31": {
+      "portfolioDate": "2026-05-31",
+      "capturedOn": "2026-07-01",
+      "coverage": "stock_level",
+      "aum": 223.9444,
+      "expense_ratio": "0.72",
+      "exit_load": "Exit load of 1%, if redeemed within 90 days.",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "JP Morgan Funds - US Value Fund",
+          "pct": 97.5,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "jp morgan funds - us value fund"
+        }
+      ]
+    },
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 223.9444,
+      "expense_ratio": "0.72",
+      "exit_load": "Exit load of 1%, if redeemed within 90 days.",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "JP Morgan Funds - US Value Fund",
+          "pct": 97.5,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "jp-morgan-funds-us-value-fund"
+        },
+        {
+          "name": "Others CBLO",
+          "pct": 2.65,
+          "sector": "Unspecified",
+          "instrument": "CBLO",
+          "key": "others-cblo"
+        },
+        {
+          "name": "Cash",
+          "pct": 0.0011,
+          "sector": "Unspecified",
+          "instrument": "Cash",
+          "key": "cash"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.1511,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}
