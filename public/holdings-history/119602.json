@@ -1,0 +1,49 @@
+{
+  "code": 119602,
+  "slug": "sundaram-global-brand-theme-equity-active-fof-direct-growth",
+  "name": "Sundaram Global Brand Theme-Equity Active FOF - Direct Growth",
+  "snapshots": {
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 171.78611529,
+      "expense_ratio": "1.37",
+      "exit_load": "For units more than 25% of the investments, an exit load of 1% if redeemed within 365 days.",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": false,
+      "lumpsum_allowed": false,
+      "available_for_investment": false,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "Sundaram Global Brand",
+          "pct": 97.7715,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "sundaram-global-brand"
+        },
+        {
+          "name": "Repo",
+          "pct": 2.4629,
+          "sector": "Unspecified",
+          "instrument": "Repo",
+          "key": "repo"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.2344,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}

@@ -22,7 +22,7 @@ function normKey(h: Holding): string {
 export function hasUsableHoldings(f: Fund): boolean {
   const cov = f.holdingsMeta?.coverage
   if (!f.holdings || f.holdings.length === 0) return false
-  if (cov === 'feeder_unresolved' || cov === 'unresolved' || cov === 'no_disclosure') return false
+  if (cov === 'feeder_unresolved' || cov === 'unresolved' || cov === 'no_disclosure' || cov === 'fof_level') return false
   // a single ~100% line is not real stock-level data
   if (f.holdings.length === 1 && f.holdings[0].pct >= 80) return false
   return true

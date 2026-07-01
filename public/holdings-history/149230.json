@@ -1,0 +1,56 @@
+{
+  "code": 149230,
+  "slug": "mahindra-manulife-asia-pacific-reits-fof-direct-growth",
+  "name": "Mahindra Manulife Asia Pacific REITs FOF - Direct Plan - Growth",
+  "snapshots": {
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 41.98,
+      "expense_ratio": "0.48",
+      "exit_load": "Exit Load for units in excess of 10% of the investment,1% will be charged for redemption within 12 months",
+      "min_sip": 1000.0,
+      "min_lumpsum": 5000.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": false,
+      "lumpsum_allowed": false,
+      "available_for_investment": false,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "Manulife Global Fund SICAV-Asia Pacific REIT",
+          "pct": 97.75,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "manulife-global-fund-sicavasia-pacific-reit"
+        },
+        {
+          "name": "Repo",
+          "pct": 2.39,
+          "sector": "Unspecified",
+          "instrument": "Repo",
+          "key": "repo"
+        },
+        {
+          "name": "Others CBLO",
+          "pct": 0.05,
+          "sector": "Unspecified",
+          "instrument": "CBLO",
+          "key": "others-cblo"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.19,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}
