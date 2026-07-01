@@ -32,6 +32,8 @@ export interface Fund {
   management?: Management
   analytics?: Analytics
   stockMoves?: StockMoves | null
+  aum?: { current: number; asOf: string; previous?: number; prevDate?: string; changePct?: number } | null
+  expenseRatio?: number | null
 }
 
 export interface ManagerInfo {
@@ -117,6 +119,7 @@ export interface Holding {
   sector?: string | null
   instrument?: string | null
   key?: string | null
+  change?: number | null
 }
 
 export interface HoldingsMeta {

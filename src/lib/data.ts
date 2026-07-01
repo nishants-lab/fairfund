@@ -28,6 +28,8 @@ export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
   if (detail.holdingsMeta) fund.holdingsMeta = detail.holdingsMeta
   if (detail.management) fund.management = detail.management
   if (detail.stockMoves !== undefined) fund.stockMoves = detail.stockMoves
+  if (detail.aum !== undefined) fund.aum = detail.aum
+  if (detail.expenseRatio !== undefined) fund.expenseRatio = detail.expenseRatio
   return fund
 }
 

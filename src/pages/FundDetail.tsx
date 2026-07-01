@@ -16,6 +16,8 @@ import ManagementCard from '../components/ManagementCard'
 import PortfolioMoves from '../components/PortfolioMoves'
 import ForwardAnalytics from '../components/ForwardAnalytics'
 import VerdictCard from '../components/VerdictCard'
+import FundMeta from '../components/FundMeta'
+import SectorBreakdown from '../components/SectorBreakdown' 
 import type { NavPoint } from '../types'
 import ShareButton from '../components/ShareButton'
 import { usePageMeta } from '../lib/usePageMeta'
@@ -292,6 +294,8 @@ export default function FundDetail() {
         </div>
       </div>
 
+      <FundMeta fund={fund} />
+
       {/* Range selector - the differentiator */}
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
@@ -463,6 +467,8 @@ export default function FundDetail() {
       {/* Portfolio holdings */}
       <HoldingsTable fund={fund} />
 
+      <SectorBreakdown fund={fund} />
+
       {/* Portfolio changes (stock-picking intelligence) */}
       <PortfolioMoves fund={fund} />
 
@@ -481,7 +487,7 @@ export default function FundDetail() {
               onClick={() => navigate(`/compare?codes=${fund.code},${peers[0].code}`)}
               className="text-sm font-semibold text-brand-600 hover:underline"
             >
-              Compare with #1 peer →
+              Compare with {peers[0].name.split(' ').slice(0, 3).join(' ')}... →
             </button>
           </div>
           <div className="grid gap-3 md:grid-cols-4">

@@ -106,6 +106,12 @@ jobs:
       - name: Build stock moves
         run: python scripts/build_stock_moves.py
 
+      - name: Compute holdings changes (MoM)
+        run: python scripts/add_holdings_change.py
+
+      - name: Enrich fund-data with AUM and expense ratio
+        run: python scripts/enrich_fund_data.py
+
       - name: Commit holdings data
         run: |
           git config user.name fairfund-bot
