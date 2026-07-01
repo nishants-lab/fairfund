@@ -43,10 +43,14 @@ for hist_file in HISTORY_DIR.glob("*.json"):
             detail["aum"] = aum_data
             changed = True
 
-    # Expense ratio
+    # Expense ratio (always store as float)
     er = latest.get("expense_ratio")
     if er is not None:
-        if detail.get("expenseRatio") != er:
+        try:
+            er = round(float(er), 2)
+        except (ValueError, TypeError):
+            er = None
+        if er is not None and detail.get("expenseRatio") != er:
             detail["expenseRatio"] = er
             changed = True
 
