@@ -33,7 +33,7 @@ Resumable, threaded, periodic-save. Run locally or in CI. Paths resolve relative
 this file so both work.
 """
 import os, json, sys, time, re
-import urllib.request, urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -65,7 +65,6 @@ FUNDS_JSON = next((p for p in _FUNDS_CANDIDATES if os.path.exists(p)), _FUNDS_CA
 META_CACHE = os.path.join(ROOT, "scheme_meta_cache")
 
 H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
-SEARCH = "https://groww.in/v1/api/search/v3/query/global/st_query?query="
 SCHEME = "https://groww.in/v1/api/data/mf/web/v2/scheme/search/"
 
 FEEDER_INSTR = {"mutual fund", "foreign mf", "fund", "exchange traded fund", "etf"}
@@ -99,34 +98,6 @@ def _get(url, timeout=20):
     return None
 
 
-def _tokens(s):
-    s = (s or "").lower()
-    s = re.sub(r"[^a-z0-9 ]", " ", s)
-    stop = {"fund", "direct", "growth", "plan", "the", "of", "and", "scheme",
-            "option", "regular", "in", "india", "formerly", "known", "as", "ltd"}
-    return set(t for t in s.split() if t not in stop and len(t) > 2)
-
-
-def _name_overlap(a, b):
-    ta, tb = _tokens(a), _tokens(b)
-    if not ta or not tb:
-        return 0.0
-    return len(ta & tb) / len(ta | tb)
-
-
-def _clean_query(name):
-    n = re.sub(r"\(formerly[^)]*\)", " ", name, flags=re.IGNORECASE)
-    n = re.sub(r"formerly known as[^-]*", " ", n, flags=re.IGNORECASE)
-    for w in ["growth option", "growth plan", "idcw", "dividend", "payout",
-              "reinvestment", "bonus option", "bonus", "- growth", "growth",
-              "regular plan", "option"]:
-        n = re.sub(re.escape(w), " ", n, flags=re.IGNORECASE)
-    n = re.sub(r"[-–|]", " ", n)
-    n = re.sub(r"\s+", " ", n).strip()
-    if "direct" not in n.lower():
-        n = n + " Direct"
-    return re.sub(r"\s+", " ", n + " Growth").strip()
-
 
 def load_slug_map():
     """Load slug map: committed _slugs.json first, then seed from workspace cache."""
@@ -154,33 +125,8 @@ def load_slug_map():
 
 
 def resolve_slug(code, name, smap):
-    if smap.get(str(code)):
-        return smap[str(code)]
-    d = _get(SEARCH + urllib.parse.quote(_clean_query(name)), timeout=15)
-    slug = None
-    best = 0.0
-    second = 0.0
-    if d and d.get("data", {}).get("content"):
-        content = d["data"]["content"]
-        for c in content:
-            if str(c.get("scheme_code")) == str(code) and c.get("search_id"):
-                slug = c["search_id"]; best = 1.0; break
-        if not slug:
-            best_slug = None
-            for c in content:
-                if c.get("entity_type") != "Scheme" or not c.get("search_id"):
-                    continue
-                ov = _name_overlap(name, c.get("title", ""))
-                if ov > best:
-                    second = best; best = ov; best_slug = c["search_id"]
-                elif ov > second:
-                    second = ov
-            if best_slug and ((best >= 0.6 and best - second >= 0.1) or best >= 0.8):
-                slug = best_slug
-    if slug:
-        smap[str(code)] = slug
-    return slug
-
+    """Lookup slug from pre-validated _slugs.json. No resolution."""
+    return smap.get(str(code))
 
 def norm_holdings(raw):
     out = []
@@ -285,10 +231,7 @@ def capture_one(code, name, smap, today):
     sc = _get(SCHEME + slug, timeout=25)
     if not sc:
         return code, None, "fetch_failed"
-    # name-match guard against fuzzy mis-resolution
-    fetched = sc.get("scheme_name") or sc.get("fund_name") or ""
-    if str(sc.get("scheme_code")) != str(code) and _name_overlap(name, fetched) < 0.45:
-        return code, None, "name_mismatch"
+
     raw = sc.get("holdings") or []
     holds = norm_holdings(raw)
     pdate = iso_pdate(raw[0].get("portfolio_date")) if raw else None
@@ -398,8 +341,7 @@ def main():
                 eta = (len(todo) - done) / rate if rate else 0
                 print(f"  {done}/{len(todo)} | {rate:.1f}/s | ETA {eta:.0f}s | new={added_snaps} same={skipped_same}")
 
-    # persist any newly-resolved slugs
-    json.dump(smap, open(SLUG_MAP_PATH, "w", encoding="utf-8"), separators=(",", ":"))
+
 
     # write/refresh a manifest summarizing the dataset
     manifest = {"updatedAt": today, "funds": 0, "totalSnapshots": 0, "multiSnapshot": 0}
