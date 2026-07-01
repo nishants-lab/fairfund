@@ -34,6 +34,16 @@ export interface Fund {
   stockMoves?: StockMoves | null
   aum?: { current: number; asOf: string; previous?: number; prevDate?: string; changePct?: number } | null
   expenseRatio?: number | null
+  investInfo?: {
+    exit_load?: string
+    min_sip?: number
+    min_lumpsum?: number
+    stamp_duty?: string
+    sip_allowed?: boolean
+    lumpsum_allowed?: boolean
+    available_for_investment?: boolean
+    lock_in?: { years?: number | null; months?: number | null; days?: number | null }
+  } | null
 }
 
 export interface ManagerInfo {

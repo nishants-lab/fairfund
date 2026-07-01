@@ -301,6 +301,14 @@ def capture_one(code, name, smap, today):
         "coverage": coverage,
         "aum": sc.get("aum"),
         "expense_ratio": sc.get("expense_ratio"),
+        "exit_load": sc.get("exit_load"),
+        "min_sip": sc.get("min_sip_investment"),
+        "min_lumpsum": sc.get("min_investment_amount"),
+        "stamp_duty": sc.get("stamp_duty"),
+        "sip_allowed": sc.get("sip_allowed"),
+        "lumpsum_allowed": sc.get("lumpsum_allowed"),
+        "available_for_investment": sc.get("available_for_investment"),
+        "lock_in": sc.get("lock_in"),
         "holdings": holds,
     }
     return code, snap, coverage
