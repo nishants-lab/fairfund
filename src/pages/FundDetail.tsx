@@ -48,7 +48,7 @@ export default function FundDetail() {
   // Lazy-load heavy per-fund data (analytics, holdings, management, stockMoves)
   useEffect(() => {
     if (!fund) return
-    if (fund.analytics) return
+    if (fund.holdingsMeta) return
     fetchFundDetail(fund.code).then((detail) => {
       mergeFundDetail(fund, detail)
       setDetailTick((t) => t + 1)
