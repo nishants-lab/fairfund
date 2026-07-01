@@ -47,6 +47,9 @@ jobs:
       - name: Split fund data for serving
         run: python migrations/split-analytics/split_funds.py
 
+      - name: Smoke test (validate data integrity)
+        run: python tests/smoke.py
+
       - name: Commit updated data
         run: |
           git config user.name fairfund-bot
