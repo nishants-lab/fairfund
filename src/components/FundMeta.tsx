@@ -23,6 +23,11 @@ function fmtLockIn(lock: { years?: number | null; months?: number | null; days?:
   return parts.length > 0 ? parts.join(' ') : null
 }
 
+function fmtExitLoad(raw: string): string {
+  // Strip redundant "Exit load of" prefix since the label already says "Exit load"
+  return raw.replace(/^exit\s*load\s*(of\s*)?/i, '').replace(/^,\s*/, '')
+}
+
 export default function FundMeta({ fund }: { fund: Fund }) {
   const aum = fund.aum
   const er = fund.expenseRatio
@@ -61,7 +66,7 @@ export default function FundMeta({ fund }: { fund: Fund }) {
         {inv?.exit_load && (
           <div className="flex items-baseline gap-1">
             <span className="text-faint">Exit load</span>
-            <span className="font-semibold text-fg">{inv.exit_load}</span>
+            <span className="font-semibold text-fg">{fmtExitLoad(inv.exit_load)}</span>
           </div>
         )}
         {lockIn && (
