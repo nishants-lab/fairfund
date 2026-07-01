@@ -1,0 +1,49 @@
+{
+  "code": 145552,
+  "slug": "motilal-oswal-nasdaq-100-fof-direct-growth",
+  "name": "Motilal Oswal Nasdaq 100 Fund of Fund- Direct Plan Growth",
+  "snapshots": {
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 8583.2849,
+      "expense_ratio": "0.19",
+      "exit_load": "Exit load of 1%, if redeemed within 15 days.",
+      "min_sip": 500.0,
+      "min_lumpsum": 500.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": false,
+      "lumpsum_allowed": false,
+      "available_for_investment": false,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "Motilal Oswal NASDAQ 100 ETF-Growth",
+          "pct": 100.04,
+          "sector": "Unspecified",
+          "instrument": "Mutual Fund",
+          "key": "motilal-oswal-nasdaq-100-etfgrowth"
+        },
+        {
+          "name": "Repo",
+          "pct": 0.1,
+          "sector": "Unspecified",
+          "instrument": "Repo",
+          "key": "repo"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.14,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}

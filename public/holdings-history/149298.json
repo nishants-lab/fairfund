@@ -1,1 +1,92 @@
-{"code":149298,"slug":"pgim-india-global-select-real-estate-securities-fof-direct-growth","name":"PGIM India Global Select Real Estate Securities Fund of Fund - Direct Plan - Growth Option","snapshots":{"2026-04-30":{"portfolioDate":"2026-04-30","capturedOn":"2026-05-30","coverage":"feeder_unresolved","aum":60.546,"holdings":[{"name":"PGIM Global Select Real Estate Securities","pct":97.39,"sector":"Financial","instrument":"Foreign MF","key":"pgim global select real estate securities"}]},"2026-05-31":{"portfolioDate":"2026-05-31","capturedOn":"2026-07-01","coverage":"stock_level","aum":59.5338,"expense_ratio":"0.78","exit_load":"Exit load of 0.5%, if redeemed within 90 days.","min_sip":1000.0,"min_lumpsum":5000.0,"stamp_duty":"0.005% (from July 1st, 2020)","sip_allowed":true,"lumpsum_allowed":false,"available_for_investment":true,"lock_in":{"years":null,"months":null,"days":null},"holdings":[{"name":"PGIM Global Select Real Estate Securities","pct":96.97,"sector":"Unspecified","instrument":"Foreign Mutual Funds","key":"pgim global select real estate securities"}]}}}
+{
+  "code": 149298,
+  "slug": "pgim-india-global-select-real-estate-securities-fof-direct-growth",
+  "name": "PGIM India Global Select Real Estate Securities Fund of Fund - Direct Plan - Growth Option",
+  "snapshots": {
+    "2026-04-30": {
+      "portfolioDate": "2026-04-30",
+      "capturedOn": "2026-05-30",
+      "coverage": "feeder_unresolved",
+      "aum": 60.546,
+      "holdings": [
+        {
+          "name": "PGIM Global Select Real Estate Securities",
+          "pct": 97.39,
+          "sector": "Financial",
+          "instrument": "Foreign MF",
+          "key": "pgim global select real estate securities"
+        }
+      ]
+    },
+    "2026-05-31": {
+      "portfolioDate": "2026-05-31",
+      "capturedOn": "2026-07-01",
+      "coverage": "stock_level",
+      "aum": 59.5338,
+      "expense_ratio": "0.78",
+      "exit_load": "Exit load of 0.5%, if redeemed within 90 days.",
+      "min_sip": 1000.0,
+      "min_lumpsum": 5000.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "PGIM Global Select Real Estate Securities",
+          "pct": 96.97,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "pgim global select real estate securities"
+        }
+      ]
+    },
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 59.5338,
+      "expense_ratio": "0.78",
+      "exit_load": "Exit load of 0.5%, if redeemed within 90 days.",
+      "min_sip": 1000.0,
+      "min_lumpsum": 5000.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "PGIM Global Select Real Estate Securities",
+          "pct": 96.97,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "pgim-global-select-real-estate-securities"
+        },
+        {
+          "name": "Others CBLO",
+          "pct": 2.16,
+          "sector": "Unspecified",
+          "instrument": "CBLO",
+          "key": "others-cblo"
+        },
+        {
+          "name": "Net Receivables",
+          "pct": 0.87,
+          "sector": "Unspecified",
+          "instrument": "Net Receivables",
+          "key": "net-receivables"
+        }
+      ]
+    }
+  }
+}
