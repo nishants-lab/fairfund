@@ -1,0 +1,134 @@
+name: Discover New Funds
+
+on:
+  schedule:
+    - cron: "0 4 2 * *"  # 2nd of each month at 4:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      approve_codes:
+        description: "Comma-separated fund codes to add (from the discovery issue)"
+        type: string
+        default: ""
+      approve_all:
+        description: "Add ALL candidates from latest discovery (use after reviewing issue)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  discover:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.approve_all && inputs.approve_codes == '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Discover new equity funds (dry-run)
+        run: python pipeline/discover_new_funds.py --dry-run 2>&1 | tee discovery_output.txt
+
+      - name: Create review issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('discovery_output.txt', 'utf8');
+
+            if (!output.includes('Would add:')) {
+              console.log('No new fund candidates found.');
+              return;
+            }
+
+            const lines = output.split('\n');
+            const candidates = lines.filter(l => l.includes('Would add:'));
+
+            // Parse candidates into a table
+            let table = '| # | Fund Name | Category | NAV Points | Code |\n';
+            table += '|---|-----------|----------|-----------|------|\n';
+            candidates.forEach((line, i) => {
+              // Format: "  Would add: Name (Category, NNN points)"
+              const match = line.match(/Would add:\s*(.+?)\s*\((.+?),\s*(\d+)\s*points\)/);
+              if (match) {
+                const name = match[1].trim();
+                const cat = match[2].trim();
+                const points = match[3];
+                // Try to extract code from the line if present
+                table += `| ${i+1} | ${name} | ${cat} | ${points} | - |\n`;
+              } else {
+                table += `| ${i+1} | ${line.replace('Would add:', '').trim()} | - | - | - |\n`;
+              }
+            });
+
+            const body = `## New Fund Candidates - ${new Date().toISOString().split('T')[0]}\n\n` +
+              `Discovery found **${candidates.length}** new equity funds eligible for addition.\n\n` +
+              `### Candidates\n\n` +
+              table +
+              `\n### How to Approve\n\n` +
+              `**Approve all:** Go to Actions > Discover New Funds > Run workflow > check \\`approve_all\\`\n\n` +
+              `**Approve specific funds:** Go to Actions > Discover New Funds > Run workflow > paste codes in \\`approve_codes\\` (comma-separated)\n\n` +
+              `### Raw Output\n\n<details><summary>Click to expand</summary>\n\n\\`\\`\\`\n${output}\n\\`\\`\\`\n</details>`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `New fund candidates (${new Date().toISOString().split('T')[0]})`,
+              body: body,
+              labels: ['data', 'review-needed']
+            });
+
+            console.log(`Created issue with ${candidates.length} candidates`);
+
+  approve:
+    if: github.event_name == 'workflow_dispatch' && (inputs.approve_all || inputs.approve_codes != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Add approved funds
+        run: |
+          if [ "${{ inputs.approve_all }}" = "true" ]; then
+            python pipeline/discover_new_funds.py
+          else
+            IFS=',' read -ra CODES <<< "${{ inputs.approve_codes }}"
+            for code in "${CODES[@]}"; do
+              code=$(echo "$code" | xargs)  # trim whitespace
+              echo "Adding fund $code..."
+              python pipeline/discover_new_funds.py --fund "$code"
+            done
+          fi
+
+      - name: Recompute metrics and rankings
+        run: |
+          python pipeline/compute_metrics.py
+          python pipeline/compute_rankings.py
+          python scripts/build_analytics.py
+          python migrations/split-analytics/split_funds.py
+
+      - name: Commit and push
+        run: |
+          git config user.name fairfund-bot
+          git config user.email bot@fairfund.in
+          git add src/data/ public/nav/ public/fund-data/
+          if git diff --staged --quiet; then
+            echo "No new funds added"
+          else
+            git commit -m "data: add approved funds $(date +%Y-%m-%d)"
+            git push
+          fi
