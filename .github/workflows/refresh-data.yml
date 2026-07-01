@@ -92,9 +92,6 @@ jobs:
       - name: Pull latest
         run: git pull --rebase origin main
 
-      - name: Discover new equity funds
-        run: python pipeline/discover_new_funds.py
-
       - name: Recompute metrics
         run: python pipeline/compute_metrics.py
 
