@@ -384,7 +384,7 @@ def main():
                 rec = load_hist(code) or {"code": code, "slug": smap.get(str(code)),
                                           "name": n, "snapshots": {}}
                 pd = snap["portfolioDate"]
-                if pd in rec["snapshots"]:
+                if pd in rec["snapshots"] and rec["snapshots"][pd].get("exit_load") is not None:
                     skipped_same += 1
                 else:
                     rec["snapshots"][pd] = snap
