@@ -1,1 +1,99 @@
-{"code":140243,"slug":"edelweiss-greater-china-equity-offshore-fund-direct-growth","name":"Edelweiss Greater China Equity Off-shore Fund - Direct Plan - Growth Option","snapshots":{"2026-04-30":{"portfolioDate":"2026-04-30","capturedOn":"2026-05-30","coverage":"feeder_unresolved","aum":3143.4411,"holdings":[{"name":"JPMorgan Funds - Greater China Fund","pct":97.523,"sector":"Financial","instrument":"Foreign MF","key":"jpmorgan funds - greater china fund"}]},"2026-05-31":{"portfolioDate":"2026-05-31","capturedOn":"2026-07-01","coverage":"stock_level","aum":3250.5445,"expense_ratio":"0.74","exit_load":"Exit load of 1%, if redeemed within 90 days.","min_sip":100.0,"min_lumpsum":100.0,"stamp_duty":"0.005% (from July 1st, 2020)","sip_allowed":true,"lumpsum_allowed":false,"available_for_investment":true,"lock_in":{"years":null,"months":null,"days":null},"holdings":[{"name":"JPMorgan Funds - Greater China Fund","pct":98.18,"sector":"Unspecified","instrument":"Foreign Mutual Funds","key":"jpmorgan funds - greater china fund"}]}}}
+{
+  "code": 140243,
+  "slug": "edelweiss-greater-china-equity-offshore-fund-direct-growth",
+  "name": "Edelweiss Greater China Equity Off-shore Fund - Direct Plan - Growth Option",
+  "snapshots": {
+    "2026-04-30": {
+      "portfolioDate": "2026-04-30",
+      "capturedOn": "2026-05-30",
+      "coverage": "feeder_unresolved",
+      "aum": 3143.4411,
+      "holdings": [
+        {
+          "name": "JPMorgan Funds - Greater China Fund",
+          "pct": 97.523,
+          "sector": "Financial",
+          "instrument": "Foreign MF",
+          "key": "jpmorgan funds - greater china fund"
+        }
+      ]
+    },
+    "2026-05-31": {
+      "portfolioDate": "2026-05-31",
+      "capturedOn": "2026-07-01",
+      "coverage": "stock_level",
+      "aum": 3250.5445,
+      "expense_ratio": "0.74",
+      "exit_load": "Exit load of 1%, if redeemed within 90 days.",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "JPMorgan Funds - Greater China Fund",
+          "pct": 98.18,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "jpmorgan funds - greater china fund"
+        }
+      ]
+    },
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 3250.5445,
+      "expense_ratio": "0.74",
+      "exit_load": "Exit load of 1%, if redeemed within 90 days.",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": true,
+      "lumpsum_allowed": false,
+      "available_for_investment": true,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "JPMorgan Funds - Greater China Fund",
+          "pct": 98.18,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "jpmorgan-funds-greater-china-fund"
+        },
+        {
+          "name": "Others CBLO",
+          "pct": 2.44,
+          "sector": "Unspecified",
+          "instrument": "CBLO",
+          "key": "others-cblo"
+        },
+        {
+          "name": "Cash",
+          "pct": 0.001,
+          "sector": "Unspecified",
+          "instrument": "Cash",
+          "key": "cash"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.621,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}

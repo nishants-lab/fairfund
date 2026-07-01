@@ -9,6 +9,8 @@ function coverageLabel(cov?: string): { text: string; tone: string } {
     case 'lookthrough_domestic':
     case 'lookthrough_etf':
       return { text: 'Look-through via underlying fund', tone: 'text-emerald-600 dark:text-emerald-400' }
+    case 'fof_level':
+      return { text: 'Fund-of-fund (underlying funds disclosed)', tone: 'text-sky-600 dark:text-sky-400' }
     case 'feeder_domestic':
       return { text: 'Fund-of-fund (tracks an Indian ETF)', tone: 'text-amber-600 dark:text-amber-400' }
     case 'feeder_foreign':
