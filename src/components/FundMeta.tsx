@@ -34,16 +34,15 @@ export default function FundMeta({ fund }: { fund: Fund }) {
   const closed = inv?.available_for_investment === false
 
   return (
-    <div className="mt-3 space-y-2">
-      {/* Row 1: AUM + Expense ratio */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted">
+    <div className="mt-3">
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-xs">
         {aum && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-faint">AUM:</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">AUM</span>
             <span className="font-semibold text-fg">{fmtAum(aum.current)}</span>
             {aum.changePct != null && aum.prevDate && (
-              <span className={`text-xs font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% ({monthLabel(aum.prevDate)} → {monthLabel(aum.asOf)})
+              <span className={`font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% ({monthLabel(aum.prevDate)} \u2192 {monthLabel(aum.asOf)})
               </span>
             )}
             <InfoTip label="Assets Under Management" width={220}>
@@ -54,28 +53,39 @@ export default function FundMeta({ fund }: { fund: Fund }) {
           </div>
         )}
         {er != null && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-faint">Expense ratio:</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">Expense</span>
             <span className="font-semibold text-fg">{er.toFixed(2)}%</span>
           </div>
         )}
         {inv?.exit_load && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-faint">Exit load:</span>
-            <span className="font-medium text-fg text-xs">{inv.exit_load}</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">Exit load</span>
+            <span className="font-semibold text-fg">{inv.exit_load}</span>
           </div>
         )}
         {lockIn && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-faint">Lock-in:</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">Lock-in</span>
             <span className="font-semibold text-fg">{lockIn}</span>
+          </div>
+        )}
+        {inv?.min_sip != null && inv.sip_allowed !== false && !closed && (
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">Min SIP</span>
+            <span className="font-semibold text-fg">₹{inv.min_sip.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        {inv?.min_lumpsum != null && inv.lumpsum_allowed !== false && !closed && (
+          <div className="flex items-baseline gap-1">
+            <span className="text-faint">Min lumpsum</span>
+            <span className="font-semibold text-fg">₹{inv.min_lumpsum.toLocaleString('en-IN')}</span>
           </div>
         )}
       </div>
 
-      {/* Row 2: Investment availability (only if noteworthy) */}
       {(closed || inv?.sip_allowed === false || inv?.lumpsum_allowed === false) && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           {closed && (
             <span className="rounded bg-red-50 px-2 py-0.5 font-semibold text-red-600 dark:bg-red-900/20 dark:text-red-400">
               Closed for investment
@@ -90,18 +100,6 @@ export default function FundMeta({ fund }: { fund: Fund }) {
             <span className="rounded bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
               Lumpsum not available
             </span>
-          )}
-        </div>
-      )}
-
-      {/* Min investment (subtle, only if data available) */}
-      {inv && (inv.min_sip != null || inv.min_lumpsum != null) && !closed && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-faint">
-          {inv.min_sip != null && inv.sip_allowed !== false && (
-            <span>Min SIP: ₹{inv.min_sip.toLocaleString('en-IN')}</span>
-          )}
-          {inv.min_lumpsum != null && inv.lumpsum_allowed !== false && (
-            <span>Min lumpsum: ₹{inv.min_lumpsum.toLocaleString('en-IN')}</span>
           )}
         </div>
       )}
