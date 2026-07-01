@@ -1,0 +1,49 @@
+{
+  "code": 150751,
+  "slug": "axis-nasdaq-100-us-specific-equity-passive-fof-direct-growth",
+  "name": "Axis NASDAQ 100 US Specific Equity Passive FOF - Direct Plan - Growth",
+  "snapshots": {
+    "2026-05-30": {
+      "portfolioDate": "2026-05-30",
+      "capturedOn": "2026-07-02",
+      "coverage": "fof_level",
+      "aum": 231.4572,
+      "expense_ratio": "0.29",
+      "exit_load": "Exit load of 1%, if redeemed within 7 days",
+      "min_sip": 100.0,
+      "min_lumpsum": 100.0,
+      "stamp_duty": "0.005% (from July 1st, 2020)",
+      "sip_allowed": false,
+      "lumpsum_allowed": false,
+      "available_for_investment": false,
+      "lock_in": {
+        "years": null,
+        "months": null,
+        "days": null
+      },
+      "holdings": [
+        {
+          "name": "IShares NASDAQ 100 UCITS ETF",
+          "pct": 98.5811,
+          "sector": "Unspecified",
+          "instrument": "Foreign Mutual Funds",
+          "key": "ishares-nasdaq-100-ucits-etf"
+        },
+        {
+          "name": "Others CBLO",
+          "pct": 1.5615,
+          "sector": "Unspecified",
+          "instrument": "CBLO",
+          "key": "others-cblo"
+        },
+        {
+          "name": "Net Payables",
+          "pct": -0.1426,
+          "sector": "Unspecified",
+          "instrument": "Net Payables",
+          "key": "net-payables"
+        }
+      ]
+    }
+  }
+}
