@@ -20,24 +20,18 @@ from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
+sys.path.insert(0, HERE)
+
+from config import (
+    ELIGIBLE_AMFI_CATEGORIES as EQUITY_CATEGORIES,
+    MIN_NAV_POINTS,
+    AMFI_NAV_ALL_URL as AMFI_URL,
+    MFAPI_BASE_URL as MFAPI_URL,
+    map_amfi_category,
+)
+
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
-
-AMFI_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
-MFAPI_URL = "https://api.mfapi.in/mf/"
-
-# Only add funds from these AMFI categories (equity, excluding debt/hybrid/solution)
-EQUITY_CATEGORIES = {
-    "Large Cap Fund", "Mid Cap Fund", "Small Cap Fund",
-    "Large & Mid Cap Fund", "Multi Cap Fund", "Flexi Cap Fund",
-    "Dividend Yield Fund", "Value Fund", "Contra Fund", "Focused Fund",
-    "Sectoral/Thematic", "ELSS",
-    "Index Funds", "Index Fund",
-    "Fund of Funds (Overseas)", "Fund of Funds (Domestic)",
-}
-
-# Minimum NAV history (in data points) to be eligible
-MIN_NAV_POINTS = 750  # ~3 years of trading days
 
 H = {"User-Agent": "Mozilla/5.0"}
 
@@ -121,33 +115,7 @@ def fetch_nav_history(code):
         return None, None
 
 
-def map_amfi_category(amfi_cat):
-    """Map AMFI's category string to FairFund's internal category key."""
-    mapping = {
-        "Large Cap Fund": "Large Cap",
-        "Mid Cap Fund": "Mid Cap",
-        "Small Cap Fund": "Small Cap",
-        "Large & Mid Cap Fund": "Large & Mid Cap",
-        "Multi Cap Fund": "Multi Cap",
-        "Flexi Cap Fund": "Flexi Cap",
-        "Dividend Yield Fund": "Dividend Yield",
-        "Value Fund": "Value/Contra",
-        "Contra Fund": "Value/Contra",
-        "Focused Fund": "Focused",
-        "ELSS": "ELSS",
-    }
-    for key, val in mapping.items():
-        if key.lower() in amfi_cat.lower():
-            return val
-    if "sectoral" in amfi_cat.lower() or "thematic" in amfi_cat.lower():
-        return "Sectoral/Thematic"
-    if "index" in amfi_cat.lower():
-        return "Index-Other"
-    if "overseas" in amfi_cat.lower() or "international" in amfi_cat.lower():
-        return "International"
-    if "fund of funds" in amfi_cat.lower() and "domestic" in amfi_cat.lower():
-        return "FoF-Equity (Domestic)"
-    return None
+# map_amfi_category is imported from pipeline/config.py
 
 
 def main():
