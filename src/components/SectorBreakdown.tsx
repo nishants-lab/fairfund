@@ -36,9 +36,9 @@ interface SectorSlice {
 
 export default function SectorBreakdown({ fund }: { fund: Fund }) {
   const holdings = fund.holdings ?? []
-  if (holdings.length === 0) return null
 
   const sectors = useMemo(() => {
+    if (holdings.length === 0) return []
     const map: Record<string, { pct: number; count: number }> = {}
     for (const h of holdings) {
       const s = h.sector || 'Other'
@@ -50,6 +50,8 @@ export default function SectorBreakdown({ fund }: { fund: Fund }) {
       .map(([sector, v]) => ({ sector, pct: Math.round(v.pct * 10) / 10, count: v.count }))
       .sort((a, b) => b.pct - a.pct)
   }, [holdings])
+
+  if (sectors.length === 0) return null
 
   const topSectors = sectors.slice(0, 6)
   const otherPct = sectors.slice(6).reduce((s, x) => s + x.pct, 0)
