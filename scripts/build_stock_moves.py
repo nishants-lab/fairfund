@@ -254,16 +254,24 @@ def fetch_prices(tickers, start_date="2024-01-01"):
 
     if to_fetch:
         print(f"Fetching prices for {len(to_fetch)} tickers from Yahoo Finance...")
-        # Separate NSE vs foreign tickers
-        # Heuristic: if ticker is all-caps and <=5 chars with no digits, it's likely
-        # a foreign ticker (e.g. AAPL, MSFT, ABBV). Otherwise it's NSE.
-        # More reliable: NSE tickers tend to be longer (RELIANCE, APOLLOHOSP).
-        # We'll just try .NS first; if that gives empty data, try without.
-        nse_tickers = [f"{t}.NS" for t in to_fetch]
+        # Separate known-foreign tickers from NSE tickers upfront to avoid noisy
+        # 'possibly delisted' warnings from yfinance when appending .NS to US stocks.
+        # Foreign tickers: <=5 chars, all alpha, extracted from 'Forgn. Eq (TICKER)' pattern
+        # Also check the ticker cache: if marked as foreign during resolution, skip .NS
+        foreign_set = set()
+        for t in to_fetch:
+            # Short all-alpha tickers (AAPL, MSFT, NVDA) are likely US stocks
+            if len(t) <= 5 and t.isalpha() and t.isupper():
+                foreign_set.add(t)
+        nse_batch = [t for t in to_fetch if t not in foreign_set]
+        foreign_batch_direct = [t for t in to_fetch if t in foreign_set]
+        if foreign_set:
+            print(f"  {len(foreign_set)} tickers identified as foreign (skipping .NS)")
+        nse_tickers = [f"{t}.NS" for t in nse_batch]
         batch_size = 50
         for i in range(0, len(nse_tickers), batch_size):
             batch = nse_tickers[i:i+batch_size]
-            raw_batch = to_fetch[i:i+batch_size]
+            raw_batch = nse_batch[i:i+batch_size]
             try:
                 data = yf.download(batch, start=start_date, interval="1mo",
                                    progress=False, group_by="ticker", auto_adjust=True)
@@ -283,11 +291,11 @@ def fetch_prices(tickers, start_date="2024-01-01"):
                 print(f"  batch {i//batch_size} error: {e}")
             time.sleep(0.8)  # throttle between batches
 
-        # For any still-missing (might be foreign tickers), try without .NS
-        still_missing = [t for t in to_fetch if t not in cache or not cache[t].get("prices")]
-        if still_missing:
-            foreign_batch = still_missing[:100]  # cap foreign lookups
-            print(f"  Trying {len(foreign_batch)} as foreign tickers (no .NS)...")
+        # Fetch pre-identified foreign tickers (no .NS suffix) + any NSE misses
+        still_missing = [t for t in nse_batch if t not in cache or not cache[t].get("prices")]
+        foreign_batch = list(foreign_batch_direct) + still_missing[:50]
+        if foreign_batch:
+            print(f"  Fetching {len(foreign_batch)} as foreign/US tickers (no .NS suffix)...")
             try:
                 data = yf.download(foreign_batch, start=start_date, interval="1mo",
                                    progress=False, group_by="ticker", auto_adjust=True)
