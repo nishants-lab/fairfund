@@ -11,6 +11,11 @@ function fmtAum(cr: number): string {
   return `₹${cr.toFixed(0)} Cr`
 }
 
+function monthLabel(iso: string): string {
+  const m = parseInt(iso.slice(5, 7), 10)
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1] ?? ''
+}
+
 export default function FundMeta({ fund }: { fund: Fund }) {
   const aum = fund.aum
   const er = fund.expenseRatio
@@ -23,9 +28,9 @@ export default function FundMeta({ fund }: { fund: Fund }) {
         <div className="flex items-center gap-1.5">
           <span className="text-faint">AUM:</span>
           <span className="font-semibold text-fg">{fmtAum(aum.current)}</span>
-          {aum.changePct != null && (
+          {aum.changePct != null && aum.prevDate && (
             <span className={`text-xs font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-              {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% MoM
+              {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% ({monthLabel(aum.prevDate)} → {monthLabel(aum.asOf)})
             </span>
           )}
           <InfoTip label="Assets Under Management" width={220}>
