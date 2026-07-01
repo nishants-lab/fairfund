@@ -43,12 +43,23 @@ for hist_file in HISTORY_DIR.glob("*.json"):
             detail["aum"] = aum_data
             changed = True
 
-    # Expense ratio (if stored in snapshot - future pipeline addition)
+    # Expense ratio
     er = latest.get("expense_ratio")
     if er is not None:
         if detail.get("expenseRatio") != er:
             detail["expenseRatio"] = er
             changed = True
+
+    # Investment info (exit load, SIP/lumpsum, availability)
+    invest_info = {}
+    for key in ("exit_load", "min_sip", "min_lumpsum", "stamp_duty",
+                "sip_allowed", "lumpsum_allowed", "available_for_investment", "lock_in"):
+        val = latest.get(key)
+        if val is not None:
+            invest_info[key] = val
+    if invest_info and detail.get("investInfo") != invest_info:
+        detail["investInfo"] = invest_info
+        changed = True
 
     if changed:
         detail_path.write_text(json.dumps(detail, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
