@@ -300,6 +300,7 @@ def capture_one(code, name, smap, today):
         "capturedOn": today,
         "coverage": coverage,
         "aum": sc.get("aum"),
+        "expense_ratio": sc.get("expense_ratio"),
         "holdings": holds,
     }
     return code, snap, coverage
