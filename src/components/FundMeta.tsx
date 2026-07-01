@@ -30,7 +30,7 @@ function fmtExitLoad(raw: string): string {
 
 export default function FundMeta({ fund }: { fund: Fund }) {
   const aum = fund.aum
-  const er = fund.expenseRatio
+  const er = typeof fund.expenseRatio === "string" ? parseFloat(fund.expenseRatio) : fund.expenseRatio
   const inv = fund.investInfo
 
   if (!aum && er == null && !inv) return null
