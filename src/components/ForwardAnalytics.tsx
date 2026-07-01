@@ -170,7 +170,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               {formPeer && (
                 <span className="inline-flex items-center gap-1">
                   <span className="inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
-                  {formPeer.analytics?.rankTrajectory?.currentRank === 1 ? 'Category #1' : 'Top peer'}: {shortName(formPeer)}
+                  {formPeer.analytics?.rankTrajectory?.currentRank === 1 ? 'Return rank #1' : 'Top peer (returns)'}: {shortName(formPeer)}
                 </span>
               )}
             </div>

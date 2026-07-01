@@ -451,7 +451,7 @@ export default function FundDetail() {
             <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
               <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
               <span className="ml-1 inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
-              {benchmarkPeer.metrics['3Y']?.catRank === 1 ? 'Category #1' : 'Top peer'}
+              {benchmarkPeer.metrics['3Y']?.catRank === 1 ? 'Category leader' : 'Top peer (risk-adj)'}
             </span>
           )}
         </div>
