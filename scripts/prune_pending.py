@@ -21,6 +21,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 FUND_DATA_DIR = os.path.join(ROOT, "public", "fund-data")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
+HIST_DIR = os.path.join(ROOT, "public", "holdings-history")
+FUND_ANALYTICS = os.path.join(ROOT, "src", "data", "fund_analytics.json")
+
+# NAV-only benchmark series consumed by pipeline/detect_regimes.py. They are
+# not in the fund universe and must never be swept. Keep in sync with tests/smoke.py.
+BENCHMARK_CODES = {"120716", "118741", "147794", "118482"}
 
 
 def get_fund_data_coverage(code):
@@ -89,6 +95,54 @@ def main():
             for code in pruned_codes:
                 man.pop(str(code), None)
             json.dump(man, open(man_path, "w", encoding="utf-8"), separators=(",", ":"))
+
+    # --- Step 3b: Self-heal orphan per-fund artifacts against final universe ---
+    # These artifacts are keyed by fund code. Any key not in the final universe
+    # (e.g. debt/FoF/merged funds removed in this or a past run) is a dead orphan.
+    # The frontend serves everything by code-lookup, so orphans are never read;
+    # we drop them so the data set matches the universe exactly.
+    universe = {str(f["code"]) for f in keep}
+    keep_key = universe | BENCHMARK_CODES
+
+    # Orphan holdings-history files + manifest refresh
+    if os.path.isdir(HIST_DIR):
+        hist_files = 0
+        total_snaps = 0
+        removed_hist = 0
+        for fn in os.listdir(HIST_DIR):
+            if not fn.endswith(".json") or fn.startswith("_"):
+                continue
+            fp = os.path.join(HIST_DIR, fn)
+            if fn[:-5] not in keep_key:
+                os.remove(fp); removed_hist += 1; continue
+            hist_files += 1
+            try:
+                total_snaps += len(json.load(open(fp, encoding="utf-8")).get("snapshots", {}))
+            except Exception:
+                pass
+        json.dump({"funds": hist_files, "totalSnapshots": total_snaps},
+                  open(os.path.join(HIST_DIR, "_manifest.json"), "w", encoding="utf-8"),
+                  separators=(",", ":"))
+
+        # Orphan _slugs.json keys
+        slug_path = os.path.join(HIST_DIR, "_slugs.json")
+        removed_slugs = 0
+        if os.path.exists(slug_path):
+            slugs = json.load(open(slug_path, encoding="utf-8"))
+            kept = {k: v for k, v in slugs.items() if k in keep_key}
+            removed_slugs = len(slugs) - len(kept)
+            json.dump(kept, open(slug_path, "w", encoding="utf-8"), separators=(",", ":"))
+        print(f"  Holdings-history: -{removed_hist} orphan files, -{removed_slugs} orphan slugs "
+              f"({hist_files} files, {total_snaps} snapshots remain)")
+
+    # Orphan fund_analytics.json keys (build intermediate, keyed by code)
+    if os.path.exists(FUND_ANALYTICS):
+        fa = json.load(open(FUND_ANALYTICS, encoding="utf-8"))
+        if isinstance(fa, dict):
+            kept = {k: v for k, v in fa.items() if k in keep_key}
+            removed_fa = len(fa) - len(kept)
+            json.dump(kept, open(FUND_ANALYTICS, "w", encoding="utf-8"), separators=(",", ":"))
+            print(f"  fund_analytics.json: -{removed_fa} orphan entries ({len(kept)} remain)")
 
     # --- Step 4: Write final funds.json ---
     with open(FUNDS_JSON, "w", encoding="utf-8") as f:
