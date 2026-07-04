@@ -2,7 +2,7 @@
 
 Live site: [nishants-lab.github.io/fairfund](https://nishants-lab.github.io/fairfund/)
 
-A data-driven mutual fund research tool that compares **838 active Indian equity funds** across fixed time windows, within their own category, using metrics that actually matter. No ads, no affiliate links, no sponsored rankings.
+A data-driven mutual fund research tool that compares **756 active Indian equity funds** across fixed time windows, within their own category, using metrics that actually matter. No ads, no affiliate links, no sponsored rankings.
 
 ## What it does
 
@@ -89,7 +89,7 @@ src/
   lib/            # Data loading, metrics engine, formatting, verdict logic
   data/           # Static JSON datasets (funds.json, fund_analytics.json, regimes.json)
 public/
-  nav/            # Per-fund NAV history files (824 funds)
+  nav/            # Per-fund NAV history files (756 funds)
 scripts/          # Python pipeline scripts
 pipeline/         # Core pipeline modules
 ```
