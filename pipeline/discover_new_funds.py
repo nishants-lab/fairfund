@@ -25,6 +25,7 @@ sys.path.insert(0, HERE)
 from config import (
     ELIGIBLE_AMFI_CATEGORIES as EQUITY_CATEGORIES,
     MIN_NAV_POINTS,
+    STALE_NAV_DAYS,
     AMFI_NAV_ALL_URL as AMFI_URL,
     MFAPI_BASE_URL as MFAPI_URL,
     map_amfi_category,
@@ -85,6 +86,29 @@ def fetch_amfi_universe():
         }
 
     return schemes
+
+
+def fetch_amfi_raw_codes():
+    """Return the set of ALL scheme codes present in AMFI NAVAll.txt, across
+    every plan and category (no Direct/Growth or equity filtering).
+
+    This is the authoritative 'is this scheme still being priced by AMFI' signal.
+    A code missing here means AMFI has stopped publishing a NAV for it entirely,
+    which is the only reliable closure indicator. The filtered Direct-Growth set
+    from fetch_amfi_universe() must NOT be used for closure detection, because a
+    live fund can drop out of it purely on a name/parse mismatch."""
+    req = urllib.request.Request(AMFI_URL, headers=H)
+    with urllib.request.urlopen(req, timeout=120) as r:
+        raw = r.read().decode("utf-8", errors="replace")
+    codes = set()
+    for line in raw.splitlines():
+        parts = line.split(";")
+        if len(parts) < 6:
+            continue
+        code = parts[0].strip()
+        if code.isdigit():
+            codes.add(int(code))
+    return codes
 
 
 def fetch_nav_history(code):
@@ -245,42 +269,59 @@ def main():
         print("Run compute_metrics.py + compute_rankings.py next to rank the new funds.")
 
 
-def detect_stale_merged_closed(data, amfi_schemes):
+def detect_stale_merged_closed(data, amfi_schemes, raw_codes):
     """
-    Detect funds that may be closed, merged, or renamed.
-    Returns dict of {code: {"status": "closed"|"merged"|"renamed", "note": "..."}}
+    Detect funds that may be closed, or renamed.
+    Returns dict of {code: {"status": "closed"|"renamed", "note": "..."}}.
+
+    Closure is judged against two trustworthy signals only:
+      (a) the code is absent from the RAW AMFI NAVAll universe (raw_codes), i.e.
+          AMFI has stopped publishing any NAV for it, AND
+      (b) our latest stored NAV is older than STALE_NAV_DAYS.
+    A fund still present in raw_codes with fresh NAV is ALIVE, even if it fell out
+    of the filtered Direct-Growth set (amfi_schemes) on a name/parse mismatch.
     """
     from datetime import datetime, timedelta
     findings = {}
-    stale_cutoff = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+    stale_cutoff = (datetime.now() - timedelta(days=STALE_NAV_DAYS)).strftime("%Y-%m-%d")
 
     for fund in data["funds"]:
         code = fund["code"]
 
-        # 1. Check if fund's AMFI code no longer exists in current NAVAll.txt
-        if code not in amfi_schemes:
-            findings[code] = {
-                "status": "closed",
-                "note": f"Code {code} no longer in AMFI universe. Likely closed or merged.",
-                "name": fund["name"],
-            }
-            continue
-
-        # 2. Check if NAV is stale (no update in 60+ days)
+        # Latest NAV date we hold for this fund
+        last_date = ""
         nav_path = os.path.join(NAV_DIR, f"{code}.json")
         if os.path.exists(nav_path):
             try:
                 nav_data = json.load(open(nav_path))
-                last_date = nav_data.get("d", [""])[- 1] if nav_data.get("d") else ""
-                if last_date and last_date < stale_cutoff:
-                    findings[code] = {
-                        "status": "closed",
-                        "note": f"Last NAV date {last_date} is >60 days old. Likely closed/merged.",
-                        "name": fund["name"],
-                    }
-                    continue
+                if nav_data.get("d"):
+                    last_date = nav_data["d"][-1]
             except Exception:
                 pass
+
+        in_raw = code in raw_codes
+        nav_stale = bool(last_date) and last_date < stale_cutoff
+
+        # 1. Genuine closure: AMFI no longer prices the code AND our NAV has gone stale.
+        if not in_raw and nav_stale:
+            findings[code] = {
+                "status": "closed",
+                "note": f"Code {code} absent from AMFI NAVAll and last NAV {last_date} is >{STALE_NAV_DAYS}d old. Closed/merged.",
+                "name": fund["name"],
+            }
+            continue
+
+        # 2. Stale-but-still-listed OR delisted-but-recently-priced: not a confirmed
+        #    closure. Flag as a data-quality watch item so it is visible, but the
+        #    fund is retained (it still has NAV history for research).
+        if nav_stale or not in_raw:
+            reason = "not in AMFI NAVAll" if not in_raw else f"last NAV {last_date} > {STALE_NAV_DAYS}d old"
+            findings[code] = {
+                "status": "stale",
+                "note": f"Watch: {reason} (retained, has NAV). Verify slug/code or genuine closure.",
+                "name": fund["name"],
+            }
+            continue
 
         # 3. Check for name mismatch (renamed fund)
         if code in amfi_schemes:
@@ -322,53 +363,64 @@ def main_with_lifecycle():
     print("Fetching AMFI universe...")
     amfi_schemes = fetch_amfi_universe()
     print(f"AMFI Direct-Growth schemes: {len(amfi_schemes)}")
+    raw_codes = fetch_amfi_raw_codes()
+    print(f"AMFI raw NAVAll codes (all plans): {len(raw_codes)}")
 
-    # === Lifecycle detection (closed/merged/renamed) ===
+    # === Lifecycle detection (closed/renamed/stale) ===
     print("\n--- Lifecycle Detection ---")
-    findings = detect_stale_merged_closed(data, amfi_schemes)
+    findings = detect_stale_merged_closed(data, amfi_schemes, raw_codes)
+
+    closed = [f for f in findings.values() if f["status"] == "closed"]
+    renamed = [f for f in findings.values() if f["status"] == "renamed"]
+    stale = [f for f in findings.values() if f["status"] == "stale"]
 
     if findings:
-        closed = [f for f in findings.values() if f["status"] == "closed"]
-        renamed = [f for f in findings.values() if f["status"] == "renamed"]
-        merged = [f for f in findings.values() if f["status"] == "merged"]
-
         if closed:
-            print(f"\n  Likely CLOSED ({len(closed)}):")
+            print(f"\n  CLOSED - confirmed, absent from AMFI + NAV stale ({len(closed)}):")
             for f in closed[:10]:
                 print(f"    {f['name'][:45]} - {f['note']}")
             if len(closed) > 10:
                 print(f"    ... and {len(closed)-10} more")
 
         if renamed:
-            print(f"\n  Likely RENAMED ({len(renamed)}):")
+            print(f"\n  RENAMED ({len(renamed)}):")
             for f in renamed[:10]:
                 print(f"    {f['note']}")
 
-        if merged:
-            print(f"\n  Likely MERGED ({len(merged)}):")
-            for f in merged[:10]:
+        if stale:
+            print(f"\n  STALE / WATCH - retained, has NAV ({len(stale)}):")
+            for f in stale[:10]:
                 print(f"    {f['name'][:45]} - {f['note']}")
+            if len(stale) > 10:
+                print(f"    ... and {len(stale)-10} more")
 
-        # Write lifecycle report
-        report_path = os.path.join(ROOT, "src", "data", "lifecycle_report.json")
-        if not dry_run:
-            with open(report_path, "w", encoding="utf-8") as f:
-                json.dump(findings, f, indent=2, ensure_ascii=False)
-            print(f"\n  Wrote lifecycle report: {report_path}")
-
-        # Mark closed funds in data (add status field)
-        if not dry_run:
-            for fund in data["funds"]:
-                code = fund["code"]
-                if code in findings:
-                    fund["status"] = findings[code]["status"]
-                    if findings[code]["status"] == "renamed" and "new_name" in findings[code]:
-                        fund["name"] = findings[code]["new_name"].replace(" - Direct Plan - Growth", "").replace(" - Direct Plan-Growth", "").strip()
     else:
         print("  No lifecycle changes detected.")
 
+    # Always (re)write the lifecycle report so a month with nothing to flag resets
+    # it to {} rather than leaving a stale report from a previous run.
+    report_path = os.path.join(ROOT, "src", "data", "lifecycle_report.json")
+    if not dry_run:
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(findings, f, indent=2, ensure_ascii=False)
+        print(f"\n  Wrote lifecycle report ({len(findings)} findings): {report_path}")
+
+    # Normalize the status field on every fund. Findings drive closed/renamed/stale;
+    # every other fund is (re)set to "active" so a previously mis-flagged fund that
+    # is now clearly alive has its stale tag cleared automatically.
+    status_changed = False
+    if not dry_run:
+        for fund in data["funds"]:
+            code = fund["code"]
+            new_status = findings[code]["status"] if code in findings else "active"
+            if fund.get("status") != new_status:
+                status_changed = True
+            fund["status"] = new_status
+            if code in findings and findings[code]["status"] == "renamed" and "new_name" in findings[code]:
+                fund["name"] = findings[code]["new_name"].replace(" - Direct Plan - Growth", "").replace(" - Direct Plan-Growth", "").strip()
+
     if lifecycle_only:
-        if not dry_run and findings:
+        if not dry_run and (findings or status_changed):
             with open(FUNDS_JSON, "w", encoding="utf-8") as f:
                 json.dump(data, f, separators=(",", ":"))
             print(f"Updated {FUNDS_JSON}")
@@ -465,7 +517,10 @@ def main_with_lifecycle():
             print(f"  Progress: {i+1}/{len(equity_new)} | added={added}")
         time.sleep(0.3)
 
-    data["totalFunds"] = len([f for f in data["funds"] if f.get("status", "active") == "active"])
+    # totalFunds = the served universe (all funds present, including closed-but-retained
+    # ones that still carry NAV history). prune_pending later recomputes this over the
+    # post-prune keep set, so keep the same "all present funds" semantics here.
+    data["totalFunds"] = len(data["funds"])
 
     print(f"\nResults:")
     print(f"  Added: {added}")
@@ -478,10 +533,10 @@ def main_with_lifecycle():
         print("\n--dry-run: no files written.")
         return
 
-    if added > 0 or findings:
+    if added > 0 or findings or status_changed:
         with open(FUNDS_JSON, "w", encoding="utf-8") as f:
             json.dump(data, f, separators=(",", ":"))
-        print(f"\nWrote {FUNDS_JSON} ({data['totalFunds']} active funds)")
+        print(f"\nWrote {FUNDS_JSON} ({data['totalFunds']} funds)")
         if added > 0:
             print("Run compute_metrics.py + compute_rankings.py next to rank the new funds.")
 
