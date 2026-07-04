@@ -268,6 +268,27 @@ def write_fund_data(code, snap, coverage):
         json.dump(detail, f, separators=(",", ":"), ensure_ascii=False)
 
 
+def refresh_history_manifest():
+    """Regenerate holdings-history/_manifest.json to match files on disk.
+    Onboarding adds new history files, so the manifest must be rebuilt or it drifts."""
+    from datetime import date
+    files = [f for f in os.listdir(HIST_DIR)
+             if f.endswith(".json") and not f.startswith("_")]
+    man = {"updatedAt": date.today().isoformat(), "funds": 0, "totalSnapshots": 0, "multiSnapshot": 0}
+    for fn in files:
+        try:
+            rec = json.load(open(os.path.join(HIST_DIR, fn), encoding="utf-8"))
+        except Exception:
+            continue
+        ns = len(rec.get("snapshots", {}))
+        man["funds"] += 1
+        man["totalSnapshots"] += ns
+        if ns >= 2:
+            man["multiSnapshot"] += 1
+    json.dump(man, open(os.path.join(HIST_DIR, "_manifest.json"), "w", encoding="utf-8"), indent=2)
+    print(f"Refreshed history manifest: {man['funds']} funds, {man['totalSnapshots']} snapshots")
+
+
 def main():
     dry_run = "--dry-run" in sys.argv
 
@@ -369,6 +390,7 @@ def main():
     if not dry_run:
         json.dump(smap, open(SLUG_MAP_PATH, "w", encoding="utf-8"),
                   indent=None, separators=(",", ":"))
+        refresh_history_manifest()
 
     # Summary
     print(f"")

@@ -215,7 +215,6 @@ def main():
             "riskLevel": "High",
             "categorySize": 0,  # will be updated by compute_rankings
             "metrics": {},
-            "verdict": None,
             "holdings": [],
             "holdingsMeta": {"coverage": "pending"},
             "management": None,
@@ -452,7 +451,6 @@ def main_with_lifecycle():
             "riskLevel": "High",
             "categorySize": 0,
             "metrics": {},
-            "verdict": None,
             "holdings": [],
             "holdingsMeta": {"coverage": "pending"},
             "management": None,
