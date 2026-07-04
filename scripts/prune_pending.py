@@ -15,6 +15,7 @@ Runs before: smoke tests.
 """
 import json
 import os
+import sys
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +24,11 @@ FUND_DATA_DIR = os.path.join(ROOT, "public", "fund-data")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
 HIST_DIR = os.path.join(ROOT, "public", "holdings-history")
 FUND_ANALYTICS = os.path.join(ROOT, "src", "data", "fund_analytics.json")
+
+# Re-rank on the final universe after pruning (compute_rankings ran earlier over
+# the pre-prune set, so survivors would otherwise keep stale catRank/catSize).
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
+from compute_rankings import recompute_rankings, update_category_metadata
 
 # NAV-only benchmark series consumed by pipeline/detect_regimes.py. They are
 # not in the fund universe and must never be swept. Keep in sync with tests/smoke.py.
@@ -59,6 +65,12 @@ def main():
             keep.append(f)
 
     data["funds"] = keep
+
+    # --- Step 1b: Re-rank on the final universe ---
+    # Pruning changed category membership; recompute per-horizon catRank/catSize
+    # and category metadata so ranks are never stale relative to the final set.
+    recompute_rankings(data)
+    update_category_metadata(data)
 
     # --- Step 2: Recompute all derived aggregates ---
     data["totalFunds"] = len(keep)
