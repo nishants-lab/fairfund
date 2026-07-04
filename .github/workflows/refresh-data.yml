@@ -112,6 +112,9 @@ jobs:
       - name: Enrich fund-data with AUM and expense ratio
         run: python scripts/enrich_fund_data.py
 
+      - name: Smoke test (validate data integrity)
+        run: python tests/smoke.py
+
       - name: Commit holdings data
         run: |
           git config user.name fairfund-bot

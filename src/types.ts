@@ -26,7 +26,7 @@ export interface Fund {
     '3Y'?: WindowMetrics
     '5Y'?: WindowMetrics
   }
-  verdict: string
+  verdict?: string
   holdings?: Holding[]
   holdingsMeta?: HoldingsMeta
   management?: Management

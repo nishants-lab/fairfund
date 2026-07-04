@@ -55,6 +55,11 @@ jobs:
           python scripts/build_analytics.py
           python migrations/split-analytics/split_funds.py
 
+      # Step 3.5: QA gate - block the PR if data is bad (debt funds, broken ranks, orphans, etc.)
+      - name: QA gate (smoke tests)
+        if: steps.discover.outputs.new_funds == 'true'
+        run: python tests/smoke.py
+
       # Step 4: Check for changes and open PR
       - name: Check for changes
         id: check
