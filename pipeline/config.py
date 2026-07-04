@@ -29,7 +29,6 @@ ELIGIBLE_AMFI_CATEGORIES = {
     "Index Fund",
     # FoF
     "Fund of Funds (Overseas)",
-    "Fund of Funds (Domestic)",
 }
 
 # Map AMFI's category string to FairFund's internal display category.
@@ -55,7 +54,6 @@ AMFI_CATEGORY_FALLBACKS = [
     (["sectoral", "thematic"], "Sectoral/Thematic"),
     (["index"], "Index-Other"),
     (["overseas", "international"], "International"),
-    (["fof domestic", "fund of funds (domestic)"], "FoF-Equity (Domestic)"),
 ]
 
 # FairFund is an equity-only universe. AMFI's "Index Funds" and
@@ -63,7 +61,7 @@ AMFI_CATEGORY_FALLBACKS = [
 # vehicles (US Treasury bond FoFs, target-maturity Gilt / PSU-Bond / SDL index
 # funds) whose AMFI category string is indistinguishable from equity ones.
 # We filter those out by name so they never enter the universe.
-EXCLUDE_NAME_KEYWORDS = ["treasury", "debt", "gilt", "overnight", "bond", " sdl"]
+EXCLUDE_NAME_KEYWORDS = ["treasury", "debt", "gilt", "overnight", "bond", " sdl", "g-sec", "gsec"]
 
 
 def is_excluded_by_name(fund_name):
