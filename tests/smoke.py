@@ -164,7 +164,10 @@ def test_slugs_json():
     check(len(slugs) > 700, f"_slugs.json has only {len(slugs)} entries (expected >700)")
     empty = [k for k, v in slugs.items() if not v or not isinstance(v, str)]
     check(not empty, f"_slugs.json has {len(empty)} empty/invalid values: {empty[:5]}")
-    print(f"  {len(slugs)} slugs validated")
+    universe = {str(f["code"]) for f in load_funds()["funds"]} | BENCHMARK_CODES
+    orphans = [k for k in slugs if k not in universe]
+    check(not orphans, f"{len(orphans)} orphan slug entries (code not in universe): {orphans[:5]}")
+    print(f"  {len(slugs)} slugs validated ({len(orphans)} orphans)")
 
 
 def test_fund_data_coverage():
@@ -217,6 +220,9 @@ def test_holdings_history():
         print("  (no holdings-history dir; skipped)"); return
     known_cov = {"stock_level", "feeder_unresolved", "fof_level", "no_disclosure"}
     files = [f for f in os.listdir(hist_dir) if f.endswith(".json") and not f.startswith("_")]
+    universe = {str(f["code"]) for f in load_funds()["funds"]} | BENCHMARK_CODES
+    orphan_hist = [f[:-5] for f in files if f[:-5] not in universe]
+    check(not orphan_hist, f"{len(orphan_hist)} orphan holdings-history files (code not in universe): {orphan_hist[:5]}")
     bad = []
     total_snaps = 0
     for fn in files:
@@ -254,6 +260,20 @@ def test_holdings_history():
     print(f"  {len(files)} history files, {total_snaps} snapshots validated")
 
 
+def test_fund_analytics():
+    print("9b. Testing fund_analytics.json...")
+    path = os.path.join(ROOT, "src", "data", "fund_analytics.json")
+    if not os.path.exists(path):
+        print("  (no fund_analytics.json; skipped)"); return
+    fa = json.load(open(path, encoding="utf-8"))
+    if not check(isinstance(fa, dict), "fund_analytics.json is not a dict"):
+        return
+    universe = {str(f["code"]) for f in load_funds()["funds"]} | BENCHMARK_CODES
+    orphans = [k for k in fa if k not in universe]
+    check(not orphans, f"{len(orphans)} orphan fund_analytics entries (code not in universe): {orphans[:5]}")
+    print(f"  {len(fa)} analytics entries validated ({len(orphans)} orphans)")
+
+
 def test_config():
     print("10. Testing pipeline/config.py...")
     try:
@@ -283,6 +303,7 @@ if __name__ == "__main__":
     test_fund_data_coverage()
     test_file_bijection()
     test_holdings_history()
+    test_fund_analytics()
     test_config()
     print()
     print("=" * 52)
