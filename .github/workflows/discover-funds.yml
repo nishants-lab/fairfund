@@ -29,6 +29,10 @@ jobs:
       - name: Install deps
         run: pip install -r pipeline/requirements.txt
 
+      # Step 0: Snapshot the pre-run universe so the PR summary can diff it.
+      - name: Snapshot pre-run funds.json
+        run: cp src/data/funds.json "$RUNNER_TEMP/funds_before.json"
+
       # Step 1: Discover new funds (adds to funds.json with coverage: pending)
       - name: Discover new funds
         id: discover
@@ -93,16 +97,17 @@ jobs:
           gh pr list --head "$BRANCH" --state open --json number -q '.[].number' | \
             xargs -I{} gh pr close {} --comment "Superseded by new run" 2>/dev/null || true
 
-          # Build PR body from onboard report
+          # Build PR body: concise summary first, raw logs collapsed below.
           REPORT=""
           if [ -f onboard_report.md ]; then
             REPORT=$(cat onboard_report.md)
           fi
 
-          BODY="## Monthly Fund Discovery - $(date +%Y-%m-%d)
+          SUMMARY=$(python scripts/discovery_summary.py --before "$RUNNER_TEMP/funds_before.json" 2>&1 || echo "Summary generation failed; see raw log.")
 
-          ### Discovery Output
-          <details><summary>Click to expand</summary>
+          BODY="$SUMMARY
+
+          <details><summary>Raw discovery log</summary>
 
           \`\`\`
           $(cat discovery_output.txt)
@@ -112,9 +117,7 @@ jobs:
           ### Onboarding Report
           ${REPORT:-No onboarding output.}
 
-          ---
-          **Review the diff**, then merge to add these funds to the live site.
-          Funds with slug mismatches are skipped and logged above for manual resolution."
+          **Review the diff**, then merge. Funds with slug mismatches are skipped and logged above for manual resolution."
 
           gh pr create \
             --base main \

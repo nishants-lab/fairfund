@@ -89,6 +89,17 @@ GROWW_HEADERS = {
 AMFI_NAV_ALL_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
 MFAPI_BASE_URL = "https://api.mfapi.in/mf/"
 
+# A fund is treated as genuinely closed only if its code is absent from the RAW
+# AMFI NAVAll universe (all plans, not just Direct-Growth) OR its latest NAV is
+# older than this many days. Absence from the filtered Direct-Growth set alone is
+# NOT a closure signal (parsing/name mismatches would otherwise flag live funds).
+STALE_NAV_DAYS = 60
+
+# Daily NAV staleness ledger: a fund is recorded once its code has been missing
+# from AMFI (or AMFI has not repriced it) for more than this many consecutive
+# calendar days, which filters out normal weekend/holiday gaps.
+DAILY_STALE_GAP_DAYS = 7
+
 
 def map_amfi_category(amfi_cat):
     """Map AMFI's category string to FairFund's internal category key.
