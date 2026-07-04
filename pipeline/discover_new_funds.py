@@ -28,6 +28,7 @@ from config import (
     AMFI_NAV_ALL_URL as AMFI_URL,
     MFAPI_BASE_URL as MFAPI_URL,
     map_amfi_category,
+    is_excluded_by_name,
 )
 
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
@@ -141,14 +142,23 @@ def main():
 
     # Filter to equity categories only
     equity_new = []
+    excluded_debt = 0
     for code in new_codes:
         scheme = amfi_schemes[code]
         cat = map_amfi_category(scheme["amfi_category"])
-        if cat:
-            scheme["_mapped_category"] = cat
-            equity_new.append(scheme)
+        if not cat:
+            continue
+        # Skip debt/fixed-income vehicles that share an equity AMFI bucket
+        # (US Treasury bond FoFs, target-maturity Gilt/PSU-Bond/SDL index funds).
+        if is_excluded_by_name(scheme["name"]):
+            excluded_debt += 1
+            continue
+        scheme["_mapped_category"] = cat
+        equity_new.append(scheme)
 
     print(f"New equity schemes (mappable category): {len(equity_new)}")
+    if excluded_debt:
+        print(f"Excluded {excluded_debt} debt/fixed-income scheme(s) by name filter")
 
     if not equity_new:
         print("No new funds to add.")
@@ -372,14 +382,23 @@ def main_with_lifecycle():
     print(f"New schemes not in dataset: {len(new_codes)}")
 
     equity_new = []
+    excluded_debt = 0
     for code in new_codes:
         scheme = amfi_schemes[code]
         cat = map_amfi_category(scheme["amfi_category"])
-        if cat:
-            scheme["_mapped_category"] = cat
-            equity_new.append(scheme)
+        if not cat:
+            continue
+        # Skip debt/fixed-income vehicles that share an equity AMFI bucket
+        # (US Treasury bond FoFs, target-maturity Gilt/PSU-Bond/SDL index funds).
+        if is_excluded_by_name(scheme["name"]):
+            excluded_debt += 1
+            continue
+        scheme["_mapped_category"] = cat
+        equity_new.append(scheme)
 
     print(f"New equity schemes (mappable category): {len(equity_new)}")
+    if excluded_debt:
+        print(f"Excluded {excluded_debt} debt/fixed-income scheme(s) by name filter")
 
     if not equity_new and not findings:
         print("No changes needed.")
