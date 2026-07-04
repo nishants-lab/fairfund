@@ -70,11 +70,11 @@ def fetch_amfi_universe():
 
         name = parts[3].strip() if len(parts) > 3 else ""
         
-        # Only Direct + Growth schemes
+        # Only Direct + Growth schemes (strict: must have both)
         name_lower = name.lower()
         if "direct" not in name_lower:
             continue
-        if "growth" not in name_lower and "idcw" in name_lower:
+        if "growth" not in name_lower:
             continue
 
         schemes[int(code)] = {

@@ -87,6 +87,15 @@ def test_no_debt_funds():
     print(f"  0 debt funds (scanned {len(funds)})")
 
 
+def test_no_pending_funds():
+    print("3b. Testing no pending-coverage funds remain...")
+    funds = load_funds()["funds"]
+    pending = [f["code"] for f in funds
+               if (f.get("holdingsMeta") or {}).get("coverage") == "pending"]
+    check(not pending, f"{len(pending)} funds still coverage:pending (failed onboarding): {pending[:5]}")
+    print(f"  0 pending funds (all onboarded or pruned)")
+
+
 def test_count_consistency():
     print("4. Testing count consistency...")
     from collections import Counter
@@ -255,6 +264,7 @@ if __name__ == "__main__":
     test_imports()
     test_funds_json()
     test_no_debt_funds()
+    test_no_pending_funds()
     test_count_consistency()
     test_rank_sanity()
     test_slugs_json()
