@@ -88,12 +88,24 @@ def test_no_debt_funds():
 
 
 def test_no_pending_funds():
-    print("3b. Testing no pending-coverage funds remain...")
+    print("3b. Testing no placeholder/pending funds remain...")
     funds = load_funds()["funds"]
-    pending = [f["code"] for f in funds
-               if (f.get("holdingsMeta") or {}).get("coverage") == "pending"]
-    check(not pending, f"{len(pending)} funds still coverage:pending (failed onboarding): {pending[:5]}")
-    print(f"  0 pending funds (all onboarded or pruned)")
+    # Check funds.json holdingsMeta (transient field from discover; should be stripped)
+    pending_idx = [f["code"] for f in funds
+                   if (f.get("holdingsMeta") or {}).get("coverage") == "pending"]
+    check(not pending_idx, f"{len(pending_idx)} funds still coverage:pending in index: {pending_idx[:5]}")
+    # Check authoritative fund-data coverage (must not be placeholder "none")
+    fd_dir = os.path.join(ROOT, "public", "fund-data")
+    bad_fd = []
+    for f in funds:
+        fp = os.path.join(fd_dir, f"{f['code']}.json")
+        if os.path.exists(fp):
+            detail = json.load(open(fp, encoding="utf-8"))
+            cov = (detail.get("holdingsMeta") or {}).get("coverage")
+            if cov in ("none", None):
+                bad_fd.append(f["code"])
+    check(not bad_fd, f"{len(bad_fd)} funds with placeholder fund-data (failed onboarding): {bad_fd[:5]}")
+    print(f"  0 pending/placeholder funds")
 
 
 def test_count_consistency():
