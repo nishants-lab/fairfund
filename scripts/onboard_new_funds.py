@@ -392,27 +392,6 @@ def main():
                   indent=None, separators=(",", ":"))
         refresh_history_manifest()
 
-        # Prune funds that failed onboarding (still coverage:pending = no holdings data).
-        # These would show as empty entries on the live site.
-        import sys; sys.path.insert(0, os.path.join(ROOT, "pipeline"))
-        funds_json_path = os.path.join(ROOT, "src", "data", "funds.json")
-        fdata = json.load(open(funds_json_path, encoding="utf-8"))
-        before = len(fdata["funds"])
-        fdata["funds"] = [f for f in fdata["funds"]
-                          if not (f.get("holdingsMeta", {}).get("coverage") == "pending")]
-        pruned = before - len(fdata["funds"])
-        if pruned:
-            fdata["totalFunds"] = len(fdata["funds"])
-            json.dump(fdata, open(funds_json_path, "w", encoding="utf-8"), separators=(",", ":"))
-            # Also remove their NAV + fund-data files
-            nav_dir = os.path.join(ROOT, "public", "nav")
-            fd_dir = os.path.join(ROOT, "public", "fund-data")
-            index_codes = {str(f["code"]) for f in fdata["funds"]}
-            for d in (nav_dir, fd_dir):
-                for fn in os.listdir(d):
-                    if fn.endswith(".json") and fn[:-5].isdigit() and fn[:-5] not in index_codes:
-                        os.remove(os.path.join(d, fn))
-            print(f"Pruned {pruned} funds that failed onboarding (still pending)")
 
     # Summary
     print(f"")
