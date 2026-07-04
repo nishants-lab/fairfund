@@ -58,6 +58,24 @@ AMFI_CATEGORY_FALLBACKS = [
     (["fof domestic", "fund of funds (domestic)"], "FoF-Equity (Domestic)"),
 ]
 
+# FairFund is an equity-only universe. AMFI's "Index Funds" and
+# "Fund of Funds (Overseas)" buckets are mixed: they also carry debt/fixed-income
+# vehicles (US Treasury bond FoFs, target-maturity Gilt / PSU-Bond / SDL index
+# funds) whose AMFI category string is indistinguishable from equity ones.
+# We filter those out by name so they never enter the universe.
+EXCLUDE_NAME_KEYWORDS = ["treasury", "debt", "gilt", "overnight", "bond", " sdl"]
+
+
+def is_excluded_by_name(fund_name):
+    """True if a fund's name marks it as a debt/fixed-income vehicle that must
+    not enter FairFund's equity universe (e.g. US Treasury bond FoFs or
+    target-maturity Gilt/PSU-Bond/SDL index funds arriving under AMFI's mixed
+    'Index Funds' / 'Fund of Funds (Overseas)' categories)."""
+    if not fund_name:
+        return False
+    low = fund_name.lower()
+    return any(kw in low for kw in EXCLUDE_NAME_KEYWORDS)
+
 # Minimum NAV data points (~3 years of trading days) for a fund to be eligible
 MIN_NAV_POINTS = 750
 
