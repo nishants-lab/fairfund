@@ -137,6 +137,12 @@ def update_category_metadata(data):
     funds = data["funds"]
     cats = data.get("categories", {})
 
+    # Keep every fund's top-level categorySize in sync with actual membership.
+    from collections import Counter
+    cat_counts = Counter(f["category"] for f in funds)
+    for f in funds:
+        f["categorySize"] = cat_counts[f["category"]]
+
     for cat_key, cat_info in cats.items():
         cat_funds = [f for f in funds if f["category"] == cat_key]
         cat_info["fundCount"] = len(cat_funds)

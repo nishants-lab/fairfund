@@ -28,6 +28,8 @@ def main():
         cat = fund["category"]
         cat_counts[cat] = cat_counts.get(cat, 0) + 1
 
+    coverage_counts = {}
+
     updated = 0
     created = 0
 
@@ -39,6 +41,8 @@ def main():
             # Update category/size fields in existing file (preserve all other data)
             with open(out_path, "r", encoding="utf-8") as f:
                 detail = json.load(f)
+            cov = (detail.get("holdingsMeta") or {}).get("coverage", "none")
+            coverage_counts[cov] = coverage_counts.get(cov, 0) + 1
             changed = False
             if detail.get("category") != fund["category"]:
                 detail["category"] = fund["category"]
@@ -75,6 +79,7 @@ def main():
             }
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(detail, f, separators=(",", ":"), ensure_ascii=False)
+            coverage_counts["none"] = coverage_counts.get("none", 0) + 1
             created += 1
 
     # Clean up fund-data files for funds no longer in index
@@ -84,6 +89,14 @@ def main():
         if fpath.stem not in index_codes:
             fpath.unlink()
             removed += 1
+
+    # Keep funds.json's holdingsCoverage aggregate accurate (used by the QA gate;
+    # every fund maps to exactly one coverage bucket, so the sum == totalFunds).
+    if data.get("holdingsCoverage") != coverage_counts:
+        data["holdingsCoverage"] = coverage_counts
+        with open(FUNDS_SRC, "w", encoding="utf-8") as f:
+            json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
+        print(f"Updated holdingsCoverage aggregate: {coverage_counts}")
 
     print(f"Fund-data sync: {updated} updated, {created} created, {removed} removed")
     print(f"Total: {len(list(DETAIL_DIR.glob('*.json')))} files")
