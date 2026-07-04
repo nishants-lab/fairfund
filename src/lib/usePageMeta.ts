@@ -5,10 +5,11 @@
  * to get per-page titles in browser tabs and bookmarks.
  */
 import { useEffect } from 'react'
+import fundsData from '../data/funds.json'
 
 const BASE_TITLE = 'FairFund'
-const DEFAULT_DESC =
-  'Independent mutual fund research for India. Backward-tested analysis across 838 equity funds.'
+const FUND_COUNT = (fundsData as { totalFunds: number }).totalFunds
+const DEFAULT_DESC = `Independent mutual fund research for India. Backward-tested analysis across ${FUND_COUNT} equity funds.`
 
 export function usePageMeta(title?: string, description?: string) {
   useEffect(() => {
