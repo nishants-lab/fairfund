@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
-import { useSearchParams, Link } from 'react-router-dom'
-import { getFund } from '../lib/data'
+import { useSearchParams, Link, useLocation } from 'react-router-dom'
+import { getFund, fetchFundDetail, mergeFundDetail } from '../lib/data'
 import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
@@ -21,6 +21,9 @@ export default function Compare() {
   const [funds, setFunds] = useState<Fund[]>([])
   const [navData, setNavData] = useState<Record<number, NavPoint[]>>({})
   const [loadingCodes, setLoadingCodes] = useState<Set<number>>(new Set())
+  // Overlap holdings load (Compare owns this; no dependency on visiting detail pages).
+  const [holdingsTick, setHoldingsTick] = useState(0)
+  const [holdingsLoading, setHoldingsLoading] = useState(false)
 
   usePageMeta(
     funds.length ? `Compare: ${funds.map(f => f.name.split(" ")[0]).join(" vs ")}` : 'Compare Funds',
@@ -66,6 +69,38 @@ export default function Compare() {
       }
     })
   }, [funds])
+
+  // Fetch per-fund holdings/detail so the overlap always renders, regardless of
+  // whether the fund's detail page was ever opened this session. Guards on
+  // holdingsMeta (same signal FundDetail uses); fetchFundDetail is cached.
+  useEffect(() => {
+    const missing = funds.filter((f) => !f.holdingsMeta)
+    if (missing.length === 0) {
+      setHoldingsLoading(false)
+      return
+    }
+    let cancelled = false
+    setHoldingsLoading(true)
+    Promise.all(
+      missing.map((f) => fetchFundDetail(f.code).then((detail) => mergeFundDetail(f, detail))),
+    ).finally(() => {
+      if (cancelled) return
+      setHoldingsTick((t) => t + 1) // force the overlap memo to recompute after in-place merge
+      setHoldingsLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [funds])
+
+  // Deep-link: /compare?codes=...#overlap scrolls to the overlap section once
+  // holdings have loaded (used by the fund page's "Compare holdings" button).
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash === '#overlap' && !holdingsLoading && funds.length >= 2) {
+      document.getElementById('overlap')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [hash, holdingsLoading, funds.length])
 
   // True while any compared fund's live NAV is still being fetched.
   const navLoading = funds.some((f) => loadingCodes.has(f.code))
@@ -525,7 +560,9 @@ export default function Compare() {
           </div>
 
           {/* Holdings overlap */}
-          <HoldingsOverlap funds={funds} />
+          <div id="overlap">
+            <HoldingsOverlap funds={funds} loading={holdingsLoading} loadTick={holdingsTick} />
+          </div>
         </>
       )}
     </div>

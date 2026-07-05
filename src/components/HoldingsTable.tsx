@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Fund } from '../types'
 import { fmtDate } from '../lib/metrics'
 
@@ -39,7 +40,7 @@ function ChangeCell({ change }: { change?: number | null }) {
   )
 }
 
-export default function HoldingsTable({ fund }: { fund: Fund }) {
+export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode?: number }) {
   const [expanded, setExpanded] = useState(false)
   const meta = fund.holdingsMeta
   const holdings = fund.holdings ?? []
@@ -75,7 +76,17 @@ export default function HoldingsTable({ fund }: { fund: Fund }) {
   return (
     <div className="mt-6 card p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-bold text-fg">Portfolio holdings</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="font-bold text-fg">Portfolio holdings</h3>
+          {peerCode && (
+            <Link
+              to={`/compare?codes=${fund.code},${peerCode}#overlap`}
+              className="text-sm font-semibold text-brand-600 hover:underline"
+            >
+              Compare with top peer →
+            </Link>
+          )}
+        </div>
         <div className="flex items-center gap-3 text-xs">
           <span className={`font-semibold ${cov.tone}`}>{cov.text}</span>
           {meta?.portfolioDate && (
