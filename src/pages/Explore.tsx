@@ -5,6 +5,7 @@ import { data, fundsByCategory, categoryOrder } from '../lib/data'
 import { pct, signedPct, num, riskColor, alphaColor, fundSlug } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
+import FundLandscape from '../components/FundLandscape'
 import type { Horizon, Fund } from '../types'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting'
@@ -181,6 +182,9 @@ export default function Explore() {
           </div>
         </div>
       )}
+
+      {/* Category risk-vs-return map */}
+      <FundLandscape category={cat} />
 
       {/* Fund table */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
