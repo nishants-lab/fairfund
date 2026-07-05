@@ -9,12 +9,14 @@ import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth } from '..
 import { ratioSpectrum, lowerBetterSpectrum } from '../lib/spectrum'
 import MetricCard from '../components/MetricCard'
 import RangeChart from '../components/RangeChart'
+import RollingAlpha from '../components/RollingAlpha'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import RiskBadge from '../components/RiskBadge'
 import HoldingsTable from '../components/HoldingsTable'
 import ManagementCard from '../components/ManagementCard'
 import PortfolioMoves from '../components/PortfolioMoves'
 import ForwardAnalytics from '../components/ForwardAnalytics'
+import FundLandscape from '../components/FundLandscape'
 import VerdictCard from '../components/VerdictCard'
 import FundMeta from '../components/FundMeta'
 import SectorBreakdown from '../components/SectorBreakdown' 
@@ -39,7 +41,7 @@ export default function FundDetail() {
   const [peerNav, setPeerNav] = useState<NavPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [chartMode, setChartMode] = useState<'nav' | 'drawdown'>('nav')
+  const [chartMode, setChartMode] = useState<'nav' | 'drawdown' | 'alpha'>('nav')
 
   // Range state
   const [start, setStart] = useState('')
@@ -430,6 +432,9 @@ export default function FundDetail() {
         </div>
       )}
 
+      {/* Category landscape — where this fund sits on risk vs return (peer context) */}
+      <FundLandscape fund={fund} />
+
       {/* Chart */}
       <div className="mt-6 card p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -446,8 +451,16 @@ export default function FundDetail() {
             >
               Drawdowns
             </button>
+            {fund.analytics?.rollingAlpha && fund.analytics.rollingAlpha.spark.length >= 3 && (
+              <button
+                onClick={() => setChartMode('alpha')}
+                className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'alpha' ? 'bg-surface text-emerald-600 shadow-sm dark:text-emerald-400' : 'text-muted'}`}
+              >
+                Alpha vs peers
+              </button>
+            )}
           </div>
-          {benchmarkPeer && peerSlice.length > 1 && (
+          {chartMode !== 'alpha' && benchmarkPeer && peerSlice.length > 1 && (
             <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
               <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
               <span className="ml-1 inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
@@ -455,10 +468,16 @@ export default function FundDetail() {
             </span>
           )}
         </div>
-        <p className="mb-2 text-xs text-faint">
-          Live, selected range{benchmarkPeer && peerSlice.length > 1 ? ` · dashed line = ${benchmarkPeer.name}` : ''}
-        </p>
-        <RangeChart points={slice} peer={peerSlice} peerName={benchmarkPeer?.name} mode={chartMode} loading={loading} error={error} />
+        {chartMode !== 'alpha' && (
+          <p className="mb-2 text-xs text-faint">
+            Live, selected range{benchmarkPeer && peerSlice.length > 1 ? ` · dashed line = ${benchmarkPeer.name}` : ''}
+          </p>
+        )}
+        {chartMode === 'alpha' ? (
+          <RollingAlpha fund={fund} />
+        ) : (
+          <RangeChart points={slice} peer={peerSlice} peerName={benchmarkPeer?.name} mode={chartMode} loading={loading} error={error} />
+        )}
       </div>
 
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
