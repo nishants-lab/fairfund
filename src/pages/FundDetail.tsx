@@ -465,7 +465,7 @@ export default function FundDetail() {
       <VerdictCard fund={fund} />
 
       {/* Portfolio holdings */}
-      <HoldingsTable fund={fund} />
+      <HoldingsTable fund={fund} peerCode={peers[0]?.code} />
 
       <SectorBreakdown fund={fund} />
 
@@ -481,14 +481,8 @@ export default function FundDetail() {
       {/* Peers */}
       {peers.length > 0 && (
         <div className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3">
             <h3 className="font-bold text-fg">Top peers in {fund.categoryDisplay}</h3>
-            <button
-              onClick={() => navigate(`/compare?codes=${fund.code},${peers[0].code}`)}
-              className="text-sm font-semibold text-brand-600 hover:underline"
-            >
-              Compare with {peers[0].name.split(' ').slice(0, 3).join(' ')}... →
-            </button>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
             {peers.map((p) => {

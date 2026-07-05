@@ -23,8 +23,8 @@ function overlapVerdict(pct: number): string {
   return 'No shared stock-level holdings.'
 }
 
-export default function HoldingsOverlap({ funds }: { funds: Fund[] }) {
-  const overlap = useMemo(() => computeOverlap(funds), [funds])
+export default function HoldingsOverlap({ funds, loading, loadTick }: { funds: Fund[]; loading?: boolean; loadTick?: number }) {
+  const overlap = useMemo(() => computeOverlap(funds), [funds, loadTick])
   const usableCount = overlap.hasData.filter(Boolean).length
 
   if (funds.length < 2) return null
@@ -43,7 +43,7 @@ export default function HoldingsOverlap({ funds }: { funds: Fund[] }) {
         overlap means you’re buying similar exposure twice (less diversification than it looks).
       </p>
 
-      {noData.length > 0 && (
+      {!loading && noData.length > 0 && (
         <p className="mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
           {noData.map((f) => f.name).join(', ')} {noData.length === 1 ? 'does' : 'do'} not disclose
           stock-level holdings (likely overseas feeder funds), so {noData.length === 1 ? 'it is' : 'they are'}{' '}
@@ -51,7 +51,11 @@ export default function HoldingsOverlap({ funds }: { funds: Fund[] }) {
         </p>
       )}
 
-      {usableCount < 2 ? (
+      {loading ? (
+        <div className="rounded-xl bg-surface2 p-4 text-center text-sm text-muted animate-pulse">
+          Computing portfolio overlap…
+        </div>
+      ) : usableCount < 2 ? (
         <div className="rounded-xl bg-surface2 p-4 text-center text-sm text-muted">
           Need at least two funds with stock-level holdings to compute overlap.
         </div>
