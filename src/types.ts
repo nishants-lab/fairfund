@@ -114,9 +114,14 @@ export interface RegimePerf {
   ret?: number
   alpha?: number | null
 }
+export interface RollingAlpha {
+  spark: [string, number][] // [monthISO 'YYYY-MM', excess return in percentage points]
+  windowM: number // rolling window length in months (matches battingAverage)
+}
 export interface Analytics {
   rankTrajectory?: RankTrajectory
   battingAverage?: BattingAverage
+  rollingAlpha?: RollingAlpha
   capture?: CaptureRatios
   alpha?: AlphaSignificance
   meanReversion?: MeanReversion
