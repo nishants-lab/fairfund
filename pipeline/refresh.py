@@ -104,6 +104,18 @@ def monthly_refresh(data):
         description="Build forward-looking analytics"
     )
 
+    # Step 6b: Rolling alpha series (line behind the batting-average stat)
+    run_script(
+        SCRIPTS_DIR / "build_rolling_alpha.py",
+        description="Build rolling alpha series"
+    )
+
+    # Step 6c: AUM index for the Fund Landscape scatter
+    run_script(
+        SCRIPTS_DIR / "build_aum_index.py",
+        description="Build AUM index"
+    )
+
     # Step 7: Regular daily refresh (metrics + rankings)
     daily_refresh(data)
 
@@ -113,6 +125,7 @@ def analytics_only():
     print("\n--- Analytics Only ---")
     run_script(PIPELINE_DIR / "detect_regimes.py", description="Detect market regimes")
     run_script(SCRIPTS_DIR / "build_analytics.py", description="Build forward-looking analytics")
+    run_script(SCRIPTS_DIR / "build_rolling_alpha.py", description="Build rolling alpha series")
 
 
 def main():
