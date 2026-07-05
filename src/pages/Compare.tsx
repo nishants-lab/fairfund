@@ -250,7 +250,7 @@ export default function Compare() {
 
   // Green pill class for the winning cell in a row (#17). Applies whenever there
   // is more than one fund; a small caption warns when categories differ.
-  const winClass = 'rounded-md bg-emerald-50 px-2 py-0.5 dark:bg-emerald-900/30'
+  const winClass = 'rounded-md bg-emerald-100 px-2 py-0.5 dark:bg-emerald-700/50'
 
   // Overall verdicts for the final row (#18) - conviction score per fund.
   const verdicts = useMemo(() => funds.map((f) => buildVerdict(f)), [funds])
