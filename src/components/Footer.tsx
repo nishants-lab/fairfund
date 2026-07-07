@@ -70,6 +70,9 @@ export default function Footer() {
           Covers {data.totalFunds} active equity funds · live NAV from AMFI ·
           © {new Date().getFullYear()} FairFund
         </div>
+        <p className="mt-3 text-center text-xs text-faint">
+          Made with <span className="text-red-500">{"\u2764"}</span> in Bangalore, India
+        </p>
       </div>
     </footer>
   )
