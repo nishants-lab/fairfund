@@ -14,7 +14,7 @@ const detailCache = new Map<number, Promise<Partial<Fund>>>()
 export function fetchFundDetail(code: number): Promise<Partial<Fund>> {
   if (detailCache.has(code)) return detailCache.get(code)!
   const base = import.meta.env.BASE_URL || './'
-  const p = fetch(base + 'fund-data/' + code + '.json')
+  const p = fetch(base + 'fund-data/' + code + '.json?v=' + __DATA_VERSION__)
     .then((r) => (r.ok ? r.json() : {}))
     .catch(() => ({}))
   detailCache.set(code, p)

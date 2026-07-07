@@ -14,7 +14,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import { data } from './data'
 
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
-const manifestUrl = `${BASE.endsWith('/') ? BASE : BASE + '/'}nav/_manifest.json`
+const manifestUrl = `${BASE.endsWith('/') ? BASE : BASE + '/'}nav/_manifest.json?v=${__DATA_VERSION__}`
 
 // --- Global reactive store for the freshest known NAV date ---
 let latestKnown: string = data.anchor

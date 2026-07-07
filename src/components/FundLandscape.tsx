@@ -14,7 +14,7 @@ let aumPromise: Promise<Record<string, number>> | null = null
 function loadAum(): Promise<Record<string, number>> {
   if (!aumPromise) {
     const b = BASE.endsWith('/') ? BASE : BASE + '/'
-    aumPromise = fetch(`${b}aum-index.json`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+    aumPromise = fetch(`${b}aum-index.json?v=${__DATA_VERSION__}`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
   }
   return aumPromise
 }
