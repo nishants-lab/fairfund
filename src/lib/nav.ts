@@ -19,7 +19,7 @@ interface SelfHostedNav {
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
 function selfHostedUrl(code: number): string {
   const b = BASE.endsWith('/') ? BASE : BASE + '/'
-  return `${b}nav/${code}.json`
+  return `${b}nav/${code}.json?v=${__DATA_VERSION__}`
 }
 
 const LIVE_TIMEOUT_MS = 4000

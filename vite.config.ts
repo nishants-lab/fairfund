@@ -23,6 +23,9 @@ function injectFundCount() {
 export default defineConfig({
   plugins: [react(), injectFundCount()],
   base: './',
+  define: {
+    __DATA_VERSION__: JSON.stringify(Date.now().toString(36)),
+  },
   build: {
     rollupOptions: {
       output: {
