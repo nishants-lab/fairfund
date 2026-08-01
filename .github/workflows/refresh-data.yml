@@ -15,8 +15,14 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   daily-nav:
@@ -66,11 +72,20 @@ jobs:
           cache: npm
       - run: npm ci && npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          path: dist
+
+  deploy-pages:
+    needs: daily-nav
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
 
   monthly-holdings:
     if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
