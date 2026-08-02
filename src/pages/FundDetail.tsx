@@ -22,6 +22,7 @@ import FundMeta from '../components/FundMeta'
 import SectorBreakdown from '../components/SectorBreakdown' 
 import type { NavPoint } from '../types'
 import ShareButton from '../components/ShareButton'
+import WishlistButton from '../components/WishlistButton'
 import { usePageMeta } from '../lib/usePageMeta'
 
 // Regime data imported from auto-generated regimes.json (pipeline/detect_regimes.py)
@@ -288,7 +289,8 @@ export default function FundDetail() {
             )
           })()}
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <WishlistButton code={fund.code} />
           <ShareButton fund={fund} />
           <button onClick={() => navigate(`/compare?codes=${fund.code}`)} className="btn-ghost">
             ⚖️ Compare
