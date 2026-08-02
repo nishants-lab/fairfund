@@ -79,7 +79,7 @@ export default function InfoTip({
         type="button"
         aria-label={label}
         aria-expanded={open}
-        className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 ${
+        className={`relative inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 before:absolute before:-inset-[14px] before:content-[''] ${
           open ? 'border-brand-400 text-brand-600' : 'border-line text-faint hover:border-brand-400 hover:text-brand-600'
         }`}
         onPointerEnter={(e) => {

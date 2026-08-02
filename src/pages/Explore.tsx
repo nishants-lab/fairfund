@@ -198,7 +198,7 @@ export default function Explore() {
           </span>
         ))}
       </div>
-      <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-surface">
+      <div className="relative mt-2 overflow-hidden rounded-2xl border border-line bg-surface after:pointer-events-none after:absolute after:right-0 after:top-0 after:h-full after:w-8 after:bg-gradient-to-l after:from-surface after:to-transparent after:content-[''] md:after:hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
