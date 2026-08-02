@@ -16,7 +16,7 @@ export default function HorizonToggle({ value, onChange, available }: Props) {
         <button
           key={h}
           onClick={() => onChange(h)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+          className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
             value === h ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted hover:text-fg'
           }`}
         >
