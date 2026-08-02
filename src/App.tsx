@@ -14,6 +14,7 @@ const Explore = lazy(() => import('./pages/Explore'))
 const FundDetail = lazy(() => import('./pages/FundDetail'))
 const Compare = lazy(() => import('./pages/Compare'))
 const Methodology = lazy(() => import('./pages/Methodology'))
+const Wishlist = lazy(() => import('./pages/Wishlist'))
 
 function PageLoader() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/fund/:code/:slug?" element={<FundDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/methodology" element={<Methodology />} />
+            <Route path="/wishlist" element={<Wishlist />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

@@ -6,6 +6,7 @@ import { pct, signedPct, num, riskColor, alphaColor, fundSlug } from '../lib/for
 import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
 import FundLandscape from '../components/FundLandscape'
+import WishlistButton from '../components/WishlistButton'
 import type { Horizon, Fund } from '../types'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting'
@@ -253,8 +254,13 @@ export default function Explore() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-fg">{f.name}</div>
-                      <div className="text-xs text-faint">{f.amc}</div>
+                      <div className="flex items-center gap-1.5">
+                        <WishlistButton code={f.code} compact />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-fg truncate">{f.name}</div>
+                          <div className="text-xs text-faint">{f.amc}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-fg">{pct(m.cagr)}</td>
                     <td className={`px-4 py-3 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>

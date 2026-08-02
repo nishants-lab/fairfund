@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
 import SearchBox from './SearchBox'
+import { useWishlist } from '../lib/wishlist'
 
 const links = [
   { to: '/explore', label: 'Explore' },
@@ -15,6 +16,8 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchRefMobile = useRef<HTMLDivElement>(null)
+  const wishlistCodes = useWishlist()
+  const wishlistCount = wishlistCodes.length
 
   const isHome = loc.pathname === '/'
 
@@ -81,6 +84,26 @@ export default function Navbar() {
               </Link>
             ))}
           </nav>
+
+          {/* Wishlist icon (desktop + mobile) */}
+          <Link
+            to="/wishlist"
+            aria-label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount} funds)` : ''}`}
+            className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+              loc.pathname === '/wishlist'
+                ? 'border-rose-300 bg-rose-50 text-rose-500 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-400'
+                : 'border-line text-muted hover:bg-surface2 hover:text-rose-400'
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill={loc.pathname === '/wishlist' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={loc.pathname === '/wishlist' ? 0 : 1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+            </svg>
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                {wishlistCount > 99 ? '99+' : wishlistCount}
+              </span>
+            )}
+          </Link>
 
           {/* Desktop search (hidden on Home) */}
           {!isHome && (
@@ -169,6 +192,17 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
+            <Link
+              to="/wishlist"
+              onClick={() => setOpen(false)}
+              className={`block rounded-lg px-3 py-3 text-base font-medium transition ${
+                loc.pathname === '/wishlist'
+                  ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300'
+                  : 'text-fg hover:bg-surface2'
+              }`}
+            >
+              Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
+            </Link>
           </nav>
         </div>
       )}
