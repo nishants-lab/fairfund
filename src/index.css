@@ -33,7 +33,46 @@ body {
   @apply bg-canvas text-base antialiased;
   margin: 0;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ============ Typography system ============
+   Editorial pairing: Fraunces (display serif) for headings,
+   Inter for body/UI. Fully reversible - remove this block +
+   the display font family to restore the all-Inter look. */
+h1, h2, h3 {
+  font-family: 'Fraunces', Georgia, Cambria, serif;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
+}
+/* Large display headings get a touch more presence */
+h1 {
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+/* Small uppercase eyebrow/label headings read better in the UI sans,
+   not the serif - keep those on Inter via a utility. */
+.eyebrow {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.06em;
+}
+
+/* Uppercase eyebrow headings (used app-wide as small section labels)
+   stay on Inter - serif uppercase at small sizes reads poorly. */
+h1.uppercase, h2.uppercase, h3.uppercase {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+/* Tabular figures for all data surfaces so numbers align in columns.
+   This is the single biggest "pro finance" typographic tell. */
+table,
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 * {
