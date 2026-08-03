@@ -13,7 +13,7 @@ import { gradientCss, type SpectrumModel } from '../lib/spectrum'
  *      • GOOD ≥ pivot — a dashed reference line, with "≥<value>" printed under it
  *        (drawn only when the pivot falls inside the real range).
  *    The bar's two ends print their REAL numeric values plus a one-word direction
- *    ("Worse → Better" / "Steadier → Swingier"), so the scale is self-describing.
+ *    ("Worse – Better" / "Steadier – Swingier"), so the scale is self-describing.
  *    Below-bar value labels are laid out with a deterministic de-collision so they
  *    never overlap, even at ~150px mobile width.
  *
@@ -176,7 +176,7 @@ function LegacySpectrum({
           title={markerLabel}
         />
       </div>
-      <div className="mt-1 flex justify-between text-[10px] font-medium uppercase tracking-wide text-faint">
+      <div className="mt-1 flex justify-between text-xs font-medium uppercase tracking-wide text-faint">
         <span>{leftLabel}</span>
         <span>{rightLabel}</span>
       </div>

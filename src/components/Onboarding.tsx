@@ -106,7 +106,7 @@ export default function Onboarding() {
                     How it works
                   </button>
                   <button onClick={() => finish('/explore')} className="btn-primary px-4 py-2 text-sm">
-                    Explore funds →
+                    Explore funds
                   </button>
                 </div>
               ) : (

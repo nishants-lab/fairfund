@@ -29,7 +29,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
     tip: (
       <>
         <strong>How often the fund beat its category's median over rolling 3-year windows.</strong>
-        <br /><br />The arrow shows recent form: ↑ climbing the rankings, ↓ fading, → steady. The %
+        <br /><br />The arrow shows recent form: ↑ climbing the rankings, ↓ fading, – steady. The %
         is the share of 3-year windows it finished in the better half - higher means more repeatable
         skill, less luck. Full explanation on each fund's page.
       </>
@@ -52,7 +52,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
   },
 ]
 
-const TREND: Record<string, string> = { climbing: '↑', fading: '↓', steady: '→' }
+const TREND: Record<string, string> = { climbing: '↑', fading: '↓', steady: '–' }
 const TREND_TONE: Record<string, string> = {
   climbing: 'text-emerald-600 dark:text-emerald-400',
   fading: 'text-rose-600 dark:text-rose-400',
@@ -131,7 +131,7 @@ export default function Explore() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-fg">Explore Funds by Category</h1>
+      <h1 className="text-3xl font-bold text-fg">Explore Funds by Category</h1>
       <p className="mt-1 text-sm text-muted">
         Ranked by risk-adjusted score within each category. Tap any column header to sort. Alpha shows
         out/under-performance vs the median fund in the same category over the chosen window.
