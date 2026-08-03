@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FairFund - Logo Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500;1,6..72,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --brand:#2563eb; --brand2:#1d4ed8; --accent:#10b981; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:#f8fafc;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-family:Newsreader,serif;font-weight:700;font-size:34px;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 32px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .card.dark{background:#090d18;border-color:#1e293b}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);background:#eff6ff;border-radius:999px;padding:4px 10px;margin-bottom:14px}
+  .card.dark .tag{background:rgba(37,99,235,.15);color:#93c5fd}
+  .name{font-family:Newsreader,serif;font-weight:600;font-size:18px;margin:0 0 2px}
+  .card.dark .name{color:#f1f5f9}
+  .desc{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.5}
+  .card.dark .desc{color:#94a3b8}
+  .row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .lockup{display:flex;align-items:center;gap:10px}
+  .wordmark{font-family:Newsreader,serif;font-weight:700;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
+  .card.dark .wordmark{color:#f1f5f9}
+  .sizes{display:flex;align-items:center;gap:14px}
+
+  /* ---- Square badge base ---- */
+  .sq{display:flex;align-items:center;justify-content:center;background:var(--brand);border-radius:22%;color:#fff;overflow:hidden}
+  .sq.grad{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%)}
+  .s56{width:56px;height:56px}.s40{width:40px;height:40px}.s24{width:24px;height:24px}
+  .ff{font-family:Newsreader,serif;font-weight:600;line-height:1}
+  .s56 .ff{font-size:38px}.s40 .ff{font-size:27px}.s24 .ff{font-size:16px}
+  /* overlap the two f's so crossbars fuse into one baseline */
+  .fuse{letter-spacing:-.14em;padding-right:.10em}
+  .liga{font-feature-settings:"liga" 1,"dlig" 1}
+
+  /* ---- Standalone serif mark ---- */
+  .bare{font-family:Newsreader,serif;font-weight:600;color:var(--brand);line-height:1}
+  .card.dark .bare{color:#93c5fd}
+  .b56{font-size:52px}.b40{font-size:38px}.b24{font-size:23px}
+
+  /* ---- Concept C: equal-baseline geometric ---- */
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .lbl{font-size:11px;color:#94a3b8;width:34px;text-align:right}
+  hr{border:0;border-top:1px solid var(--line);margin:34px 0}
+  .foot{color:var(--muted);font-size:13px;line-height:1.6;max-width:640px}
+  .kbd{font-family:ui-monospace,monospace;background:#f1f5f9;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FairFund logo lab</h1>
+  <p class="sub">Three directions, real Newsreader. Same mark shown at 56 / 40 / 24px, with wordmark, on light + dark.</p>
+
+  <div class="grid">
+
+    <!-- CONCEPT A -->
+    <div class="card">
+      <span class="tag">Recommended - A</span>
+      <p class="name">"ff" monogram, fused crossbar</p>
+      <p class="desc">Two Newsreader f's overlapped so their crossbars read as one line - visually "same baseline / fair comparison." Built from your own type. Hard to copy.</p>
+      <div class="row">
+        <span class="lbl">56</span><div class="sq grad s56"><span class="ff fuse">ff</span></div>
+        <span class="lbl">40</span><div class="sq grad s40"><span class="ff fuse">ff</span></div>
+        <span class="lbl">24</span><div class="sq grad s24"><span class="ff fuse">ff</span></div>
+      </div>
+      <div class="lockup"><div class="sq grad s40"><span class="ff fuse">ff</span></div><span class="wordmark">FairFund</span></div>
+    </div>
+    <div class="card dark">
+      <span class="tag">A - dark</span>
+      <p class="name">on dark canvas</p>
+      <p class="desc">Same mark, dark UI.</p>
+      <div class="lockup"><div class="sq grad s40"><span class="ff fuse">ff</span></div><span class="wordmark">FairFund</span></div>
+    </div>
+
+    <!-- CONCEPT B -->
+    <div class="card">
+      <span class="tag">B</span>
+      <p class="name">Bare serif "ff" mark (no square)</p>
+      <p class="desc">Editorial / publisher's-mark feel - a colored serif ligature, no container. Premium and distinctive, but a touch quieter at favicon scale.</p>
+      <div class="row sizes">
+        <span class="lbl">56</span><span class="bare b56 liga">ff</span>
+        <span class="lbl">40</span><span class="bare b40 liga">ff</span>
+        <span class="lbl">24</span><span class="bare b24 liga">ff</span>
+      </div>
+      <div class="lockup"><span class="bare b40 liga">ff</span><span class="wordmark">FairFund</span></div>
+    </div>
+    <div class="card dark">
+      <span class="tag">B - dark</span>
+      <p class="name">on dark canvas</p>
+      <p class="desc">Same mark, dark UI.</p>
+      <div class="lockup"><span class="bare b40 liga">ff</span><span class="wordmark">FairFund</span></div>
+    </div>
+
+    <!-- CONCEPT C -->
+    <div class="card">
+      <span class="tag">C</span>
+      <p class="name">Equal-baseline geometric</p>
+      <p class="desc">Symbolic route: two bars on an equal baseline (fairness / equal footing) with one rising - measured growth, not hype. More abstract, less tied to the name.</p>
+      <div class="row">
+        <span class="lbl">56</span>
+        <div class="sq grad s56"><svg width="34" height="34" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+        <span class="lbl">40</span>
+        <div class="sq grad s40"><svg width="24" height="24" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+        <span class="lbl">24</span>
+        <div class="sq grad s24"><svg width="15" height="15" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+      </div>
+      <div class="lockup"><div class="sq grad s40"><svg width="24" height="24" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div><span class="wordmark">FairFund</span></div>
+    </div>
+
+    <!-- CONCEPT C DARK -->
+    <div class="card dark">
+      <span class="tag">C - dark</span>
+      <p class="name">on dark canvas</p>
+      <p class="desc">Same mark, dark UI.</p>
+      <div class="row">
+        <span class="lbl">56</span>
+        <div class="sq grad s56"><svg width="34" height="34" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+        <span class="lbl">40</span>
+        <div class="sq grad s40"><svg width="24" height="24" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+        <span class="lbl">24</span>
+        <div class="sq grad s24"><svg width="15" height="15" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div>
+      </div>
+      <div class="lockup"><div class="sq grad s40"><svg width="24" height="24" viewBox="0 0 32 32"><rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/><rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/><rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/><rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/></svg></div><span class="wordmark">FairFund</span></div>
+    </div>
+
+    <!-- CURRENT -->
+    <div class="card">
+      <span class="tag" style="color:#64748b;background:#f1f5f9">Current</span>
+      <p class="name">What ships today</p>
+      <p class="desc">Rising-line chart on a blue square + green dot. Generic fintech template; easily reproduced.</p>
+      <div class="row">
+        <span class="lbl">40</span>
+        <div class="sq s40" style="background:#2563eb"><svg width="26" height="26" viewBox="0 0 32 32"><path d="M8 22 L13 14 L18 18 L24 9" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="9" r="2.2" fill="#10b981"/></svg></div>
+        <span class="lbl">24</span>
+        <div class="sq s24" style="background:#2563eb"><svg width="16" height="16" viewBox="0 0 32 32"><path d="M8 22 L13 14 L18 18 L24 9" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="9" r="2.2" fill="#10b981"/></svg></div>
+      </div>
+      <div class="lockup"><div class="sq s40" style="background:#2563eb"><svg width="26" height="26" viewBox="0 0 32 32"><path d="M8 22 L13 14 L18 18 L24 9" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="9" r="2.2" fill="#10b981"/></svg></div><span class="wordmark" style="font-family:Inter;font-weight:800">FairFund</span></div>
+    </div>
+
+  </div>
+
+  <hr/>
+  <p class="foot"><strong>My pick: A.</strong> It's the only option that is both unique to FairFund (built from your Newsreader type, not a stock icon) and meaningful (the fused crossbar = fair, same-baseline comparison). Tell me which direction you want and I'll turn it into production SVG + favicon and wire it into the navbar, footer, and <span class="kbd">favicon.svg</span>. All on the <span class="kbd">typography-refresh</span> branch, nothing pushed.</p>
+</div>
+</body>
+</html>

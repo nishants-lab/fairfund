@@ -202,7 +202,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
         <div className="absolute right-0 z-50 mt-2 max-h-80 min-w-[24rem] w-full overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl" ref={listRef}>
           {catResults.length > 0 && (
             <div className="border-b border-line">
-              <div className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-faint">Categories</div>
+              <div className="px-4 pt-2.5 pb-1 text-xs font-bold uppercase tracking-wider text-faint">Categories</div>
               {catResults.map((cat) => (
                 <button
                   key={cat.key}
@@ -220,7 +220,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
             </div>
           )}
           {results.length > 0 && catResults.length > 0 && (
-            <div className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-faint">Funds</div>
+            <div className="px-4 pt-2.5 pb-1 text-xs font-bold uppercase tracking-wider text-faint">Funds</div>
           )}
           {results.map((f, i) => (
             <button
