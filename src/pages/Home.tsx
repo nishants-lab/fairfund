@@ -68,7 +68,7 @@ export default function Home() {
           <div className="absolute -top-24 left-1/2 h-96 w-[600px] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl dark:bg-brand-600/10" />
         </div>
         <div className="relative mx-auto max-w-4xl px-4 pt-12 pb-6 text-center md:pt-16 md:pb-8">
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-fg md:text-5xl">
+          <h1 className="text-[clamp(1.875rem,4.5vw+0.5rem,3rem)] font-bold leading-[1.1] tracking-tight text-fg">
             Research funds with{' '}
             <span className="bg-gradient-to-r from-brand-600 to-emerald-600 bg-clip-text text-transparent dark:from-brand-400 dark:to-emerald-400">
               clarity and confidence
@@ -112,7 +112,7 @@ export default function Home() {
       </section>
 
       {/* Differentiation: one-glance comparison */}
-      <section className="mx-auto -mt-2 max-w-5xl px-4">
+      <section className="relative z-10 mx-auto mt-8 max-w-5xl px-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="card border-rose-200 bg-rose-50/60 p-6 dark:border-rose-800/40 dark:bg-rose-900/15">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
@@ -178,8 +178,8 @@ export default function Home() {
               #1 by risk-adjusted composite score (3-year fixed window)
             </p>
           </div>
-          <Link to="/explore" className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">
-            All categories →
+          <Link to="/explore" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">
+            All categories <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
           </Link>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -198,11 +198,11 @@ export default function Home() {
                 <div className="mt-2 font-bold text-fg leading-snug group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">{f.name}</div>
                 <div className="mt-3 flex items-end justify-between border-t border-line/50 pt-3">
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-faint">3Y CAGR</div>
+                    <div className="text-xs uppercase tracking-wide text-faint">3Y CAGR</div>
                     <div className="text-xl font-extrabold text-fg">{pct(m?.cagr)}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] uppercase tracking-wide text-faint">Alpha</div>
+                    <div className="text-xs uppercase tracking-wide text-faint">Alpha</div>
                     <div className={`text-base font-bold ${alphaColor(m?.alpha ?? 0)}`}>
                       {signedPct(m?.alpha)}
                     </div>
@@ -224,7 +224,7 @@ export default function Home() {
                 {categoryOrder.length} categories covering the full AMFI equity universe
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-faint">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-faint">
               <span className="flex items-center gap-1">
                 <span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> ≥18%
               </span>
@@ -253,7 +253,7 @@ export default function Home() {
                       <div className="flex items-center gap-1.5 font-semibold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
                         {c.display}
                         {isTop3 && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
                             ★ Top 5Y
                           </span>
                         )}
@@ -265,7 +265,7 @@ export default function Home() {
                     <div className={`text-sm ${tierCagrColor[tier]}`}>
                       {c.medianCagr5Y?.toFixed(1) ?? '—'}%
                     </div>
-                    <div className="text-[11px] text-faint">median 5Y</div>
+                    <div className="text-xs text-faint">median 5Y</div>
                   </div>
                 </Link>
               )
@@ -314,29 +314,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust strip */}
-      <section className="border-t border-line bg-surface2/30 dark:bg-surface2/10">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-8 text-xs text-muted">
-          <span className="flex items-center gap-1.5">
-            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            Data from AMFI &amp; mfapi.in
-          </span>
-          <span className="text-line">|</span>
-          <span className="flex items-center gap-1.5">
-            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
-            Open methodology
-          </span>
-          <span className="text-line">|</span>
-          <span className="flex items-center gap-1.5">
-            <svg className="h-3.5 w-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-            No affiliate bias
-          </span>
-          <span className="text-line">|</span>
-          <span>No login required</span>
-          <span className="text-line">|</span>
-          <span className="italic">Not investment advice</span>
-        </div>
-      </section>
+
     </div>
   )
 }

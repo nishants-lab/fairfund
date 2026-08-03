@@ -266,7 +266,7 @@ export default function FundDetail() {
               </span>
             )}
           </div>
-          <h1 className="mt-2 text-2xl font-extrabold text-fg md:text-3xl">{fund.name}</h1>
+          <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
 
           {/* Latest NAV with day change */}
@@ -359,7 +359,7 @@ export default function FundDetail() {
             <MetricCard
               label="Max Drawdown"
               value={pct(live.maxDrawdown)}
-              sub={`${fmtDate(live.maxDrawdownStart)} → ${fmtDate(live.maxDrawdownEnd)}`}
+              sub={`${fmtDate(live.maxDrawdownStart)} – ${fmtDate(live.maxDrawdownEnd)}`}
               tone={drawdownTone(live.maxDrawdown)}
               note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
               hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is always a loss; shallower is better."
@@ -388,7 +388,7 @@ export default function FundDetail() {
             <MetricCard
               label="Best Month"
               value={signedPct(live.best1M)}
-              sub={`${fmtDate(live.best1MStart)} → ${fmtDate(live.best1MEnd)}`}
+              sub={`${fmtDate(live.best1MStart)} – ${fmtDate(live.best1MEnd)}`}
               tone="good"
               note={riseContext(live.best1MStart, live.best1MEnd) ?? undefined}
               hint="Best rolling 1-month return in this period, and when it happened."
@@ -396,7 +396,7 @@ export default function FundDetail() {
             <MetricCard
               label="Worst Month"
               value={signedPct(live.worst1M)}
-              sub={`${fmtDate(live.worst1MStart)} → ${fmtDate(live.worst1MEnd)}`}
+              sub={`${fmtDate(live.worst1MStart)} – ${fmtDate(live.worst1MEnd)}`}
               tone="bad"
               note={fallReason(live.worst1MStart, live.worst1MEnd) ?? undefined}
               hint="Worst rolling 1-month return in this period, and when it happened."
@@ -404,7 +404,7 @@ export default function FundDetail() {
           </div>
           <p className="mt-2 text-xs text-faint">
             ↑ All metrics are computed live from daily NAV for exactly{' '}
-            <strong className="text-muted">{fmtDate(live.startDate)} → {fmtDate(live.endDate)}</strong>. Change the range
+            <strong className="text-muted">{fmtDate(live.startDate)} – {fmtDate(live.endDate)}</strong>. Change the range
             above and every number updates. This is the core of FairFund - no fund can hide behind a
             cherry-picked window.
           </p>
@@ -463,7 +463,7 @@ export default function FundDetail() {
             )}
           </div>
           {chartMode !== 'alpha' && benchmarkPeer && peerSlice.length > 1 && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
+            <span className="inline-flex items-center gap-1.5 text-xs text-faint">
               <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
               <span className="ml-1 inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
               {benchmarkPeer.metrics['3Y']?.catRank === 1 ? 'Category leader' : 'Top peer (risk-adj)'}

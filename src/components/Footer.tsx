@@ -28,7 +28,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
           <div>
-            <div className="font-extrabold text-fg">FairFund</div>
+            <div className="font-display text-lg font-bold text-fg">Fair<span className="text-brand-600 dark:text-brand-400">Fund</span></div>
             <p className="mt-1 max-w-md text-sm text-muted">
               Independent mutual fund research for India - backward-tested,
               across {data.totalFunds} funds.

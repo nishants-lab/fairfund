@@ -55,13 +55,15 @@ export default function Navbar() {
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600">
             <svg viewBox="0 0 32 32" className="h-6 w-6">
-              <path d="M8 22 L13 14 L18 18 L24 9" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="24" cy="9" r="2.2" fill="#10b981" />
+              <rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff" />
+              <rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff" />
+              <rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981" />
+              <rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9" />
             </svg>
           </div>
           <div className="leading-tight">
-            <div className="font-extrabold text-fg">FairFund</div>
-            <div className="text-[10px] font-medium uppercase tracking-wider text-faint">Forward-looking MF Research</div>
+            <div className="font-display text-lg font-bold leading-none text-fg">Fair<span className="text-brand-600 dark:text-brand-400">Fund</span></div>
+            <div className="text-xs font-medium uppercase tracking-wider text-faint">Forward-looking MF Research</div>
           </div>
         </Link>
 
@@ -94,7 +96,7 @@ export default function Navbar() {
             }`}
           >
             {user ? (
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
                 {(user.email?.[0] ?? 'U').toUpperCase()}
               </div>
             ) : (
@@ -118,7 +120,7 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
             </svg>
             {wishlistCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-xs font-bold text-white">
                 {wishlistCount > 99 ? '99+' : wishlistCount}
               </span>
             )}

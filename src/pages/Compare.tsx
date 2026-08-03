@@ -181,14 +181,14 @@ export default function Compare() {
     }
   }
 
-  // Compact "Mon YYYY → Mon YYYY" period for a metric, only when live metrics
+  // Compact "Mon YYYY – Mon YYYY" period for a metric, only when live metrics
   // (which carry the dates) are available. Returns '' otherwise.
   function periodFor(f: Fund, key: keyof ComputedMetrics): string {
     const lm = liveMetrics[f.code]
     if (!lm) return ''
-    if (key === 'maxDrawdown') return `${fmtMonth(lm.maxDrawdownStart)} → ${fmtMonth(lm.maxDrawdownEnd)}`
-    if (key === 'best1M') return `${fmtMonth(lm.best1MStart)} → ${fmtMonth(lm.best1MEnd)}`
-    if (key === 'worst1M') return `${fmtMonth(lm.worst1MStart)} → ${fmtMonth(lm.worst1MEnd)}`
+    if (key === 'maxDrawdown') return `${fmtMonth(lm.maxDrawdownStart)} – ${fmtMonth(lm.maxDrawdownEnd)}`
+    if (key === 'best1M') return `${fmtMonth(lm.best1MStart)} – ${fmtMonth(lm.best1MEnd)}`
+    if (key === 'worst1M') return `${fmtMonth(lm.worst1MStart)} – ${fmtMonth(lm.worst1MEnd)}`
     return ''
   }
 
@@ -268,7 +268,7 @@ export default function Compare() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-fg">Compare Funds</h1>
+      <h1 className="text-3xl font-bold text-fg">Compare Funds</h1>
       <p className="mt-1 text-sm text-muted">
         Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
         recompute live. Same category gives the cleanest comparison; mixing categories is allowed and
@@ -324,7 +324,7 @@ export default function Compare() {
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-faint">Comparison period</h2>
-                <span className="text-xs text-faint">Common window: {fmtDate(earliest)} → {fmtDate(latest)}</span>
+                <span className="text-xs text-faint">Common window: {fmtDate(earliest)} – {fmtDate(latest)}</span>
               </div>
               <RangeSelector
                 earliest={earliest}
@@ -406,7 +406,7 @@ export default function Compare() {
                                 >
                                   {row.fmt(v as number)}
                                 </span>
-                                {period && <div className="mt-0.5 text-[10px] leading-tight text-faint">{period}</div>}
+                                {period && <div className="mt-0.5 text-xs leading-tight text-faint">{period}</div>}
                               </>
                             )}
                           </td>
@@ -484,7 +484,7 @@ export default function Compare() {
                   {funds.map((f) => {
                     const dir = f.analytics?.rankTrajectory?.direction
                     const tone = dir === 'climbing' ? 'text-emerald-600 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
-                    const arrow = dir === 'climbing' ? '↑ Climbing' : dir === 'fading' ? '↓ Fading' : dir === 'steady' ? '→ Steady' : '—'
+                    const arrow = dir === 'climbing' ? '↑ Climbing' : dir === 'fading' ? '↓ Fading' : dir === 'steady' ? '– Steady' : '—'
                     return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{arrow}</td>
                   })}
                 </tr>
@@ -536,7 +536,7 @@ export default function Compare() {
                       <td key={f.code} className="px-4 py-3 text-right align-top">
                         <div className={`inline-flex flex-col items-end ${isWin ? winClass : ''}`}>
                           <span className={`font-bold ${tone}`}>{v.label}</span>
-                          <span className="text-[11px] text-faint">{v.score}/100{isWin ? ' · best' : ''}</span>
+                          <span className="text-xs text-faint">{v.score}/100{isWin ? ' · best' : ''}</span>
                         </div>
                       </td>
                     )
