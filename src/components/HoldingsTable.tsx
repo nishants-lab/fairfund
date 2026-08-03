@@ -83,7 +83,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
               to={`/compare?codes=${fund.code},${peerCode}#overlap`}
               className="text-sm font-semibold text-brand-600 hover:underline"
             >
-              Compare with top peer →
+              Compare with top peer
             </Link>
           )}
         </div>

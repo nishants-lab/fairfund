@@ -71,7 +71,7 @@ export default function SignIn() {
           </div>
 
           <Link to="/explore" className="mt-8 inline-block text-sm font-medium text-brand-600 hover:underline">
-            Continue exploring funds →
+            Continue exploring funds
           </Link>
         </div>
       </div>

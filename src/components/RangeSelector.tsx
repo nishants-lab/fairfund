@@ -134,7 +134,7 @@ export default function RangeSelector({ earliest, latest, start, end, onChange, 
           />
         </div>
         <span className="ml-auto text-xs text-faint">
-          {fmtDate(start)} → {fmtDate(end)}
+          {fmtDate(start)} – {fmtDate(end)}
         </span>
       </div>
     </div>

@@ -46,7 +46,7 @@ export default function MetricCard({ label, value, sub, tone = 'default', hint, 
           </InfoTip>
         )}
         {spectrum?.verdict && (
-          <span className={`ml-auto text-[10px] font-semibold normal-case tracking-normal ${verdictTone[spectrum.glossTone ?? 'neutral']}`}>
+          <span className={`ml-auto text-xs font-semibold normal-case tracking-normal ${verdictTone[spectrum.glossTone ?? 'neutral']}`}>
             {spectrum.verdict}
           </span>
         )}
@@ -54,7 +54,7 @@ export default function MetricCard({ label, value, sub, tone = 'default', hint, 
       <div className={`mt-1 text-2xl font-bold ${toneClasses[tone]}`}>{value}</div>
       {sub && <div className={`mt-0.5 text-xs ${subToneClasses[subTone]}`}>{sub}</div>}
       {spectrum && <Spectrum model={spectrum} />}
-      {note && <div className="mt-1 text-[11px] leading-snug text-faint">{note}</div>}
+      {note && <div className="mt-1 text-xs leading-snug text-faint">{note}</div>}
     </div>
   )
 }

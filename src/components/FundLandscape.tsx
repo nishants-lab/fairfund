@@ -85,7 +85,7 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
         <div className="font-semibold text-fg">{d.name}{d.current ? ' (this fund)' : ''}</div>
         <div className="mt-0.5 text-muted">Return {d.y.toFixed(1)}% · Risk {d.x.toFixed(1)}</div>
         {d.aum ? <div className="text-faint">AUM ₹{d.aum >= 1000 ? `${(d.aum / 1000).toFixed(1)}k` : d.aum} cr</div> : null}
-        <div className="mt-1 text-[11px] text-brand-500">Click to open →</div>
+        <div className="mt-1 text-xs text-brand-500">Click to open</div>
       </div>
     )
   }
@@ -111,13 +111,13 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
           <XAxis
             type="number" dataKey="x" domain={xDomain} tick={{ fontSize: 11, fill: axis }}
             tickFormatter={(v) => v.toFixed(0)} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
-            label={{ value: 'Volatility (risk) →', position: 'insideBottom', offset: -8, fontSize: 11, fill: axis }}
+            label={{ value: 'Volatility (risk)', position: 'insideBottom', offset: -8, fontSize: 11, fill: axis }}
           />
           <YAxis
             type="number" dataKey="y" domain={yDomain} tick={{ fontSize: 11, fill: axis }}
             tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             width={44}
-            label={{ value: '3Y CAGR (return) →', angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
+            label={{ value: '3Y CAGR (return)', angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
           />
           <ZAxis type="number" dataKey="z" range={[60, 620]} />
           <Tooltip content={tooltip} cursor={{ strokeDasharray: '3 3', stroke: axis }} />
