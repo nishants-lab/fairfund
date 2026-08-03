@@ -9,7 +9,7 @@
   --surface2: 241 245 249;   /* slate-100 */
   --text-base: 15 23 42;     /* slate-900 */
   --text-muted: 71 85 105;   /* slate-600 */
-  --text-faint: 148 163 184; /* slate-400 */
+  --text-faint: 100 116 139; /* slate-500 - WCAG AA on light canvas */
   --line: 226 232 240;       /* slate-200 */
   color-scheme: light;
 }
@@ -19,8 +19,8 @@
   --surface: 17 24 39;       /* slate-900-ish  */
   --surface2: 30 41 59;      /* slate-800      */
   --text-base: 241 245 249;  /* slate-100      */
-  --text-muted: 148 163 184; /* slate-400      */
-  --text-faint: 100 116 139; /* slate-500      */
+  --text-muted: 203 213 225; /* slate-300 - WCAG AA on dark canvas */
+  --text-faint: 148 163 184; /* slate-400 - WCAG AA on dark canvas */
   --line: 51 65 85;          /* slate-700      */
   color-scheme: dark;
 }
@@ -32,8 +32,45 @@ html {
 body {
   @apply bg-canvas text-base antialiased;
   margin: 0;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04', 'cv11', 'ss01' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ============ Typography system ============
+   Editorial pairing: Newsreader (display serif) for headings,
+   Inter for body/UI. Fully reversible - remove this block +
+   the display font family to restore the all-Inter look. */
+h1, h2, h3 {
+  font-family: 'Newsreader', Georgia, Cambria, serif;
+  font-optical-sizing: auto;
+}
+/* Split letter-spacing by level (C5): tighter as size grows */
+h1 { letter-spacing: -0.02em; }
+h2 { letter-spacing: -0.01em; }
+h3 { letter-spacing: 0; }
+/* Small uppercase eyebrow/label headings read better in the UI sans,
+   not the serif - keep those on Inter via a utility. */
+.eyebrow {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.06em;
+}
+
+/* Uppercase eyebrow headings (used app-wide as small section labels)
+   stay on Inter - serif uppercase at small sizes reads poorly. */
+h1.uppercase, h2.uppercase, h3.uppercase {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+/* Explicit opt-in tabular utility (body already sets tabular-nums globally;
+   .tnum kept for elements that override numeric features). */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 * {

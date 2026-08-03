@@ -104,7 +104,7 @@ export default function SectorBreakdown({ fund }: { fund: Fund }) {
         )}
       </div>
 
-      <p className="mt-2 text-[11px] text-faint">
+      <p className="mt-2 text-xs text-faint">
         Top sector ({topSectors[0]?.sector}) is {topSectors[0]?.pct.toFixed(1)}% of portfolio across {topSectors[0]?.count} stocks.
       </p>
     </div>

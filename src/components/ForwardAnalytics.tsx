@@ -14,7 +14,7 @@ import SearchBox from './SearchBox'
 const DIR_STYLE: Record<string, { txt: string; tone: string; arrow: string }> = {
   climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400', arrow: '↑' },
   fading: { txt: 'Fading', tone: 'text-rose-600 dark:text-rose-400', arrow: '↓' },
-  steady: { txt: 'Steady', tone: 'text-muted', arrow: '→' },
+  steady: { txt: 'Steady', tone: 'text-muted', arrow: '–' },
 }
 
 
@@ -124,7 +124,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
     <div className="mt-6">
       <div className="mb-1 flex items-center gap-2">
         <h3 className="text-base font-bold text-fg">Forward-looking signals</h3>
-        <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">beta</span>
+        <span className="rounded-full bg-surface2 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-faint">beta</span>
       </div>
       <p className="mb-4 text-xs text-muted">
         Beyond past returns: how consistent, skilled and sustainable this fund looks, framed as
@@ -144,14 +144,14 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   0 = bottom). It is recomputed on a rolling 3-year-return basis, one step per month.
                   <br /><br />↑ <span className="text-emerald-600 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
                   <br />↓ <span className="text-rose-600 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
-                  <br />→ Steady: roughly holding position.
+                  <br />– Steady: roughly holding position.
                 </InfoTip>
               </h4>
               <span className={`text-sm font-bold ${DIR_STYLE[a.rankTrajectory.direction].tone}`}>
                 {DIR_STYLE[a.rankTrajectory.direction].arrow} {DIR_STYLE[a.rankTrajectory.direction].txt}
               </span>
             </div>
-            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-faint">
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-faint">
               Category rank percentile over time
             </p>
             <div className="mt-2">
@@ -163,7 +163,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 endDate={data.anchor}
               />
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
               <span className="inline-flex items-center gap-1">
                 <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> This fund
               </span>
@@ -460,9 +460,9 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   </InfoTip>
                 </h4>
                 <div className="mt-2 grid grid-cols-3 gap-2">
-                  <Stat label="Worst" value={pct(rollDist.min)} sub={`${fmtMonth(rollDist.minStart)}→${fmtMonth(rollDist.minEnd)}`} tone="text-rose-600 dark:text-rose-400" />
+                  <Stat label="Worst" value={pct(rollDist.min)} sub={`${fmtMonth(rollDist.minStart)}–${fmtMonth(rollDist.minEnd)}`} tone="text-rose-600 dark:text-rose-400" />
                   <Stat label="Median" value={pct(rollDist.median)} sub="per year" />
-                  <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}→${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-600 dark:text-emerald-400" />
+                  <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}–${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <p className="mt-2 text-xs text-muted">
                   Annualized return for any {horizon}-year stretch in its history, across {rollDist.n}{' '}

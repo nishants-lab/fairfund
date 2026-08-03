@@ -88,7 +88,7 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
     <div className="mb-5">
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <h4 className="text-sm font-semibold text-fg">Shared holdings weight map</h4>
-        <span className="text-[11px] text-faint">shade = weight · striped = not held</span>
+        <span className="text-xs text-faint">shade = weight · striped = not held</span>
       </div>
       <div className="grid items-stretch gap-1.5" style={{ gridTemplateColumns: cols }}>
         <div />
@@ -117,7 +117,7 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
           className="mt-3 text-[13px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded ? 'Show fewer' : `Show all ${shared.length} shared holdings →`}
+          {expanded ? 'Show fewer' : `Show all ${shared.length} shared holdings`}
         </button>
       )}
     </div>
@@ -164,25 +164,25 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
       </div>
 
       {/* Doubling-up headline */}
-      <div className="text-[11px] font-bold uppercase tracking-wide text-faint">How much you are doubling up</div>
+      <div className="text-xs font-bold uppercase tracking-wide text-faint">How much you are doubling up</div>
       <div className="mt-1 flex items-center gap-4">
         <div className={`text-4xl font-extrabold leading-none ${overlapTone(ov)}`}>{ov.toFixed(1)}%</div>
         <div className="min-w-0 flex-1">
           <div className="flex h-7 overflow-hidden rounded-lg border border-line">
             <div
-              className="flex items-center justify-center text-[11px] font-semibold text-white"
+              className="flex items-center justify-center text-xs font-semibold text-white"
               style={{ width: `${ov}%`, backgroundColor: '#6366f1' }}
             >
               {ov >= 18 ? 'shared' : ''}
             </div>
             <div
-              className="flex flex-1 items-center justify-center text-[11px] font-medium text-faint"
+              className="flex flex-1 items-center justify-center text-xs font-medium text-faint"
               style={{ background: 'repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e5e9f0 5px,#e5e9f0 10px)' }}
             >
               distinct bets
             </div>
           </div>
-          <div className="mt-1 flex justify-between text-[10px] text-faint"><span>0%</span><span>100% of portfolio</span></div>
+          <div className="mt-1 flex justify-between text-xs text-faint"><span>0%</span><span>100% of portfolio</span></div>
         </div>
       </div>
       <p className="mt-2 text-[13px] text-muted">
@@ -190,7 +190,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
       </p>
 
       {/* Who bets bigger */}
-      <div className="mt-4 text-[11px] font-bold uppercase tracking-wide text-faint">Shared holdings — who bets bigger</div>
+      <div className="mt-4 text-xs font-bold uppercase tracking-wide text-faint">Shared holdings — who bets bigger</div>
       <div className="mt-2 flex">
         <div className="w-[110px] shrink-0" />
         <div className="relative flex-1">
@@ -199,7 +199,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
             {ticks.map((t) => (
               <span
                 key={t}
-                className="absolute -translate-x-1/2 text-[10px] text-faint"
+                className="absolute -translate-x-1/2 text-xs text-faint"
                 style={{ left: `${(t / niceMax) * 100}%` }}
               >
                 {t}%
@@ -240,7 +240,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
                 />
                 {/* value label */}
                 <span
-                  className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-faint"
+                  className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-xs text-faint"
                   style={
                     flip
                       ? { left: `calc(${leftP}% - 8px)`, transform: 'translate(-100%, -50%)' }
@@ -254,7 +254,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
           )
         })}
       </div>
-      <p className="mt-3 text-[11px] text-faint">
+      <p className="mt-3 text-xs text-faint">
         Each stock both funds hold; two dots close together means matched conviction, a long line means one fund leans harder.
         {sharedCount > shown.length && ` Showing top ${shown.length} of ${sharedCount} shared names by weight.`}
       </p>

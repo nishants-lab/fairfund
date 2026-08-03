@@ -69,7 +69,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
       </p>
 
       {shortWindow && hasScore && (
-        <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+        <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
           Only ~{postMonths} month of post-move data — treat this as a preliminary read, not a final verdict.
           It becomes more meaningful after 3+ months.
         </p>
@@ -87,15 +87,15 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                 <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-surface2/40 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-medium text-fg">{s.name}</div>
-                    {s.ticker && <div className="text-[10px] text-faint">{s.ticker} · {s.pct.toFixed(1)}% weight</div>}
-                    {!s.ticker && <div className="text-[10px] text-faint">{s.pct.toFixed(1)}% weight</div>}
+                    {s.ticker && <div className="text-xs text-faint">{s.ticker} · {s.pct.toFixed(1)}% weight</div>}
+                    {!s.ticker && <div className="text-xs text-faint">{s.pct.toFixed(1)}% weight</div>}
                   </div>
                   {s.postReturn != null ? (
                     <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {s.postReturn >= 0 ? '+' : ''}{s.postReturn.toFixed(1)}%
                     </span>
                   ) : (
-                    <span className="ml-2 text-[10px] text-faint">no price</span>
+                    <span className="ml-2 text-xs text-faint">no price</span>
                   )}
                 </div>
               ))}
@@ -114,15 +114,15 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                 <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-surface2/40 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-medium text-fg">{s.name}</div>
-                    {s.ticker && <div className="text-[10px] text-faint">{s.ticker} · was {s.pct.toFixed(1)}%</div>}
-                    {!s.ticker && <div className="text-[10px] text-faint">was {s.pct.toFixed(1)}%</div>}
+                    {s.ticker && <div className="text-xs text-faint">{s.ticker} · was {s.pct.toFixed(1)}%</div>}
+                    {!s.ticker && <div className="text-xs text-faint">was {s.pct.toFixed(1)}%</div>}
                   </div>
                   {s.postReturn != null ? (
                     <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {s.postReturn >= 0 ? '+' : ''}{s.postReturn.toFixed(1)}%
                     </span>
                   ) : (
-                    <span className="ml-2 text-[10px] text-faint">no price</span>
+                    <span className="ml-2 text-xs text-faint">no price</span>
                   )}
                 </div>
               ))}
@@ -131,7 +131,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
         )}
       </div>
 
-      <p className="mt-3 text-[11px] text-faint">
+      <p className="mt-3 text-xs text-faint">
         Post-move returns from NSE daily close prices (Yahoo Finance). "Smart score" = % of moves where
         adds went up and exits went down. Not a guarantee of future stock-picking ability.
       </p>
