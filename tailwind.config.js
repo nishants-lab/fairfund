@@ -28,6 +28,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['Newsreader', 'Georgia', 'Cambria', 'serif'],
       },
     },
   },

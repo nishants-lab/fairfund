@@ -13,7 +13,7 @@
  *     marker `label`), and the "good ≥ pivot" reference (`pivotLabel`). The
  *     <Spectrum> component renders each value AT its marker, so the reader never
  *     has to hover or hunt in a legend. The bar's two ends print their real
- *     numeric values plus a one-word direction (e.g. "Worse → Better"), which
+ *     numeric values plus a one-word direction (e.g. "Worse – Better"), which
  *     replaces the old, uninformative "weakest peer / strongest peer" strings.
  *
  * Two flavours:
@@ -26,7 +26,7 @@
  *    and the fund's marker shows its true rank among peers. A "good ≥ pivot"
  *    reference tick is drawn ONLY if the pivot falls within the real range.
  *
- * All functions are deterministic and side-effect free → unit-tested in qa_spectrum.
+ * All functions are deterministic and side-effect free – unit-tested in qa_spectrum.
  */
 
 export const SPECTRUM_RED = '#f43f5e'
@@ -82,7 +82,7 @@ export interface CategoryStats {
 
 /**
  * Threshold-band spectrum for a 0..100 confidence/percentage value where higher
- * is better. `lowMid` and `midHigh` are the red→amber and amber→green cut-offs.
+ * is better. `lowMid` and `midHigh` are the red–amber and amber–green cut-offs.
  * The green band is only (100 - midHigh)% wide - small when the bar for "good"
  * is high (e.g. skill needs ≥90%), which is the honest signal.
  */
@@ -117,7 +117,7 @@ export function bandSpectrum(opts: {
       : value >= lowMid
         ? `Middling. amber zone (${fmt(lowMid)}–${fmt(midHigh)}).`
         : `Weak. red zone (below ${fmt(lowMid)}).`
-  // Fixed 0..100 domain → the ends are self-evident, so we don't print numeric
+  // Fixed 0..100 domain – the ends are self-evident, so we don't print numeric
   // endpoint values; the direction words alone carry the meaning.
   return { stops, markers, leftLabel, rightLabel, primaryAbove: true, primaryTone, gloss, glossTone: primaryTone }
 }
@@ -157,7 +157,7 @@ function categoryGloss(
 /**
  * Category-range spectrum for a risk-adjusted ratio (Sharpe/Sortino/Calmar) where
  * HIGHER is better. The bar spans the category's REAL [min,max] (padded to include
- * this fund if it is an outlier), coloured worst→best (red→green). The fund's value
+ * this fund if it is an outlier), coloured worst–best (red–green). The fund's value
  * sits at its true position; the category median is a tick. A "good ≥ pivot" tick
  * (1.0 by default) is drawn ONLY if the pivot is within the real range, so we never
  * imply a green "good" zone that no peer actually reaches. The bar's ends carry the
@@ -218,7 +218,7 @@ export function ratioSpectrum(opts: {
 /**
  * Category-range spectrum for a "lower is better" metric (volatility): domain is
  * the real peer [min,max] (padded to include this fund), coloured green at the LOW
- * (steady) end → red at the high (swingy) end. Markers: this fund (caret) + median.
+ * (steady) end – red at the high (swingy) end. Markers: this fund (caret) + median.
  * The bar's ends carry the real min/max peer values (minLabel/maxLabel).
  */
 export function lowerBetterSpectrum(opts: {

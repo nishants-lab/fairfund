@@ -8,8 +8,8 @@ export default function Methodology() {
   )
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-fg">How FairFund works</h1>
-      <p className="mt-2 text-muted leading-relaxed">
+      <h1 className="text-3xl font-bold text-fg">How FairFund works</h1>
+      <p className="mt-2 max-w-prose text-muted leading-relaxed">
         Most fund screeners rank funds in a way that quietly flatters them. FairFund is built to
         avoid that. This page explains the full method, in plain terms, for all {data.totalFunds} active
         equity funds we cover.
@@ -102,7 +102,7 @@ export default function Methodology() {
       </Section>
 
       <h2 className="mt-10 text-xl font-bold text-fg">Part 2: Forward-looking signals</h2>
-      <p className="mt-2 text-muted leading-relaxed">
+      <p className="mt-2 max-w-prose text-muted leading-relaxed">
         Trailing returns are a rear-view mirror. These signals estimate how repeatable and sustainable
         a fund's edge looks. Every signal is based on actual history, confidence, or probability.
       </p>
@@ -244,8 +244,8 @@ export default function Methodology() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-bold text-fg">{title}</h2>
-      <div className="mt-2 text-muted leading-relaxed">{children}</div>
+      <h3 className="text-lg font-bold text-fg">{title}</h3>
+      <div className="mt-2 max-w-prose text-muted leading-relaxed">{children}</div>
     </section>
   )
 }

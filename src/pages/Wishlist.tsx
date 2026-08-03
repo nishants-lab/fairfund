@@ -83,12 +83,12 @@ export default function Wishlist() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-semibold text-fg">{f.name}</span>
-                  <span className={`hidden shrink-0 pill text-[10px] sm:inline ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>
+                  <span className={`hidden shrink-0 pill text-xs sm:inline ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>
                     {f.categoryDisplay}
                   </span>
                 </div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
-                  <span className={`sm:hidden pill text-[10px] ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>
+                  <span className={`sm:hidden pill text-xs ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>
                     {f.categoryDisplay}
                   </span>
                   <span>{f.amc}</span>

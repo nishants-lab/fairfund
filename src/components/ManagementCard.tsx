@@ -77,14 +77,14 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
               <div className={`font-bold ${tr.beatRate >= 0.6 ? 'text-emerald-600 dark:text-emerald-400' : tr.beatRate >= 0.4 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {Math.round(tr.beatRate * 100)}%
               </div>
-              <div className="mt-0.5 text-[10px] text-faint">of their funds</div>
+              <div className="mt-0.5 text-xs text-faint">of their funds</div>
             </div>
             <div className="rounded-lg bg-surface2 p-2">
               <div className="text-xs text-faint">In category top 25%</div>
               <div className={`font-bold ${tr.topRankShare == null ? 'text-faint' : tr.topRankShare >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : tr.topRankShare > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {tr.topRankShare != null ? `${Math.round(tr.topRankShare * 100)}%` : '—'}
               </div>
-              <div className="mt-0.5 text-[10px] text-faint">of their funds</div>
+              <div className="mt-0.5 text-xs text-faint">of their funds</div>
             </div>
           </div>
 
