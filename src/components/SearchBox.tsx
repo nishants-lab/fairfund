@@ -4,6 +4,8 @@ import { fundSlug } from '../lib/format'
 import { searchFunds, searchCategories, data } from '../lib/data'
 import type { CategoryResult } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
+import { parseIntent } from '../lib/intentParser'
+import type { Intent } from '../lib/intentParser'
 import type { Fund } from '../types'
 
 interface Props {
@@ -52,6 +54,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Fund[]>([])
   const [catResults, setCatResults] = useState<CategoryResult[]>([])
+  const [intent, setIntent] = useState<Intent | null>(null)
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -99,6 +102,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
   useEffect(() => {
     setResults(searchFunds(query, 10))
     setCatResults(searchCategories(query))
+    setIntent(parseIntent(query))
     setActiveIdx(0)
   }, [query])
 
@@ -131,13 +135,20 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
     if (!open || results.length === 0) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActiveIdx((i) => Math.min(i + 1, results.length - 1))
+      setActiveIdx((i) => Math.min(i + 1, (intent ? 1 : 0) + results.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActiveIdx((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      pick(results[activeIdx])
+      if (intent && activeIdx === 0) {
+        setQuery('')
+        setOpen(false)
+        navigate(intent.path)
+      } else {
+        const fundIdx = intent ? activeIdx - 1 : activeIdx
+        if (results[fundIdx]) pick(results[fundIdx])
+      }
     } else if (e.key === 'Escape') {
       setOpen(false)
     }
@@ -198,8 +209,26 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
         )}
       </div>
 
-      {open && (results.length > 0 || catResults.length > 0) && (
+      {open && (results.length > 0 || catResults.length > 0 || intent) && (
         <div className="absolute right-0 z-50 mt-2 max-h-80 min-w-[24rem] w-full overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl" ref={listRef}>
+          {intent && (
+            <button
+              onClick={() => {
+                setQuery('')
+                setOpen(false)
+                navigate(intent.path)
+              }}
+              onMouseEnter={() => setActiveIdx(0)}
+              className={`flex w-full items-center gap-3 px-4 py-3 text-left transition border-b border-line ${
+                activeIdx === 0 ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-surface2'
+              }`}
+            >
+              <svg className="h-5 w-5 shrink-0 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <span className="text-sm font-semibold text-fg">{intent.label}</span>
+            </button>
+          )}
           {catResults.length > 0 && (
             <div className="border-b border-line">
               <div className="px-4 pt-2.5 pb-1 text-xs font-bold uppercase tracking-wider text-faint">Categories</div>
@@ -222,13 +251,15 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
           {results.length > 0 && catResults.length > 0 && (
             <div className="px-4 pt-2.5 pb-1 text-xs font-bold uppercase tracking-wider text-faint">Funds</div>
           )}
-          {results.map((f, i) => (
+          {results.map((f, i) => {
+            const idx = intent ? i + 1 : i
+            return (
             <button
               key={f.code}
-              onMouseEnter={() => setActiveIdx(i)}
+              onMouseEnter={() => setActiveIdx(idx)}
               onClick={() => pick(f)}
               className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition ${
-                i === activeIdx ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-surface2'
+                idx === activeIdx ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-surface2'
               }`}
             >
               <div className="min-w-0">
@@ -237,10 +268,11 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large }: Pro
               </div>
               <span className={`pill shrink-0 ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>{f.categoryDisplay}</span>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
-      {open && query.length >= 2 && results.length === 0 && catResults.length === 0 && (
+      {open && query.length >= 2 && results.length === 0 && catResults.length === 0 && !intent && (
         <div className="absolute right-0 z-50 mt-2 min-w-[24rem] w-full rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-xl">
           No funds match “{query}”. Try a fund name like “HDFC Flexi” or a category like “small cap”.
         </div>
