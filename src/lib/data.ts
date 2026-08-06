@@ -39,32 +39,75 @@ export function getFund(code: number): Fund | undefined {
 }
 
 // Fuzzy-ish search: matches on name, AMC, category. Ranked by relevance.
+/**
+ * Trigram similarity: fraction of shared 3-char slices between two strings.
+ * Gives fuzzy tolerance for typos (e.g. "paragh" still matches "parag").
+ */
+function trigramSim(a: string, b: string): number {
+  if (a.length < 3 || b.length < 3) return a.includes(b) || b.includes(a) ? 0.8 : 0
+  const tris = (s: string) => {
+    const t = new Set<string>()
+    for (let i = 0; i <= s.length - 3; i++) t.add(s.slice(i, i + 3))
+    return t
+  }
+  const setA = tris(a)
+  const setB = tris(b)
+  let shared = 0
+  setA.forEach((t) => { if (setB.has(t)) shared++ })
+  return shared / Math.max(setA.size, setB.size)
+}
+
 export function searchFunds(query: string, limit = 8): Fund[] {
   const q = query.trim().toLowerCase()
   if (q.length < 2) return []
   const tokens = q.split(/\s+/)
 
   const scored = funds.map((f) => {
-    const hay = `${f.name} ${f.amc} ${f.categoryDisplay}`.toLowerCase()
+    const nameLow = f.name.toLowerCase()
+    const amcLow = f.amc.toLowerCase()
+    const hay = `${nameLow} ${amcLow} ${f.categoryDisplay?.toLowerCase() ?? ''}`
     let score = 0
+
     // Exact prefix on name is strongest
-    if (f.name.toLowerCase().startsWith(q)) score += 100
-    if (f.amc.toLowerCase().startsWith(q)) score += 60
-    // All tokens present
+    if (nameLow.startsWith(q)) score += 100
+    if (amcLow.startsWith(q)) score += 60
+
+    // All tokens present (exact substring)
     const allMatch = tokens.every((t) => hay.includes(t))
-    if (allMatch) score += 40
-    // Partial token matches
+    if (allMatch) score += 40 + tokens.length * 5
+
+    // Per-token: exact substring OR fuzzy trigram match
     tokens.forEach((t) => {
-      if (hay.includes(t)) score += 10
+      if (hay.includes(t)) {
+        score += 10
+        // Bonus if token starts a word boundary
+        if (nameLow.includes(' ' + t) || nameLow.startsWith(t)) score += 5
+      } else {
+        // Fuzzy: compare token against each word in the haystack
+        const words = hay.split(/\s+/)
+        let bestSim = 0
+        for (const w of words) {
+          const sim = trigramSim(t, w)
+          if (sim > bestSim) bestSim = sim
+        }
+        // Only count fuzzy if similarity is strong enough (>= 0.55)
+        if (bestSim >= 0.55) score += Math.round(bestSim * 10)
+      }
     })
-    // Boost better-ranked funds slightly so good funds surface first
+
+    // Penalize if zero exact token hits (pure fuzzy match = lower confidence)
+    const exactHits = tokens.filter((t) => hay.includes(t)).length
+    if (exactHits === 0 && score > 0) score = Math.round(score * 0.5)
+
+    // Boost better-ranked funds slightly so top funds surface first
     const rank3y = f.metrics['3Y']?.catRank ?? 99
     score += Math.max(0, 10 - rank3y)
+
     return { f, score }
   })
 
   return scored
-    .filter((s) => s.score > 0)
+    .filter((s) => s.score > 10)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((s) => s.f)
