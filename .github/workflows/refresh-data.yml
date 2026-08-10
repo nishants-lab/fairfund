@@ -127,6 +127,14 @@ jobs:
       - name: Enrich fund-data with AUM and expense ratio
         run: python scripts/enrich_fund_data.py
 
+      - name: Refresh fund manager data (Groww)
+        run: python scripts/fetch_managers.py
+        continue-on-error: true
+
+      - name: Build manager quality signals
+        run: python scripts/build_manager_signals.py
+        continue-on-error: true
+
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
 
