@@ -180,9 +180,13 @@ export function ratioSpectrum(opts: {
   const lo = Math.min(opts.min, opts.value)
   const hi = Math.max(opts.max, opts.value)
   const sc = (v: number) => linPos(v, lo, hi)
+  // Anchor the amber midpoint at the category median so colour = median-relative
+  // quality: left of median reads red (worse half), right reads green (better
+  // half). This keeps the dot's colour consistent with the value's tone.
+  const medPos = clamp01(sc(median))
   const stops: SpectrumStop[] = [
     { pos: 0, color: SPECTRUM_RED },
-    { pos: 0.5, color: SPECTRUM_AMBER },
+    { pos: medPos, color: SPECTRUM_AMBER },
     { pos: 1, color: SPECTRUM_GREEN },
   ]
   const markers: SpectrumMarker[] = [{ pos: sc(opts.value), kind: 'primary', label: fmt(opts.value) }]
@@ -197,8 +201,8 @@ export function ratioSpectrum(opts: {
   const model: SpectrumModel = {
     stops,
     markers,
-    leftLabel: opts.leftLabel ?? 'Worse',
-    rightLabel: opts.rightLabel ?? 'Better',
+    leftLabel: opts.leftLabel ?? 'Worst',
+    rightLabel: opts.rightLabel ?? 'Best',
     minLabel: fmt(lo),
     maxLabel: fmt(hi),
     primaryAbove: true,
@@ -235,9 +239,13 @@ export function lowerBetterSpectrum(opts: {
   const lo = Math.min(opts.min, opts.value)
   const hi = Math.max(opts.max, opts.value)
   const sc = (v: number) => linPos(v, lo, hi)
+  // Anchor the amber midpoint at the category median (Option A): left of median
+  // = steadier-than-peers (green), right = swingier-than-peers (red). Keeps the
+  // dot's colour consistent with the value's tone (above median = red).
+  const medPos = clamp01(sc(median))
   const stops: SpectrumStop[] = [
     { pos: 0, color: SPECTRUM_GREEN },
-    { pos: 0.5, color: SPECTRUM_AMBER },
+    { pos: medPos, color: SPECTRUM_AMBER },
     { pos: 1, color: SPECTRUM_RED },
   ]
   const markers: SpectrumMarker[] = [{ pos: sc(opts.value), kind: 'primary', label: fmt(opts.value) }]
@@ -254,8 +262,8 @@ export function lowerBetterSpectrum(opts: {
   return {
     stops,
     markers,
-    leftLabel: opts.leftLabel ?? 'Steadier',
-    rightLabel: opts.rightLabel ?? 'Swingier',
+    leftLabel: opts.leftLabel ?? 'Steadiest',
+    rightLabel: opts.rightLabel ?? 'Swingiest',
     minLabel: fmt(lo),
     maxLabel: fmt(hi),
     primaryAbove: true,

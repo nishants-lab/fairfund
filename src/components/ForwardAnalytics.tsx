@@ -11,10 +11,10 @@ import Spectrum from './Spectrum'
 import { matchRegime, regimeInfo } from '../lib/regimes'
 import SearchBox from './SearchBox'
 
-const DIR_STYLE: Record<string, { txt: string; tone: string; arrow: string }> = {
-  climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400', arrow: '↑' },
-  fading: { txt: 'Fading', tone: 'text-rose-600 dark:text-rose-400', arrow: '↓' },
-  steady: { txt: 'Steady', tone: 'text-muted', arrow: '–' },
+const DIR_STYLE: Record<string, { txt: string; tone: string }> = {
+  climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400' },
+  fading: { txt: 'Fading', tone: 'text-rose-600 dark:text-rose-400' },
+  steady: { txt: 'Steady', tone: 'text-muted' },
 }
 
 
@@ -142,13 +142,13 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   <strong>This is a RANK chart, not a returns chart.</strong> The line is the fund's
                   position within its category over time, as a percentile (100 = top of category,
                   0 = bottom). It is recomputed on a rolling 3-year-return basis, one step per month.
-                  <br /><br />↑ <span className="text-emerald-600 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
-                  <br />↓ <span className="text-rose-600 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
-                  <br />– Steady: roughly holding position.
+                  <br /><br /><span className="text-emerald-600 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
+                  <br /><span className="text-rose-600 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
+                  <br /><span className="text-muted">Steady</span>: roughly holding position.
                 </InfoTip>
               </h4>
               <span className={`text-sm font-bold ${DIR_STYLE[a.rankTrajectory.direction].tone}`}>
-                {DIR_STYLE[a.rankTrajectory.direction].arrow} {DIR_STYLE[a.rankTrajectory.direction].txt}
+                {DIR_STYLE[a.rankTrajectory.direction].txt}
               </span>
             </div>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-faint">
@@ -212,7 +212,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               })}
             />
             <p className="mt-2 text-xs text-muted">
-              Across {a.battingAverage.n} rolling 3-year windows — higher means more repeatable skill, less luck.
+              Across {a.battingAverage.n} rolling 3-year windows. Higher means more repeatable skill, less luck.
             </p>
             {a.battingAverage.limited && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
@@ -574,7 +574,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                       const compRegime = regimeCompare?.analytics?.regimes?.find(x => x.name === r.name)
                       const compRet = compRegime?.active ? compRegime.ret : null
                       const fundRet = r.ret ?? 0
-                      // For down markets, less negative is better; for up markets, more positive is better — in both cases, higher number wins
+                      // For down markets, less negative is better; for up markets, more positive is better. In both cases, higher number wins
                       const fundWins = compRet != null && fundRet > compRet
                       const compWins = compRet != null && compRet > fundRet
                       const winBg = 'rounded-md bg-emerald-50 dark:bg-emerald-900/30 px-1.5'
@@ -675,7 +675,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2 && (
                     <div className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">
-                      This fund fell significantly more than its category median — weak downside protection.
+                      This fund fell significantly more than its category median, a sign of weak downside protection.
                     </div>
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && !(catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2) && (

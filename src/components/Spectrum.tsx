@@ -5,17 +5,15 @@ import { gradientCss, type SpectrumModel } from '../lib/spectrum'
  * Horizontal spectrum bar with marker(s). Two modes:
  *
  *  - MODEL mode (preferred): pass a `model` from lib/spectrum. The bar spans the
- *    metric's real scale; every marker shows ITS OWN value legibly, with no
- *    hovering and no legend-hunting:
- *      • THIS FUND — a tone-coloured caret on the bar, with its value printed in
- *        the same tone just ABOVE the caret (the hero read).
- *      • CATEGORY MEDIAN — a tick on the bar, with "med <value>" printed under it.
- *      • GOOD ≥ pivot — a dashed reference line, with "≥<value>" printed under it
- *        (drawn only when the pivot falls inside the real range).
- *    The bar's two ends print their REAL numeric values plus a one-word direction
- *    ("Worse – Better" / "Steadier – Swingier"), so the scale is self-describing.
- *    Below-bar value labels are laid out with a deterministic de-collision so they
- *    never overlap, even at ~150px mobile width.
+ *    metric's real scale and reads mobile-first, no legend-hunting:
+ *      THIS FUND is a tone-coloured dot on the bar (green good, amber neutral,
+ *      red poor). Its own value lives in the MetricCard header above, so it is
+ *      not repeated here. The CATEGORY MEDIAN is a tick with "med <value>" on its
+ *      own row. A GOOD-threshold pivot, when it falls inside the real range, is a
+ *      dashed reference line (hover for its value).
+ *    Labels sit on at most two short rows: the two endpoints share one baseline,
+ *    each hugging its own edge so they can never collide; the median value gets
+ *    a second row to itself. This holds down to ~150px width with no overlap.
  *
  *  - LEGACY mode: the old simple {value,leftLabel,rightLabel,gradient} API,
  *    kept so existing callers keep working (e.g. the running-hot z-score bar).
@@ -55,50 +53,14 @@ function anchor(pos: number): CSSProperties {
   return { left, transform: 'translateX(-50%)', textAlign: 'center' }
 }
 
-interface BelowLabel {
-  pos: number
-  text: string
-  cls: string
-  title?: string
-}
-
-/**
- * Assign each below-bar value label to a "lane" (stacked row) so no two labels
- * overlap horizontally. Greedy left-to-right; a label that can't fit on an
- * existing lane drops to a new one. Widths are estimated for the TIGHTEST bar
- * (~150px mobile) so the layout is collision-free at every width. Pure function.
- */
-const LANE_BAR_PX = 150
-const LANE_CHAR_PX = 7
-const LANE_GAP = 0.06
-function layoutLanes(items: BelowLabel[]): { lane: number; lanes: number; placed: { item: BelowLabel; lane: number }[] } {
-  const order = items.map((item, i) => ({ item, i })).sort((a, b) => a.item.pos - b.item.pos)
-  const laneRightEdge: number[] = []
-  const placed: { item: BelowLabel; lane: number }[] = []
-  for (const { item } of order) {
-    const halfW = (item.text.length * LANE_CHAR_PX) / LANE_BAR_PX / 2
-    const leftEdge = item.pos - halfW
-    let lane = laneRightEdge.findIndex((r) => leftEdge >= r + LANE_GAP)
-    if (lane === -1) {
-      lane = laneRightEdge.length
-      laneRightEdge.push(0)
-    }
-    laneRightEdge[lane] = item.pos + halfW
-    placed.push({ item, lane })
-  }
-  return { lane: 0, lanes: Math.max(1, laneRightEdge.length), placed }
-}
-
-const LANE_H = 14 // px per stacked label line
-
 function ModelSpectrum({ model, className }: { model: SpectrumModel; className?: string }) {
   const primary = model.markers.find((m) => m.kind === 'primary')
   const others = model.markers.filter((m) => m.kind !== 'primary')
   const tone = model.primaryTone ?? 'neutral'
   const primaryPos = primary ? cl01(primary.pos) : 0.5
-  const medianMarker = others.find((m) => m.kind === 'median')
 
   const hasEndValues = model.minLabel != null && model.maxLabel != null
+  const medianMarker = others.find((m) => m.kind === 'median')
 
   return (
     <div className={`mt-2 ${className ?? ''}`}>
@@ -133,14 +95,19 @@ function ModelSpectrum({ model, className }: { model: SpectrumModel; className?:
         )}
       </div>
 
-      {/* Compact annotation line below bar */}
-      <div className="mt-1.5 flex items-center justify-between text-[9px] leading-tight text-faint">
-        <span>{hasEndValues ? model.minLabel : ''} <span className="uppercase">{model.leftLabel}</span></span>
-        {medianMarker && (
-          <span className="text-muted">{medianMarker.label}</span>
-        )}
-        <span><span className="uppercase">{model.rightLabel}</span> {hasEndValues ? model.maxLabel : ''}</span>
+      {/* Endpoint labels: one baseline, hugging opposite edges so they can never
+          collide (mobile-first: two short labels, always one line). */}
+      <div className="mt-1.5 flex items-start justify-between gap-2 text-[9px] leading-tight text-faint">
+        <span className="whitespace-nowrap">{hasEndValues ? model.minLabel + ' ' : ''}<span className="uppercase">{model.leftLabel}</span></span>
+        <span className="whitespace-nowrap text-right"><span className="uppercase">{model.rightLabel}</span>{hasEndValues ? ' ' + model.maxLabel : ''}</span>
       </div>
+      {/* Category median value on its own row, centred under its tick. Alone on the
+          row, so it never collides with the endpoint labels. */}
+      {medianMarker?.label && (
+        <div className="relative mt-0.5 h-3 text-[9px] leading-tight text-muted">
+          <span className="absolute whitespace-nowrap" style={anchor(cl01(medianMarker.pos))}>{medianMarker.label}</span>
+        </div>
+      )}
 
       {/* Verdict moved to MetricCard header; gloss hidden to save space */}
     </div>

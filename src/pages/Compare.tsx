@@ -484,8 +484,8 @@ export default function Compare() {
                   {funds.map((f) => {
                     const dir = f.analytics?.rankTrajectory?.direction
                     const tone = dir === 'climbing' ? 'text-emerald-600 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
-                    const arrow = dir === 'climbing' ? '↑ Climbing' : dir === 'fading' ? '↓ Fading' : dir === 'steady' ? '– Steady' : '—'
-                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{arrow}</td>
+                    const label = dir === 'climbing' ? 'Climbing' : dir === 'fading' ? 'Fading' : dir === 'steady' ? 'Steady' : '—'
+                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{label}</td>
                   })}
                 </tr>
                 {/* Skill confidence */}
