@@ -163,3 +163,32 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   border: 2px solid rgb(var(--surface));
 }
+
+/* ============ Homepage: live ticker + staggered hero reveal ============ */
+.ticker-wrap {
+  overflow: hidden;
+}
+.ticker {
+  width: max-content;
+  animation: ticker-scroll 55s linear infinite;
+}
+.ticker-wrap:hover .ticker {
+  animation-play-state: paused;
+}
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise   { animation: rise-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rise-1 { animation-delay: 0.07s; }
+.rise-2 { animation-delay: 0.14s; }
+.rise-3 { animation-delay: 0.22s; }
+.rise-4 { animation-delay: 0.3s; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker { animation: none; }
+  .rise, .rise-1, .rise-2, .rise-3, .rise-4 { animation: none; }
+}
