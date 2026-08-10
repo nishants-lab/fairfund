@@ -236,7 +236,7 @@ export default function Home() {
 
       {/* Stats band */}
       <section className="border-b border-line bg-surface">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-line px-4 md:grid-cols-4">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 px-4 md:grid-cols-4 md:divide-x md:divide-line">
           {[
             { n: String(data.totalFunds), l: 'equity funds, full AMFI universe' },
             { n: String(categoryOrder.length), l: 'categories, every one covered' },

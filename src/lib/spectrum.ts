@@ -137,19 +137,23 @@ function categoryGloss(
   higherBetter: boolean,
 ): { gloss: string; verdict: string; tone: Tone } {
   const { min, max, median } = stat
-  const eps = 1e-9
+  const range = max - min || 1
+  const eps = range * 0.005
   const med = fmt(median)
   const isTop = higherBetter ? value >= max - eps : value <= min + eps
   const isBottom = higherBetter ? value <= min + eps : value >= max - eps
+  const atMedian = Math.abs(value - median) <= eps
   const beatsMedian = higherBetter ? value > median : value < median
   if (higherBetter) {
     if (isTop) return { gloss: `Above the category median (${med}).`, verdict: 'Best in category', tone: 'good' }
     if (isBottom) return { gloss: `Below the category median (${med}).`, verdict: 'Lowest in category', tone: 'bad' }
+    if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'In line with peers', tone: 'neutral' }
     if (beatsMedian) return { gloss: `Above the category median (${med}).`, verdict: 'Better than most peers', tone: 'good' }
     return { gloss: `Below the category median (${med}).`, verdict: 'Trails most peers', tone: 'warn' }
   }
   if (isTop) return { gloss: `Below the category median (${med}).`, verdict: 'Steadiest in category', tone: 'good' }
   if (isBottom) return { gloss: `Above the category median (${med}).`, verdict: 'Swingiest in category', tone: 'bad' }
+  if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'In line with peers', tone: 'neutral' }
   if (beatsMedian) return { gloss: `Below the category median (${med}).`, verdict: 'Steadier than most peers', tone: 'good' }
   return { gloss: `Above the category median (${med}).`, verdict: 'Swingier than most peers', tone: 'warn' }
 }
@@ -255,9 +259,9 @@ export function lowerBetterSpectrum(opts: {
   // Honor the established rule: below the category median = good (green),
   // above = bad (red). Keep the caret and its gloss tone identical so the
   // colour signal is never mixed (no amber caret over a red value).
-  const eps = 1e-9
+  const rangeTol = (hi - lo || 1) * 0.005
   const primaryTone: Tone =
-    opts.value < median - eps ? 'good' : opts.value > median + eps ? 'bad' : 'neutral'
+    opts.value < median - rangeTol ? 'good' : opts.value > median + rangeTol ? 'bad' : 'neutral'
 
   return {
     stops,
