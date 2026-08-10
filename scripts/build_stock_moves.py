@@ -50,6 +50,15 @@ _OUTPUT_CANDIDATES = [
 ]
 OUTPUT = next((p for p in _OUTPUT_CANDIDATES if os.path.isdir(os.path.dirname(p))), _OUTPUT_CANDIDATES[0])
 
+# Per-fund detail dir the WEBSITE actually reads (fund.stockMoves is loaded from
+# public/fund-data/<code>.json). We merge results here so the site is never stale.
+_FUND_DATA_CANDIDATES = [
+    os.path.join(ROOT, "mf-website-v2", "public", "fund-data"),  # local
+    os.path.join(ROOT, "public", "fund-data"),                   # CI
+    os.path.join(HERE, "..", "public", "fund-data"),             # CI alt
+]
+FUND_DATA_DIR = next((p for p in _FUND_DATA_CANDIDATES if os.path.isdir(p)), None)
+
 # ---- Step 1: Extract unique stocks from holdings history ----
 
 def extract_all_stocks():
@@ -471,6 +480,26 @@ def main():
                 with_score += 1
 
     json.dump(results, open(OUTPUT, "w", encoding="utf-8"))
+
+    # Merge stockMoves into the per-fund detail files the website loads. Without
+    # this the site keeps showing whatever was embedded at build time (stale).
+    if FUND_DATA_DIR:
+        merged = 0
+        for code, moves in results.items():
+            fp = os.path.join(FUND_DATA_DIR, f"{code}.json")
+            if not os.path.exists(fp):
+                continue
+            try:
+                detail = json.load(open(fp, encoding="utf-8"))
+            except Exception:
+                continue
+            if detail.get("stockMoves") != moves:
+                detail["stockMoves"] = moves
+                json.dump(detail, open(fp, "w", encoding="utf-8"), ensure_ascii=False)
+                merged += 1
+        print(f"Merged stockMoves into {merged} fund-data files at {FUND_DATA_DIR}")
+    else:
+        print("WARNING: fund-data dir not found; stockMoves NOT merged into site data")
     print(f"\nDone. Funds with >=2 snapshots: {fund_count}")
     print(f"Funds with computable moves: {with_moves}")
     print(f"Funds with smart-score (>=3 priced moves): {with_score}")
