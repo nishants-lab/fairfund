@@ -28,20 +28,44 @@ This prevents:
   fund record is outdated or irrelevant to this mandate).
 - Blaming the manager when the whole category fell equally (market context).
 
-Output: merged into funds.json by build_website_data_v6.py (reads manager_signals.json).
+Output:
+  - manager_signals.json under the repo root (intermediate audit artifact)
+  - each fund's block merged into public/fund-data/{code}.json under key "management"
+
 """
-import json, os, pickle
+import json, os
 from datetime import datetime
 from statistics import median
 import numpy as np
 
-ROOT = r"c:\Users\nisan\Documents\1. Work Related\1. Fresh\Kiro"
-ANCHOR = datetime(2026, 5, 29)
-NAV_CACHE = os.path.join(ROOT, "nav_cache")
-MIN_TENURE_YEARS = 1.5  # below this → "too early to tell"
+from pathlib import Path
 
-managers_raw = json.load(open(os.path.join(ROOT, "fund_managers.json"), encoding="utf-8"))
-funds_data = json.load(open(os.path.join(ROOT, "mf-website-v2", "src", "data", "funds.json"), encoding="utf-8"))
+# Repo-relative root. In CI the repo root IS the site root; in the local dev
+# workspace the site lives under mf-website-v2/. Resolve both layouts.
+ROOT = str(Path(__file__).resolve().parent.parent)
+
+def _pick_dir(cands):
+    for c in cands:
+        if os.path.isdir(c):
+            return c
+    return cands[0]  # canonical (repo-root) default even if absent
+
+SRC_DATA = _pick_dir([
+    os.path.join(ROOT, "src", "data"),                    # repo-root layout (CI)
+    os.path.join(ROOT, "mf-website-v2", "src", "data"),   # local dev workspace
+])
+PUBLIC = _pick_dir([
+    os.path.join(ROOT, "public"),
+    os.path.join(ROOT, "mf-website-v2", "public"),
+])
+NAV_DIR = os.path.join(PUBLIC, "nav")                     # public/nav/{code}.json (mfapi-style)
+HIST_DIR = os.path.join(PUBLIC, "holdings-history")
+FUND_DATA_DIR = os.path.join(PUBLIC, "fund-data")
+ANCHOR = datetime.now()                                   # tenure/return windows run up to "now"
+MIN_TENURE_YEARS = 1.5  # below this = "too early to tell"
+
+managers_raw = json.load(open(os.path.join(SRC_DATA, "fund_managers.json"), encoding="utf-8"))
+funds_data = json.load(open(os.path.join(SRC_DATA, "funds.json"), encoding="utf-8"))
 fund_by_code = {f["code"]: f for f in funds_data["funds"]}
 
 def best_metric(fund):
@@ -136,22 +160,22 @@ def compute_tenure_alpha(code, lead_since_iso, category, nav_mem):
         return None
 
     def nav_return(raw_data, start_date, end_date):
-        """Compute total return from raw mfapi-style data between two dates."""
-        points = []
-        for p in raw_data.get("data", []):
-            try:
-                dd, mm, yyyy = p["date"].split("-")
-                iso = f"{yyyy}-{mm}-{dd}"
-                nav = float(p["nav"])
-                if nav > 0:
-                    points.append((iso, nav))
-            except:
-                continue
-        points.sort(key=lambda x: x[0])
+        """Compute total return from a compact NAV file ({"d":[iso...],
+        "v":[nav...]}) between two dates. Dates are ISO and chronological."""
+        dates = raw_data.get("d") or []
+        vals = raw_data.get("v") or []
+        if not dates or len(dates) != len(vals):
+            return None
+        pts = sorted(
+            ((d, n) for d, n in zip(dates, vals) if isinstance(n, (int, float)) and n > 0),
+            key=lambda x: x[0],
+        )
+        if not pts:
+            return None
         start_iso = start_date.strftime("%Y-%m-%d")
         end_iso = end_date.strftime("%Y-%m-%d")
-        after_start = [(d, n) for d, n in points if d >= start_iso]
-        before_end = [(d, n) for d, n in points if d <= end_iso]
+        after_start = [(d, n) for d, n in pts if d >= start_iso]
+        before_end = [(d, n) for d, n in pts if d <= end_iso]
         if not after_start or not before_end:
             return None
         start_nav = after_start[0][1]
@@ -194,7 +218,7 @@ def compute_tenure_alpha(code, lead_since_iso, category, nav_mem):
 
 
 # ---- Holdings-change analysis (when >=2 snapshots exist) ----
-HIST_DIR = os.path.join(ROOT, "mf-website-v2", "public", "holdings-history")
+# HIST_DIR defined in the config block at the top of this file
 
 def compute_holdings_moves(code, lead_since_iso):
     """If we have >=2 holdings snapshots for this fund, compute what changed
@@ -355,15 +379,15 @@ total_funds = len(fund_by_code)
 import time as _time
 _t0 = _time.time()
 
-# Pre-load all NAV data into memory (avoids re-reading pickle files for every peer
-# in every fund's tenure-alpha calculation, ~42,000 redundant reads otherwise).
-print("Pre-loading NAV cache into memory...")
+# Pre-load all NAV data into memory (avoids re-reading JSON for every peer in
+# every fund's tenure-alpha calculation, ~42,000 redundant reads otherwise).
+print("Pre-loading NAV files into memory...")
 _nav_mem = {}
 for code in fund_by_code:
-    p = os.path.join(NAV_CACHE, f"{code}.pkl")
+    p = os.path.join(NAV_DIR, f"{code}.json")
     if os.path.exists(p):
         try:
-            _nav_mem[code] = pickle.load(open(p, "rb"))
+            _nav_mem[code] = json.load(open(p, encoding="utf-8"))
         except:
             pass
 print(f"  loaded {len(_nav_mem)} fund NAVs into memory")
@@ -438,7 +462,7 @@ for code, fund in fund_by_code.items():
             if is_cold: fade_reasons.append("running cold vs its own norm")
             if is_bottom_half: fade_reasons.append(f"ranked {m3y.get('catRank')}/{m3y.get('catSize')} in its category")
             note = (
-                f"⚠️ {new_mgr_count} of {team_size} managers joined in the last year, "
+                f"{new_mgr_count} of {team_size} managers joined in the last year, "
                 f"effectively a new team. Since the change, the fund's {' and '.join(fade_reasons)}. "
                 f"Cross-fund record ({tr['medianAlpha']:+.1f}%/yr median alpha across {tr['funds']} funds) "
                 f"looks good on paper, but that record may be from passive/index mandates under these "
@@ -472,6 +496,26 @@ for code, fund in fund_by_code.items():
     }
 
 json.dump(out, open(os.path.join(ROOT, "manager_signals.json"), "w", encoding="utf-8"))
+
+# Merge each fund's management block into public/fund-data/{code}.json.
+# Compact single-line write with no trailing newline matches the committed
+# format, so only genuinely changed files are rewritten (no churn).
+merged = 0
+for code, block in out.items():
+    fp = os.path.join(FUND_DATA_DIR, f"{code}.json")
+    if not os.path.exists(fp):
+        continue
+    try:
+        fd = json.load(open(fp, encoding="utf-8"))
+    except Exception:
+        continue
+    if fd.get("management") == block:
+        continue
+    fd["management"] = block
+    with open(fp, "w", encoding="utf-8") as _fh:
+        json.dump(fd, _fh, ensure_ascii=False, separators=(",", ":"))
+    merged += 1
+print(f"Merged management block into {merged} fund-data files")
 
 from collections import Counter
 sig = Counter(v.get("signal","No data") if v.get("available") else "No data" for v in out.values())

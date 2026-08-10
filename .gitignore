@@ -16,3 +16,10 @@ __pycache__/
 # Ephemeral stock-move build caches (root workspace copies; do not commit)
 /stock_ticker_cache.json
 /stock_price_cache.json
+
+# Ephemeral scraper build caches (populated at build time; never committed)
+/manager_cache/
+/nav_cache/
+/holdings_cache/
+/scheme_meta_cache/
+/manager_signals.json

@@ -40,7 +40,6 @@ All analytics are pre-computed offline and shipped as static JSON:
 | `pipeline/compute_metrics.py` | Fixed-window metric computation (CAGR, alpha, ranks) |
 | `pipeline/compute_rankings.py` | Within-category percentile rankings |
 | `pipeline/refresh.py` | Orchestrates daily NAV updates |
-| `scripts/build_nav_files.py` | Generates per-fund NAV JSON files from raw data |
 
 ### Market Regimes (10 total)
 COVID crash, post-COVID rally, 2021 consolidation, 2022 correction, 2022-24 bull run, mid-cap correction (Oct 2024), H2 2025 rally, US-Iran war, post-war recovery, plus auto-detected recent regimes.
