@@ -24,55 +24,68 @@ export default function Footer() {
     bizDaysSince <= 1 ? 'up to date' : bizDaysSince <= 2 ? 'recent' : `${bizDaysSince} market days old`
 
   return (
-    <footer className="mt-16 border-t border-line bg-surface">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
+    <footer className="mt-20 border-t border-line bg-surface">
+      <div className="mx-auto max-w-6xl px-4">
+        {/* Top: wordmark + nav columns */}
+        <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <div className="font-display text-lg font-bold text-fg">Fair<span className="text-brand-600 dark:text-brand-400">Fund</span></div>
-            <p className="mt-1 max-w-md text-sm text-muted">
-              Independent mutual fund research for India - backward-tested,
-              across {data.totalFunds} funds.
+            <div className="font-display text-2xl font-bold tracking-tight text-fg">
+              Fair<span className="text-brand-600 dark:text-brand-400">Fund</span>
+            </div>
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
+              Independent mutual fund research for India. Every score is tested
+              against history, across {data.totalFunds} equity funds.
+            </p>
+            <div className="mt-5 flex items-center gap-2 text-xs text-muted">
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${bizDaysSince <= 1 ? 'bg-emerald-500' : bizDaysSince <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+              <span>
+                NAV data <span className="font-medium text-fg">{fmtNavDate(navDate)}</span>
+                <span className="text-faint"> · {freshnessLabel}</span>
+              </span>
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-faint">
+              Metrics are computed live from today's NAV. Rankings refresh every market day.
             </p>
           </div>
-          <div className="flex gap-8 text-sm">
-            <div className="flex flex-col gap-2">
-              <Link to="/explore" className="text-muted hover:text-brand-600">Explore Funds</Link>
-              <Link to="/compare" className="text-muted hover:text-brand-600">Compare</Link>
-              <Link to="/methodology" className="text-muted hover:text-brand-600">How it works</Link>
-              <button onClick={resetOnboarding} className="text-left text-muted hover:text-brand-600">
+
+          <div>
+            <div className="eyebrow text-faint">Research</div>
+            <div className="mt-3 flex flex-col gap-2.5 text-sm">
+              <Link to="/explore" className="text-muted transition-colors hover:text-fg">Explore funds</Link>
+              <Link to="/compare" className="text-muted transition-colors hover:text-fg">Compare</Link>
+            </div>
+          </div>
+
+          <div>
+            <div className="eyebrow text-faint">About</div>
+            <div className="mt-3 flex flex-col gap-2.5 text-sm">
+              <Link to="/methodology" className="text-muted transition-colors hover:text-fg">How it works</Link>
+              <button onClick={resetOnboarding} className="text-left text-muted transition-colors hover:text-fg">
                 Take the tour
               </button>
             </div>
           </div>
         </div>
 
-        {/* Data freshness - prominent, not buried */}
-        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-line bg-surface2/50 px-4 py-2.5 text-xs text-muted">
-          <span className="flex items-center gap-1.5">
-            <span className={`inline-block h-2 w-2 rounded-full ${bizDaysSince <= 1 ? 'bg-emerald-500' : bizDaysSince <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-            <strong className="text-fg">NAV data: {fmtNavDate(navDate)}</strong>
-            <span className="text-faint">({freshnessLabel})</span>
-          </span>
-          <span className="hidden text-faint sm:inline">·</span>
-          <span className="text-faint">
-            Fund metrics are computed live from today's NAV. Category rankings refresh every market day.
-          </span>
+        {/* Disclaimer: quiet editorial small print, not an alert box */}
+        <div className="border-t border-line py-6">
+          <p className="max-w-3xl text-xs leading-relaxed text-faint">
+            <span className="font-medium uppercase tracking-wide text-muted">Disclaimer</span>
+            <span className="mx-2 text-line">|</span>
+            FairFund is a research and educational tool, not investment advice. We are not a
+            SEBI-registered investment adviser. Mutual fund investments are subject to market
+            risks. Past performance does not guarantee future returns. Always consult a
+            qualified financial advisor before investing.
+          </p>
         </div>
 
-        <div className="mt-4 rounded-xl bg-amber-50 p-4 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-          <strong>Disclaimer:</strong> FairFund is a research and educational tool, not investment
-          advice. We are not a SEBI-registered investment adviser. Mutual fund investments are
-          subject to market risks. Past performance does not guarantee future returns. Always
-          consult a qualified financial advisor before investing.
+        {/* Bottom bar */}
+        <div className="flex flex-col gap-2 border-t border-line py-5 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            © {new Date().getFullYear()} FairFund · {data.totalFunds} active equity funds · live NAV from AMFI
+          </span>
+          <span>Made in Bangalore, India</span>
         </div>
-
-        <div className="mt-4 text-center text-xs text-faint">
-          Covers {data.totalFunds} active equity funds · live NAV from AMFI ·
-          © {new Date().getFullYear()} FairFund
-        </div>
-        <p className="mt-3 text-center text-xs text-faint">
-          Made with <span className="text-red-500">{"\u2764"}</span> in Bangalore, India
-        </p>
       </div>
     </footer>
   )
