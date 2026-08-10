@@ -222,7 +222,7 @@ def compute_holdings_moves(code, lead_since_iso):
             before_snap = snaps[pre_mgr[-1]]
             after_snap = snaps[post_mgr[-1]]  # latest
         else:
-            # No snapshot from before this manager — use oldest vs latest
+            # No snapshot from before this manager, use oldest vs latest
             before_snap = snaps[dates[0]]
             after_snap = snaps[dates[-1]]
     else:
@@ -273,7 +273,7 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
             return ("Limited evidence",
                     "These managers run only this fund in our universe, so there's no independent cross-fund track record to judge yet.")
         return ("Limited evidence",
-                f"Only {n} other fund(s) by these managers are in our universe — too small a sample to judge skill reliably (median alpha {ma:+.1f}%/yr).")
+                f"Only {n} other fund(s) by these managers are in our universe, too small a sample to judge skill reliably (median alpha {ma:+.1f}%/yr).")
 
     # ---- Determine the BASE signal from cross-fund record ----
     if ma >= 2 and beat >= 0.6:
@@ -284,22 +284,22 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
         base_note = f"Across {n} funds, median alpha {ma:+.1f}%/yr with {int(beat*100)}% beating their category."
     else:
         base_signal = "Mixed"
-        base_note = f"Across {n} funds, median alpha {ma:+.1f}%/yr and {int(beat*100)}% beat their category — an inconsistent record."
+        base_note = f"Across {n} funds, median alpha {ma:+.1f}%/yr and {int(beat*100)}% beat their category, an inconsistent record."
 
     # ---- Apply tenure-window overlay (the new lens) ----
     if lead_tenure_yrs is not None and lead_tenure_yrs < MIN_TENURE_YEARS:
         # SHORT TENURE: too early to attribute anything to this manager.
         months_str = f"{int(lead_tenure_yrs * 12)} months" if lead_tenure_yrs < 1 else f"{lead_tenure_yrs:.1f} yrs"
-        caveat = f" However, the lead manager has been here only {months_str} — too early to attribute this fund's recent performance to them."
+        caveat = f" However, the lead manager has been here only {months_str}, too early to attribute this fund's recent performance to them."
         if tenure_perf:
             tp = tenure_perf
             if tp["alpha"] > 5:
                 caveat += (f" The fund returned {tp['fundReturn']:+.1f}% since they joined "
-                           f"(category median {tp['categoryReturn']:+.1f}%) — looks good, but "
+                           f"(category median {tp['categoryReturn']:+.1f}%), looks good, but "
                            f"a {tp['months']}-month window can't distinguish skill from market timing.")
             elif tp["alpha"] < -5:
                 caveat += (f" The fund returned {tp['fundReturn']:+.1f}% since they joined "
-                           f"(category median {tp['categoryReturn']:+.1f}%) — an early concern, "
+                           f"(category median {tp['categoryReturn']:+.1f}%), an early concern, "
                            f"though {tp['months']} months isn't enough to judge conclusively. "
                            f"{'The whole category fell similarly.' if tp['categoryReturn'] < -5 else 'The category did better, suggesting fund-specific weakness.'}")
         # Signal stays at its base level but with a clear caveat
@@ -310,31 +310,31 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
         # ADEQUATE TENURE: we can meaningfully judge performance under this manager.
         if tp["alpha"] < -3:
             # Fund is UNDERPERFORMING its category since this manager took over.
-            # Cap at "Mixed" regardless of cross-fund record — the record isn't
+            # Cap at "Mixed" regardless of cross-fund record, the record isn't
             # translating to this fund.
             if base_signal in ("Strong", "Solid"):
                 if tp.get("categoryUpFundDown"):
                     # STRONGEST caution: category thrived but fund didn't. This is
-                    # NOT macro — it's management-specific underperformance.
+                    # NOT macro, it's management-specific underperformance.
                     downgrade_note = (
                         f" CAUTION: since the current lead manager took over ({tp['months']} months ago), "
                         f"this fund returned {tp['fundReturn']:+.1f}% while the category median returned "
-                        f"{tp['categoryReturn']:+.1f}%. The category did well but this fund didn't — "
+                        f"{tp['categoryReturn']:+.1f}%. The category did well but this fund didn't, "
                         f"this points to fund-specific issues under the current management, not macro headwinds."
                     )
                 else:
                     downgrade_note = (
                         f" But since the current lead manager took over ({tp['months']} months ago), "
                         f"this fund returned {tp['fundReturn']:+.1f}% vs the category median's "
-                        f"{tp['categoryReturn']:+.1f}% — a {tp['alpha']:+.1f}% gap. "
-                        f"{'The category also struggled (macro headwinds), but this fund fared worse.' if tp['categoryReturn'] < 0 else 'The category did fine; this fund lagged — the cross-fund record may not be translating here.'}"
+                        f"{tp['categoryReturn']:+.1f}%, a {tp['alpha']:+.1f}% gap. "
+                        f"{'The category also struggled (macro headwinds), but this fund fared worse.' if tp['categoryReturn'] < 0 else 'The category did fine; this fund lagged, the cross-fund record may not be translating here.'}"
                     )
                 return ("Mixed", base_note + downgrade_note)
-            # Already Mixed or worse — add context with the category-up-fund-down flag
+            # Already Mixed or worse, add context with the category-up-fund-down flag
             addendum = (f" Since the current manager took over ({tp['months']} months), "
                         f"alpha vs category is {tp['alpha']:+.1f}%.")
             if tp.get("categoryUpFundDown"):
-                addendum += " Notably, the category performed well in this period but this fund lagged — a fund-specific concern."
+                addendum += " Notably, the category performed well in this period but this fund lagged, a fund-specific concern."
             return (base_signal, base_note + addendum)
         elif tp["alpha"] > 3:
             # Positive alpha under this manager confirms the cross-fund signal.
@@ -342,7 +342,7 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
                             f"({tp['months']} months), alpha vs the category is {tp['alpha']:+.1f}%.")
             return (base_signal, base_note + confirm_note)
         else:
-            # Alpha near zero — neutral, no modification.
+            # Alpha near zero, neutral, no modification.
             neutral_note = (f" Under the current lead ({tp['months']} months), this fund has tracked "
                             f"its category closely ({tp['alpha']:+.1f}% alpha).")
             return (base_signal, base_note + neutral_note)
@@ -356,7 +356,7 @@ import time as _time
 _t0 = _time.time()
 
 # Pre-load all NAV data into memory (avoids re-reading pickle files for every peer
-# in every fund's tenure-alpha calculation — ~42,000 redundant reads otherwise).
+# in every fund's tenure-alpha calculation, ~42,000 redundant reads otherwise).
 print("Pre-loading NAV cache into memory...")
 _nav_mem = {}
 for code in fund_by_code:
@@ -438,11 +438,11 @@ for code, fund in fund_by_code.items():
             if is_cold: fade_reasons.append("running cold vs its own norm")
             if is_bottom_half: fade_reasons.append(f"ranked {m3y.get('catRank')}/{m3y.get('catSize')} in its category")
             note = (
-                f"⚠️ {new_mgr_count} of {team_size} managers joined in the last year — "
+                f"⚠️ {new_mgr_count} of {team_size} managers joined in the last year, "
                 f"effectively a new team. Since the change, the fund's {' and '.join(fade_reasons)}. "
                 f"Cross-fund record ({tr['medianAlpha']:+.1f}%/yr median alpha across {tr['funds']} funds) "
                 f"looks good on paper, but that record may be from passive/index mandates under these "
-                f"managers and may not transfer to this fund's active mandate. Too early to call — watch the next 6-12 months."
+                f"managers and may not transfer to this fund's active mandate. Too early to call, watch the next 6-12 months."
             )
     # Also: if effective tenure is short (team-level), add caveat even without fading signals
     elif team_recently_changed and signal_key in ("Strong", "Solid"):
