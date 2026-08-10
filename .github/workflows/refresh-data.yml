@@ -102,7 +102,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install -r pipeline/requirements.txt && pip install requests yfinance
+        run: pip install -r pipeline/requirements.txt
 
       - name: Pull latest
         run: git pull --rebase origin main

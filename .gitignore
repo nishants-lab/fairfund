@@ -12,3 +12,7 @@ yarn-error.log*
 .env.local
 tsconfig.tsbuildinfo
 __pycache__/
+
+# Ephemeral stock-move build caches (root workspace copies; do not commit)
+/stock_ticker_cache.json
+/stock_price_cache.json
