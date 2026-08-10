@@ -35,7 +35,7 @@ function ChangeCell({ change }: { change?: number | null }) {
   const bps = Math.abs(Math.round(change * 100))
   return (
     <span className={`text-xs font-medium tabular-nums ${positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-      {positive ? '▲' : '▼'} {bps >= 100 ? (change > 0 ? '+' : '') + change.toFixed(2) + '%' : bps + ' bps'}
+      {positive ? '▲' : '▼'} {bps} bps
     </span>
   )
 }
