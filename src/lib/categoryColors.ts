@@ -1,4 +1,4 @@
-/** Unique color mapping for each fund category — returns Tailwind class strings */
+/** Unique color mapping for each fund category. Returns Tailwind class strings */
 
 interface CategoryColor {
   bg: string

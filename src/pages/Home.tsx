@@ -158,7 +158,7 @@ export default function Home() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-emerald-500">✓</span>
-                Any custom date range — every metric recomputes live
+                Any custom date range, and every metric recomputes live
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-emerald-500">✓</span>

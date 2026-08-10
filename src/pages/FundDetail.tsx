@@ -131,7 +131,7 @@ export default function FundDetail() {
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
         <div className="text-2xl font-bold text-fg">Fund not found</div>
         <Link to="/explore" className="mt-4 inline-block text-brand-600 hover:underline">
-          ← Back to Explore
+          Back to Explore
         </Link>
       </div>
     )
@@ -403,7 +403,7 @@ export default function FundDetail() {
             />
           </div>
           <p className="mt-2 text-xs text-faint">
-            ↑ All metrics are computed live from daily NAV for exactly{' '}
+            All metrics are computed live from daily NAV for exactly{' '}
             <strong className="text-muted">{fmtDate(live.startDate)} – {fmtDate(live.endDate)}</strong>. Change the range
             above and every number updates. This is the core of FairFund - no fund can hide behind a
             cherry-picked window.
@@ -422,7 +422,7 @@ export default function FundDetail() {
             <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
           <p className="mt-2 text-xs text-faint">
-            ↑ Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
+            Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
             {error
               ? 'Live custom-range analysis is unavailable right now (NAV source not responding) - these baseline numbers still stand.'
               : 'Pick a range above to recompute everything live from daily NAV.'}
@@ -434,7 +434,7 @@ export default function FundDetail() {
         </div>
       )}
 
-      {/* Category landscape — where this fund sits on risk vs return (peer context) */}
+      {/* Category landscape: where this fund sits on risk vs return (peer context) */}
       <FundLandscape fund={fund} />
 
       {/* Chart */}
@@ -496,7 +496,7 @@ export default function FundDetail() {
       {/* Management quality */}
       <ManagementCard fund={fund} />
 
-      {/* Forward-looking analytics (v3) — "If you stay invested for…" + signals */}
+      {/* Forward-looking analytics (v3): "If you stay invested for..." + signals */}
       <ForwardAnalytics fund={fund} nav={allNav} />
 
       {/* Peers */}

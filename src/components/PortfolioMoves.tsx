@@ -48,7 +48,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
             Between two monthly portfolio disclosures, we identify what stocks the manager
             <strong> added</strong> (new positions) and <strong>exited</strong> (removed), then track
             how those stocks performed AFTER the move using NSE price data. A high "smart score" means
-            most adds went up and most exits went down — the manager's stock-picking added value.
+            most adds went up and most exits went down, so the manager's stock-picking added value.
             {shortWindow && (
               <><br /><br /><em>Note:</em> only ~{postMonths} month(s) of post-move data so far. The
               verdict becomes more reliable with 3-6 months of follow-through.</>
@@ -70,8 +70,8 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
 
       {shortWindow && hasScore && (
         <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-          Only ~{postMonths} month of post-move data — treat this as a preliminary read, not a final verdict.
-          It becomes more meaningful after 3+ months.
+          Only ~{postMonths} month{postMonths > 1 ? 's' : ''} of post-move data so far, so treat this as a
+          preliminary read, not a final verdict. It becomes more meaningful after 3+ months.
         </p>
       )}
 
