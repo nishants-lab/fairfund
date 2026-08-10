@@ -28,17 +28,18 @@ const tierCagrColor = {
 /* Reshuffling leaderboard: the hero proof that the window decides     */
 /* the winner. All real bundle data, top 5 by CAGR per window.         */
 /* ------------------------------------------------------------------ */
-const DEMO_CAT = 'Flexi Cap'
+const DEMO_CATS = ['Flexi Cap', 'Large Cap', 'Mid Cap', 'Small Cap', 'ELSS'] as const
 const DEMO_WINDOWS = ['1Y', '3Y', '5Y'] as const
 type DemoWindow = (typeof DEMO_WINDOWS)[number]
 const ROW_H = 58
 
 function ReshuffleBoard() {
   const navigate = useNavigate()
+  const [cat, setCat] = useState<string>(DEMO_CATS[0])
   const [win, setWin] = useState<DemoWindow>('1Y')
 
   const demo = useMemo(() => {
-    const catFunds = funds.filter((f) => f.category === DEMO_CAT)
+    const catFunds = funds.filter((f) => f.category === cat)
     const byWin = {} as Record<DemoWindow, Fund[]>
     for (const w of DEMO_WINDOWS) {
       byWin[w] = catFunds
@@ -50,14 +51,14 @@ function ReshuffleBoard() {
     for (const w of DEMO_WINDOWS)
       for (const f of byWin[w]) if (!union.some((u) => u.code === f.code)) union.push(f)
     return { byWin, union }
-  }, [])
+  }, [cat])
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-        <div>
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <div className="min-w-0">
           <div className="eyebrow text-[11px] font-bold uppercase text-faint">Live from our data</div>
-          <div className="mt-0.5 text-sm font-semibold text-fg">Top 5 {DEMO_CAT} funds by CAGR</div>
+          <div className="mt-0.5 truncate text-sm font-semibold text-fg">Top 5 {cat} funds by CAGR</div>
         </div>
         <div className="flex rounded-lg border border-line p-0.5" role="tablist" aria-label="Return window">
           {DEMO_WINDOWS.map((w) => (
@@ -76,6 +77,25 @@ function ReshuffleBoard() {
             </button>
           ))}
         </div>
+      </div>
+      <div
+        className="flex gap-1.5 overflow-x-auto border-b border-line px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5"
+        role="tablist"
+        aria-label="Category"
+      >
+        {DEMO_CATS.map((c) => (
+          <button
+            key={c}
+            role="tab"
+            aria-selected={cat === c}
+            onClick={() => setCat(c)}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              cat === c ? 'bg-fg text-canvas' : 'bg-surface2 text-muted hover:text-fg'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
       </div>
       <div className="relative" style={{ height: ROW_H * 5 }}>
         {demo.union.map((f) => {
@@ -114,8 +134,7 @@ function ReshuffleBoard() {
         })}
       </div>
       <div className="border-t border-line bg-surface2/50 px-4 py-2.5 text-xs leading-relaxed text-muted sm:px-5">
-        Same funds, same category. The leaderboard reshuffles as the window moves, which is exactly
-        why we let you pick any window.
+        The order reshuffles as the window moves. Tap any fund for its full report.
       </div>
     </div>
   )
@@ -194,38 +213,22 @@ export default function Home() {
       {/* Hero: editorial, asymmetric */}
       <section className="relative border-b border-line bg-gradient-to-b from-brand-50/70 to-canvas dark:from-brand-900/20 dark:to-canvas">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-12 pt-10 md:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pb-16">
-          <div>
-            <div className="rise eyebrow text-xs font-bold uppercase text-brand-700 dark:text-brand-300">
-              Independent fund research, India
-            </div>
-            <h1 className="rise rise-1 mt-4 text-[clamp(2.4rem,5.2vw+0.8rem,4rem)] font-semibold leading-[1.04] tracking-tight text-fg">
+          <div className="min-w-0">
+            <h1 className="rise text-[clamp(2.4rem,5.2vw+0.8rem,4rem)] font-semibold leading-[1.04] tracking-tight text-fg">
               Fund research
               <br />
               that plays{' '}
               <em className="text-brand-700 dark:text-brand-300">fair.</em>
             </h1>
-            <p className="rise rise-2 mt-5 max-w-lg text-lg leading-relaxed text-muted">
-              Probability-based signals across all{' '}
-              <strong className="font-semibold text-fg">{data.totalFunds}</strong> Indian equity mutual
-              funds, judged over the same window. Any window you choose. No stars, no ads, no
-              commissions.
+            <p className="rise rise-1 mt-5 max-w-lg text-lg leading-relaxed text-muted">
+              All <strong className="font-semibold text-fg">{data.totalFunds}</strong> Indian equity
+              funds, ranked over any time period you pick.
             </p>
-            <div className="rise rise-3 relative z-30 mt-7 max-w-xl">
+            <div className="rise rise-2 relative z-30 mt-7 max-w-xl">
               <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
             </div>
-            <div className="rise rise-4 mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> Updated daily
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> Open methodology
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> Free, nothing to sell you
-              </span>
-            </div>
           </div>
-          <div className="rise rise-3">
+          <div className="rise rise-2 min-w-0">
             <ReshuffleBoard />
           </div>
         </div>
