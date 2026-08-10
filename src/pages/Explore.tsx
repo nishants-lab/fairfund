@@ -29,7 +29,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
     tip: (
       <>
         <strong>How often the fund beat its category's median over rolling 3-year windows.</strong>
-        <br /><br />The arrow shows recent form: ↑ climbing the rankings, ↓ fading, – steady. The %
+        <br /><br />Recent form is shown by colour: green climbing the rankings, red fading, grey steady. The %
         is the share of 3-year windows it finished in the better half - higher means more repeatable
         skill, less luck. Full explanation on each fund's page.
       </>
@@ -52,7 +52,6 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
   },
 ]
 
-const TREND: Record<string, string> = { climbing: '↑', fading: '↓', steady: '–' }
 const TREND_TONE: Record<string, string> = {
   climbing: 'text-emerald-600 dark:text-emerald-400',
   fading: 'text-rose-600 dark:text-rose-400',
@@ -268,12 +267,7 @@ export default function Explore() {
                     <td className="px-4 py-3 text-right text-rose-500">{pct(m.maxDrawdown)}</td>
                     <td className="px-4 py-3 text-right">
                       {f.analytics?.battingAverage ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className={`text-xs font-bold ${TREND_TONE[f.analytics.rankTrajectory?.direction ?? 'steady']}`}>
-                            {TREND[f.analytics.rankTrajectory?.direction ?? 'steady']}
-                          </span>
-                          <span className="font-semibold text-fg">{f.analytics.battingAverage.pct}%</span>
-                        </span>
+                        <span className={`font-semibold ${TREND_TONE[f.analytics.rankTrajectory?.direction ?? 'steady']}`}>{f.analytics.battingAverage.pct}%</span>
                       ) : (
                         <span className="text-faint">—</span>
                       )}

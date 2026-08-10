@@ -45,7 +45,7 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
   const catKey = fund?.category ?? category
   const currentCode = fund?.code
 
-  const { rows, xDomain, yDomain, xMed, yMed, n, catDisplay } = useMemo(() => {
+  const { rows, xDomain, yDomain, xMed, yMed, n, catDisplay, fundPlotted } = useMemo(() => {
     const peers = ALL.filter(
       (f) => f.category === catKey && f.metrics['3Y']?.volatility && f.metrics['3Y']?.cagr != null,
     )
@@ -67,10 +67,16 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
       yDomain: [Math.min(...ys) - yPad, Math.max(...ys) + yPad],
       xMed: median(xs), yMed: median(ys),
       catDisplay: peers[0]?.categoryDisplay ?? catKey ?? '',
+      fundPlotted: currentCode != null && rows.some((r) => r.current),
     }
   }, [catKey, currentCode, aum])
 
   if (n < 4) return null
+
+  // The chart plots 3-year risk vs return. A fund younger than 3 years has no 3Y
+  // metrics, so it can't be placed. Say so plainly rather than silently omitting
+  // the very fund the page is about.
+  const fundMissing = fund != null && !fundPlotted
 
   const grid = theme === 'dark' ? '#1e293b' : '#eef2f7'
   const axis = theme === 'dark' ? '#64748b' : '#94a3b8'
@@ -100,6 +106,11 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
         Risk vs return over 3 years. Up and to the left is better: more return for less risk. Bubble size = AUM.
         Hover any fund for detail; click to open it.
       </p>
+      {fundMissing && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+          This fund is under 3 years old, so it has no 3-year track record yet and can't be placed on this chart. The peers shown all have 3+ years of history.
+        </p>
+      )}
       <ResponsiveContainer width="100%" height={360}>
         <ScatterChart margin={{ top: 16, right: 16, left: 4, bottom: 16 }}>
           <ReferenceArea

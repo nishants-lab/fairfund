@@ -190,7 +190,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
       </p>
 
       {/* Who bets bigger */}
-      <div className="mt-4 text-xs font-bold uppercase tracking-wide text-faint">Shared holdings — who bets bigger</div>
+      <div className="mt-4 text-xs font-bold uppercase tracking-wide text-faint">Shared holdings: who bets bigger</div>
       <div className="mt-2 flex">
         <div className="w-[110px] shrink-0" />
         <div className="relative flex-1">
