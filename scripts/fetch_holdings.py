@@ -31,7 +31,7 @@ Resumable & idempotent. Run repeatedly; only fetches what is missing.
 import requests, json, os, time, sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ROOT = r"c:\Users\nisan\Documents\1. Work Related\1. Fresh\Kiro"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 HOLD_CACHE = os.path.join(ROOT, "holdings_cache")
 SLUG_CACHE = os.path.join(ROOT, "holdings_cache", "_slugs")
 os.makedirs(HOLD_CACHE, exist_ok=True)
@@ -307,7 +307,10 @@ def main():
             c = int(f["code"])
             universe[c] = auth_name(c, f["name"])
     else:
-        fj = json.load(open(os.path.join(ROOT, "mf-website-v2", "src", "data", "funds.json"), encoding="utf-8"))
+        _fp = os.path.join(ROOT, "src", "data", "funds.json")
+        if not os.path.exists(_fp):
+            _fp = os.path.join(ROOT, "mf-website-v2", "src", "data", "funds.json")
+        fj = json.load(open(_fp, encoding="utf-8"))
         for f in fj["funds"]:
             c = int(f["code"])
             universe[c] = auth_name(c, f["fullName"])

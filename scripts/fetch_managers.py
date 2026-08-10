@@ -52,7 +52,19 @@ def auth_name(code):
             pass
     return names.get(code, "")
 
+HIST_DIR = os.path.join(ROOT, "public", "holdings-history")
+
 def slug_for(code):
+    # Prefer the slug embedded in the committed holdings-history file (present
+    # in CI and any fresh checkout); fall back to the legacy _slugs cache dir.
+    hf = os.path.join(HIST_DIR, f"{code}.json")
+    if os.path.exists(hf):
+        try:
+            slug = json.load(open(hf, encoding="utf-8")).get("slug")
+            if slug:
+                return slug
+        except:
+            pass
     f = os.path.join(SLUG_DIR, f"{code}.json")
     if os.path.exists(f):
         try:
