@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { gradientCss, type SpectrumModel } from '../lib/spectrum'
 
 /**
@@ -44,14 +43,7 @@ const TONE_CARET: Record<string, string> = {
 
 const cl01 = (x: number) => Math.max(0, Math.min(1, x))
 
-/** Horizontal anchoring for a label centred on `pos`, clamped so it never clips
- *  off either card edge: hug-left near 0, hug-right near 1, else centre. */
-function anchor(pos: number): CSSProperties {
-  const left = `${cl01(pos) * 100}%`
-  if (pos <= 0.12) return { left, transform: 'translateX(0)', textAlign: 'left' }
-  if (pos >= 0.88) return { left, transform: 'translateX(-100%)', textAlign: 'right' }
-  return { left, transform: 'translateX(-50%)', textAlign: 'center' }
-}
+
 
 function ModelSpectrum({ model, className }: { model: SpectrumModel; className?: string }) {
   const primary = model.markers.find((m) => m.kind === 'primary')
@@ -95,18 +87,14 @@ function ModelSpectrum({ model, className }: { model: SpectrumModel; className?:
         )}
       </div>
 
-      {/* Endpoint labels: one baseline, hugging opposite edges so they can never
-          collide (mobile-first: two short labels, always one line). */}
-      <div className="mt-1.5 flex items-start justify-between gap-2 text-[9px] leading-tight text-faint">
-        <span className="whitespace-nowrap">{hasEndValues ? model.minLabel + ' ' : ''}<span className="uppercase">{model.leftLabel}</span></span>
-        <span className="whitespace-nowrap text-right"><span className="uppercase">{model.rightLabel}</span>{hasEndValues ? ' ' + model.maxLabel : ''}</span>
+      {/* Row 1: endpoints only (left + right, flex justify-between) */}
+      <div className="mt-1.5 flex justify-between text-[9px] leading-tight text-faint">
+        <span>{hasEndValues ? model.minLabel + ' ' : ''}<span className="uppercase">{model.leftLabel}</span></span>
+        <span className="text-right"><span className="uppercase">{model.rightLabel}</span>{hasEndValues ? ' ' + model.maxLabel : ''}</span>
       </div>
-      {/* Category median value on its own row, centred under its tick. Alone on the
-          row, so it never collides with the endpoint labels. */}
+      {/* Row 2: median value, centred (plain flow, no absolute positioning) */}
       {medianMarker?.label && (
-        <div className="relative mt-0.5 h-3 text-[9px] leading-tight text-muted">
-          <span className="absolute whitespace-nowrap" style={anchor(cl01(medianMarker.pos))}>{medianMarker.label}</span>
-        </div>
+        <div className="text-center text-[9px] leading-tight text-muted">{medianMarker.label}</div>
       )}
 
       {/* Verdict moved to MetricCard header; gloss hidden to save space */}
