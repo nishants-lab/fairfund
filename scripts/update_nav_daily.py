@@ -26,7 +26,7 @@ LEDGER_PATH = os.path.abspath(os.path.join(HERE, "..", "src", "data", "nav_stale
 # many calendar days is treated as stale, filtering out weekend/holiday gaps.
 DAILY_STALE_GAP_DAYS = 7
 
-AMFI_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
+AMFI_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 
 def fetch_amfi():
     req = urllib.request.Request(AMFI_URL, headers={"User-Agent": "Mozilla/5.0"})
@@ -41,10 +41,12 @@ def fetch_amfi():
         if not code.isdigit():
             continue
         try:
-            nav = float(parts[4].strip())
+            # NAV and date are the last two fields in both the legacy 6-field
+            # and the 2026 portal 8-field (...;Plan;Option;NAV;Date) layouts.
+            nav = float(parts[-2].strip())
             if nav <= 0:
                 continue
-            iso = datetime.strptime(parts[5].strip(), "%d-%b-%Y").strftime("%Y-%m-%d")
+            iso = datetime.strptime(parts[-1].strip(), "%d-%b-%Y").strftime("%Y-%m-%d")
         except Exception:
             continue
         latest[code] = (iso, round(nav, 4))

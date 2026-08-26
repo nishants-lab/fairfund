@@ -86,7 +86,7 @@ GROWW_HEADERS = {
 }
 
 # AMFI API
-AMFI_NAV_ALL_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
+AMFI_NAV_ALL_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 MFAPI_BASE_URL = "https://api.mfapi.in/mf/"
 
 # A fund is treated as genuinely closed only if its code is absent from the RAW
