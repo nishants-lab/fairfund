@@ -71,12 +71,21 @@ def fetch_amfi_universe():
 
         name = parts[3].strip() if len(parts) > 3 else ""
         
-        # Only Direct + Growth schemes (strict: must have both)
-        name_lower = name.lower()
-        if "direct" not in name_lower:
-            continue
-        if "growth" not in name_lower:
-            continue
+        # Only Direct + Growth schemes (strict: must have both).
+        # 2026 portal format carries Plan/Option as separate fields
+        # (...;Scheme Name;Plan;Option;NAV;Date); legacy format embedded
+        # them in the scheme name.
+        if len(parts) >= 8:
+            plan = parts[4].strip().lower()
+            option = parts[5].strip().lower()
+            if "direct" not in plan or "growth" not in option:
+                continue
+        else:
+            name_lower = name.lower()
+            if "direct" not in name_lower:
+                continue
+            if "growth" not in name_lower:
+                continue
 
         schemes[int(code)] = {
             "code": int(code),
