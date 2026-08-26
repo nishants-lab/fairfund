@@ -9,19 +9,17 @@ import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
 import type { Fund } from '../types'
 
 /** Performance tier classification for category cards */
-function cagrTier(cagr: number | null | undefined): 'top' | 'good' | 'average' | 'below' {
-  if (!cagr) return 'average'
-  if (cagr >= 18) return 'top'
-  if (cagr >= 15) return 'good'
-  if (cagr >= 12) return 'average'
-  return 'below'
+function cagrTier(cagr: number | null | undefined): 'high' | 'normal' | 'low' {
+  if (!cagr) return 'normal'
+  if (cagr >= 15) return 'high'
+  if (cagr < 12) return 'low'
+  return 'normal'
 }
 
 const tierCagrColor = {
-  top: 'text-emerald-700 dark:text-emerald-400 font-extrabold',
-  good: 'text-brand-700 dark:text-brand-300 font-bold',
-  average: 'text-fg font-bold',
-  below: 'text-amber-700 dark:text-amber-400 font-bold',
+  high: 'text-emerald-700 dark:text-emerald-400 font-extrabold',
+  normal: 'text-fg font-bold',
+  low: 'text-amber-700 dark:text-amber-400 font-bold',
 } as const
 
 /* ------------------------------------------------------------------ */
@@ -360,10 +358,10 @@ export default function Home() {
           </div>
           <div className="hidden items-center gap-3 text-xs text-faint sm:flex">
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> 18% and above
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> 15% and above
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-400/60" /> 15 to 18%
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-zinc-300/60 dark:bg-zinc-500/60" /> 12 to 15%
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-400/60" /> under 12%
