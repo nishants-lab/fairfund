@@ -30,6 +30,7 @@ export interface FundSummary {
 export interface ParsedPortfolio {
   id: string             // unique ID per upload
   uploadedAt: string     // ISO datetime
+  matcherVersion?: number // version of the fund-matching logic used at parse time
   investorName: string
   pan: string            // masked (last 4 only)
   transactions: Transaction[]
@@ -64,6 +65,7 @@ export interface PortfolioHolding {
   prevNav: number        // previous NAV (for day-over-day), 0 if unknown
   dayChangeValue: number // value change vs previous NAV day
   dayChangePct: number   // NAV % change vs previous day
+  personalCagr: number | null // your money-weighted annualized return (XIRR) from CAMS history, null if not computable
 }
 
 export interface ConcentrationItem {
@@ -71,6 +73,7 @@ export interface ConcentrationItem {
   weight: number         // % of total portfolio
   sector?: string | null
   fundCount: number      // how many funds hold this
+  holders: { name: string; code: number; weight: number }[] // per-fund contribution to this stock's portfolio weight
 }
 
 export interface PortfolioAnalysis {
@@ -82,7 +85,7 @@ export interface PortfolioAnalysis {
   sectorConcentration: { sector: string; weight: number }[]
   stockConcentration: ConcentrationItem[]
   managerAlerts: { fundName: string; code: number; alert: string }[]
-  reshuffleScore: { code: number; name: string; rankAtPurchase: number | null; rankNow: number | null; drift: number | null }[]
+  reshuffleScore: { code: number; name: string; rankAtPurchase: number | null; rankNow: number | null; drift: number | null; cagr: number | null }[]
   dayChangeValue: number   // portfolio value change vs previous NAV day
   dayChangePct: number     // portfolio % change vs previous NAV day
   navAsOf: string          // date of latest NAV used (yyyy-mm-dd), '' if none
@@ -134,6 +137,40 @@ export function usePortfolio(): ParsedPortfolio | null {
     }
   }, [])
   return p
+}
+
+// ---- Money-weighted return (XIRR) ----
+//
+// Your personal annualized return, accounting for the timing of every SIP /
+// lump-sum. Absolute gain % can't be compared across holdings bought at
+// different times; XIRR can. Cashflows: money invested is negative, money
+// received (redemptions, and the current value as a terminal inflow) positive.
+
+interface CashFlow { when: number; amount: number } // when = epoch ms
+
+function xirr(flows: CashFlow[]): number | null {
+  if (flows.length < 2) return null
+  if (!flows.some(f => f.amount < 0) || !flows.some(f => f.amount > 0)) return null
+  const sorted = [...flows].sort((a, b) => a.when - b.when)
+  const t0 = sorted[0].when
+  const YEAR = 365 * 24 * 3600 * 1000
+  const yearsOf = (w: number) => (w - t0) / YEAR
+  const npv = (r: number) => sorted.reduce((acc, f) => acc + f.amount / Math.pow(1 + r, yearsOf(f.when)), 0)
+
+  // Bisection over a wide, safe bracket (robust; no divergence).
+  let lo = -0.9999, hi = 100
+  let flo = npv(lo)
+  const fhi = npv(hi)
+  if ((flo < 0) === (fhi < 0)) return null // no sign change -> no root in range
+  let mid = 0
+  for (let i = 0; i < 200; i++) {
+    mid = (lo + hi) / 2
+    const fmid = npv(mid)
+    if (Math.abs(fmid) < 1e-7) break
+    if ((flo < 0) === (fmid < 0)) { lo = mid; flo = fmid } else { hi = mid }
+  }
+  if (!isFinite(mid)) return null
+  return mid * 100
 }
 
 // ---- Analysis ----
@@ -188,6 +225,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
         prevNav: 0,
         dayChangeValue: 0,
         dayChangePct: 0,
+        personalCagr: null,
       })
     }
   } else {
@@ -229,11 +267,34 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
         prevNav: 0,
         dayChangeValue: 0,
         dayChangePct: 0,
+        personalCagr: null,
       })
     }
   }
 
   await Promise.all(detailPromises)
+
+  // Personal money-weighted return (XIRR) per holding, from your CAMS history.
+  const txByCode = new Map<number, Transaction[]>()
+  for (const tx of portfolio.transactions) {
+    const list = txByCode.get(tx.fundCode)
+    if (list) list.push(tx)
+    else txByCode.set(tx.fundCode, [tx])
+  }
+  const nowMs = Date.now()
+  for (const h of holdings) {
+    const txs = txByCode.get(h.code)
+    if (!txs || txs.length === 0 || h.currentValue <= 0) continue
+    const flows: CashFlow[] = []
+    for (const tx of txs) {
+      const when = new Date(tx.date).getTime()
+      if (isNaN(when) || tx.amount <= 0) continue
+      const isInflow = tx.type === 'redeem' || tx.type === 'switch_out' || tx.type === 'dividend'
+      flows.push({ when, amount: isInflow ? tx.amount : -tx.amount })
+    }
+    flows.push({ when: nowMs, amount: h.currentValue })
+    h.personalCagr = xirr(flows)
+  }
 
   // 2. Current value stays anchored to the CAMS-stated market value (the source
   //    of truth, and what matches the statement). Our self-hosted NAV history is
@@ -287,7 +348,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
 
   // 4. Sector concentration (aggregate across all funds' underlying holdings)
   const sectorMap = new Map<string, number>()
-  const stockMap = new Map<string, { weight: number; sector?: string | null; funds: Set<string> }>()
+  const stockMap = new Map<string, { weight: number; sector?: string | null; holders: Map<number, { name: string; weight: number }> }>()
 
   for (const h of holdings) {
     const fundHoldings = h.fund?.holdings
@@ -301,9 +362,11 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
       const existing = stockMap.get(key)
       if (existing) {
         existing.weight += stockWeight
-        existing.funds.add(h.name)
+        const hh = existing.holders.get(h.code)
+        if (hh) hh.weight += stockWeight
+        else existing.holders.set(h.code, { name: h.name, weight: stockWeight })
       } else {
-        stockMap.set(key, { weight: stockWeight, sector: stock.sector, funds: new Set([h.name]) })
+        stockMap.set(key, { weight: stockWeight, sector: stock.sector, holders: new Map([[h.code, { name: h.name, weight: stockWeight }]]) })
       }
     }
   }
@@ -317,7 +380,9 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
       name: key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
       weight: v.weight,
       sector: v.sector,
-      fundCount: v.funds.size,
+      fundCount: v.holders.size,
+      holders: [...v.holders.entries()].map(([code, hh]) => ({ name: hh.name, code, weight: hh.weight }))
+        .sort((a, b) => b.weight - a.weight),
     }))
     .sort((a, b) => b.weight - a.weight)
     .slice(0, 20)
@@ -349,7 +414,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
     if (!h.covered) continue
     const trajectory = h.fund?.analytics?.rankTrajectory
     if (!trajectory) {
-      reshuffleScore.push({ code: h.code, name: h.name, rankAtPurchase: null, rankNow: null, drift: null })
+      reshuffleScore.push({ code: h.code, name: h.name, rankAtPurchase: null, rankNow: null, drift: null, cagr: h.fund?.metrics['3Y']?.cagr ?? null })
       continue
     }
     reshuffleScore.push({
@@ -358,6 +423,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
       rankAtPurchase: trajectory.priorRank,
       rankNow: trajectory.currentRank,
       drift: trajectory.currentRank - trajectory.priorRank,
+      cagr: h.fund?.metrics['3Y']?.cagr ?? null,
     })
   }
 
