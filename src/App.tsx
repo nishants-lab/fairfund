@@ -16,6 +16,8 @@ const Compare = lazy(() => import('./pages/Compare'))
 const Methodology = lazy(() => import('./pages/Methodology'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
 const SignIn = lazy(() => import('./pages/SignIn'))
+const MyDashboard = lazy(() => import('./pages/MyDashboard'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
 
 function PageLoader() {
   return (
@@ -43,6 +45,8 @@ export default function App() {
             <Route path="/methodology" element={<Methodology />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/my" element={<MyDashboard />} />
+            <Route path="/my/portfolio" element={<Portfolio />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
