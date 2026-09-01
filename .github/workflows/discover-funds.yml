@@ -45,6 +45,12 @@ jobs:
             echo "new_funds=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Step 1.5: Refresh the CAMS matcher universe (every AMFI Growth scheme,
+      # Direct + Regular, all asset classes). Runs unconditionally: the matcher
+      # superset must track AMFI even in months with no new analytics funds.
+      - name: Rebuild matcher universe
+        run: python pipeline/build_matcher_universe.py
+
       # Step 2: Onboard new funds (resolve slugs, validate, fetch initial holdings)
       - name: Onboard new funds
         if: steps.discover.outputs.new_funds == 'true'
