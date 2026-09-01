@@ -1,0 +1,77 @@
+name: Heal NAV Gaps
+
+# Closes holes in public/nav/*.json left when a daily run was skipped or failed
+# (e.g. the 19-25 Aug 2026 AMFI endpoint outage). Fetches full history from
+# mfapi.in and inserts only the dates we are missing - existing values are
+# preserved, so it is idempotent. Runs weekly as a safety net and on demand.
+#
+# It commits and pushes to main; that push triggers deploy.yml to rebuild the
+# site, so this workflow deliberately does not build/deploy itself.
+
+on:
+  schedule:
+    - cron: "0 4 * * 0"   # Sundays 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: Dry-run - report holes without writing
+        type: boolean
+        default: false
+
+concurrency:
+  group: heal-nav
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Backfill NAV gaps from mfapi
+        run: |
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            python scripts/backfill_nav_gaps.py --check
+          else
+            python scripts/backfill_nav_gaps.py
+          fi
+
+      - name: Recompute metrics from healed NAV
+        if: ${{ inputs.check_only != true }}
+        run: python pipeline/compute_metrics.py
+
+      - name: Recompute rankings
+        if: ${{ inputs.check_only != true }}
+        run: python pipeline/compute_rankings.py
+
+      - name: Split fund data for serving
+        if: ${{ inputs.check_only != true }}
+        run: python migrations/split-analytics/split_funds.py
+
+      - name: Smoke test (validate data integrity)
+        if: ${{ inputs.check_only != true }}
+        run: python tests/smoke.py
+
+      - name: Commit healed data
+        if: ${{ inputs.check_only != true }}
+        run: |
+          git config user.name fairfund-bot
+          git config user.email bot@fairfund.in
+          git add public/nav/ src/data/ public/fund-data/
+          if git diff --staged --quiet; then
+            echo "No gaps to heal"
+          else
+            git commit -m "data: heal NAV gaps $(date +%Y-%m-%d)"
+            git push
+          fi

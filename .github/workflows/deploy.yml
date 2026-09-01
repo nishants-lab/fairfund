@@ -24,6 +24,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Guard the fund-code matcher: fails the build if a matcher edit
+      # regresses the portfolio golden fixture or the self-match rate.
+      - run: node scripts/check_fund_matching.mjs
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

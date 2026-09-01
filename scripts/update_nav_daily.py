@@ -27,6 +27,36 @@ LEDGER_PATH = os.path.abspath(os.path.join(HERE, "..", "src", "data", "nav_stale
 DAILY_STALE_GAP_DAYS = 7
 
 AMFI_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
+# mfapi.in carries full per-scheme history and is used to backfill gaps: AMFI's
+# consolidated file only holds each scheme's LATEST NAV, so a skipped/failed run
+# would otherwise leave permanent holes (see the 19-25 Aug 2026 outage).
+MFAPI_URL = "https://api.mfapi.in/mf/"
+# A gap wider than a long weekend (Fri close -> Mon = 3 days; +1 for a holiday)
+# means real market days were missed and must be backfilled from mfapi.
+MAX_GAP_DAYS = 4
+
+
+def fetch_mfapi_history(code):
+    """Full NAV history for one code from mfapi.in as {date_iso: nav}."""
+    import time
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(f"{MFAPI_URL}{code}", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.loads(r.read().decode("utf-8", errors="replace"))
+            out = {}
+            for pt in data.get("data", []):
+                try:
+                    dd, mm, yyyy = pt["date"].split("-")
+                    nav = round(float(pt["nav"]), 4)
+                except Exception:
+                    continue
+                if nav > 0:
+                    out[f"{yyyy}-{mm}-{dd}"] = nav
+            return out
+        except Exception:
+            time.sleep(1 * (2 ** attempt))
+    return {}
 
 def fetch_amfi():
     req = urllib.request.Request(AMFI_URL, headers={"User-Agent": "Mozilla/5.0"})
@@ -73,7 +103,7 @@ def main():
     ledger = {}
 
     files = [f for f in os.listdir(NAV_DIR) if f.endswith(".json") and f != "_manifest.json"]
-    updated = uptodate = nodata = amfi_stale = 0
+    updated = uptodate = nodata = amfi_stale = backfilled = 0
     manifest = {}
     for fn in files:
         code = fn[:-5]
@@ -96,12 +126,27 @@ def main():
 
         new_date, new_nav = amfi
         if new_date > last_have:
-            j["d"].append(new_date)
-            j["v"].append(new_nav)
-            j["u"] = new_date
+            gap = (datetime.strptime(new_date, "%Y-%m-%d")
+                   - datetime.strptime(last_have, "%Y-%m-%d")).days
+            if gap > MAX_GAP_DAYS:
+                # Real market days were missed: fill the whole gap from mfapi
+                # history so we never leave a permanent hole in the series.
+                hist = fetch_mfapi_history(code)
+                have = set(j["d"])
+                for dt in sorted(dt for dt in hist
+                                 if last_have < dt <= new_date and dt not in have):
+                    j["d"].append(dt)
+                    j["v"].append(hist[dt])
+                if len(j["d"]) > len(have):
+                    backfilled += 1
+            # Always ensure AMFI's latest date is present (mfapi can lag intraday)
+            if new_date not in j["d"]:
+                j["d"].append(new_date)
+                j["v"].append(new_nav)
+            j["u"] = j["d"][-1]
             json.dump(j, open(path, "w"), separators=(",", ":"))
             updated += 1
-            manifest[code] = new_date
+            manifest[code] = j["d"][-1]
             continue
 
         uptodate += 1
@@ -115,7 +160,7 @@ def main():
 
     json.dump(manifest, open(os.path.join(NAV_DIR, "_manifest.json"), "w"), separators=(",", ":"))
     json.dump(ledger, open(LEDGER_PATH, "w"), indent=1)
-    print(f"Updated: {updated} | current: {uptodate} | not in AMFI: {nodata} | amfi-stale: {amfi_stale}")
+    print(f"Updated: {updated} | backfilled-gaps: {backfilled} | current: {uptodate} | not in AMFI: {nodata} | amfi-stale: {amfi_stale}")
     print(f"Staleness ledger: {len(ledger)} code(s) flagged -> {LEDGER_PATH}")
 
 
