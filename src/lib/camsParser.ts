@@ -7,7 +7,7 @@
  * Market Value per fund block. These are the source of truth for
  * current holdings (avoids transaction netting errors).
  */
-import { funds } from './data'
+import { universeFunds } from './matcherUniverse'
 import type { Transaction, ParsedPortfolio, FundSummary } from './portfolio'
 
 /**
@@ -15,20 +15,38 @@ import type { Transaction, ParsedPortfolio, FundSummary } from './portfolio'
  * portfolio so stale parses (matched with older logic) can be detected
  * and the user prompted to re-upload.
  */
-export const MATCHER_VERSION = 2
+export const MATCHER_VERSION = 3
 
 // ---- Fuzzy fund code matching ----
 
-interface FundIndex { code: number; searchable: string; name: string }
+interface FundIndex {
+  code: number
+  searchable: string      // normalized name, ready for substring comparison
+  name: string
+  planType: 'direct' | 'regular'
+  isIndex: boolean        // index/ETF-style scheme (tracks a benchmark)
+  nonEquity: boolean      // debt/hybrid/arbitrage/etc.
+  tokens: Set<string>     // non-filler tokens for Jaccard scoring
+}
 let fundIndex: FundIndex[] | null = null
 
 function getFundIndex(): FundIndex[] {
   if (fundIndex) return fundIndex
-  fundIndex = funds.map(f => ({
-    code: f.code,
-    searchable: f.fullName?.toLowerCase() ?? f.name.toLowerCase(),
-    name: f.name,
-  }))
+  fundIndex = universeFunds.map(f => {
+    const searchable = normalizeForMatch(f.name.toLowerCase())
+    return {
+      code: f.code,
+      searchable,
+      name: f.name,
+      planType: f.planType,
+      isIndex: INDEX_RE.test(searchable),
+      // NAME-only, deliberately symmetric with the query-side test: the CAMS
+      // statement only gives us a name, so judging candidates by anything the
+      // query can't see (e.g. amfiCategory) would veto correct matches.
+      nonEquity: NON_EQUITY_RE.test(f.name),
+      tokens: new Set(searchable.split(/\s+/).filter(t => t.length > 0 && !FILLER_WORDS.has(t))),
+    }
+  })
   return fundIndex
 }
 
@@ -60,14 +78,13 @@ const FILLER_WORDS = new Set([
 // any of these, we do not attempt an equity match (avoids debt->equity errors).
 const NON_EQUITY_RE = /\b(gilt|liquid|overnight|money\s*market|ultra\s*short|low\s*duration|short\s*duration|medium\s*duration|long\s*duration|corporate\s*bond|credit\s*risk|dynamic\s*bond|banking\s*(&|and)\s*psu|floating\s*rate|floater|g-?sec|treasury|debt|bond|fixed\s*maturity|fmp|savings\s*fund|arbitrage|balanced\s*advantage|equity\s*savings|conservative\s*hybrid|multi\s*asset|asset\s*allocation|retirement|children)\b/i
 
+const INDEX_RE = /\b(index|nifty|sensex|bse|etf)\b/i
+
 export function isNonEquityScheme(name: string): boolean {
   return NON_EQUITY_RE.test(name)
 }
 
 function matchFundCode(schemeName: string): number | null {
-  // Never match non-equity schemes to the equity universe
-  if (isNonEquityScheme(schemeName)) return null
-
   const idx = getFundIndex()
   const q = normalizeForMatch(
     schemeName.toLowerCase()
@@ -77,23 +94,33 @@ function matchFundCode(schemeName: string): number | null {
       .replace(/\s*-?\s*registrar\s*:.*/i, '')
   )
 
+  // Plan: since 2013 every direct plan is explicitly labelled "Direct" on
+  // statements; anything else is a regular-plan holding. Direct and Regular
+  // are separate AMFI codes with identical clean names, so this is the only
+  // reliable disambiguator - never cross-match plans.
+  const qPlan: 'direct' | 'regular' = /\bdirect\b/i.test(schemeName) ? 'direct' : 'regular'
   // Extract the AMC name (first word) to prefer same-AMC matches
   const qAmc = q.split(/\s+/)[0] ?? ''
-  // Whether the statement scheme is itself an index fund. Index and active
-  // funds share AMC + cap tokens but track different things, so they must not
-  // cross-match (this is what mislabeled active funds as their index siblings).
-  const qIsIndex = /\b(index|nifty|sensex|bse)\b/.test(q)
+  // Index and active funds share AMC + cap tokens but track different things,
+  // so they must not cross-match (this is what mislabeled active funds as
+  // their index siblings). Same idea for equity vs debt/hybrid.
+  const qIsIndex = INDEX_RE.test(q)
+  const qNonEquity = isNonEquityScheme(schemeName)
 
   let best: FundIndex | null = null
   let bestScore = 0
 
   // Substring match
   for (const f of idx) {
-    const hay = normalizeForMatch(f.searchable)
+    if (f.planType !== qPlan) continue
+    const hay = f.searchable
     if (hay.includes(q) || q.includes(hay)) {
       let score = Math.min(q.length, hay.length) / Math.max(q.length, hay.length)
       // Boost if AMC name matches
       if (hay.startsWith(qAmc)) score += 0.1
+      // Hard guards: never cross-match index <-> active, equity <-> non-equity
+      if (f.isIndex !== qIsIndex) score -= 0.5
+      if (f.nonEquity !== qNonEquity) score -= 0.5
       if (score > bestScore) { bestScore = score; best = f }
     }
   }
@@ -105,16 +132,16 @@ function matchFundCode(schemeName: string): number | null {
   // actual fund - instead of letting it tie the exact match.
   const qTokens = new Set(q.split(/\s+/).filter(t => t.length > 2 && !FILLER_WORDS.has(t)))
   for (const f of idx) {
-    const hay = normalizeForMatch(f.searchable)
-    const fTokens = new Set(hay.split(/\s+/).filter(t => t.length > 0 && !FILLER_WORDS.has(t)))
+    if (f.planType !== qPlan) continue
     let overlap = 0
-    qTokens.forEach(t => { if (fTokens.has(t)) overlap++ })
-    const union = new Set([...qTokens, ...fTokens]).size
+    qTokens.forEach(t => { if (f.tokens.has(t)) overlap++ })
+    const union = new Set([...qTokens, ...f.tokens]).size
     let score = overlap / Math.max(union, 1)
     // Boost same-AMC matches to break ties
-    if (hay.startsWith(qAmc)) score += 0.1
-    // Hard guard: never cross-match index <-> active funds.
-    if (/\b(index|nifty|sensex|bse)\b/.test(hay) !== qIsIndex) score -= 0.5
+    if (f.searchable.startsWith(qAmc)) score += 0.1
+    // Hard guards: never cross-match index <-> active, equity <-> non-equity
+    if (f.isIndex !== qIsIndex) score -= 0.5
+    if (f.nonEquity !== qNonEquity) score -= 0.5
     if (score > bestScore) { bestScore = score; best = f }
   }
   return bestScore >= 0.45 ? (best?.code ?? null) : null
