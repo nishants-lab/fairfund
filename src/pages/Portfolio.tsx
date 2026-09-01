@@ -278,7 +278,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
             <div className="text-xs text-muted">{fmtNavDate(analysis.navPrevAsOf)} to {fmtNavDate(analysis.navAsOf)}</div>
           </div>
           <div className={`mt-1 text-2xl font-bold ${analysis.dayChangeValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-            {analysis.dayChangeValue >= 0 ? '+' : '-'}₹{Math.abs(analysis.dayChangeValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            {analysis.dayChangeValue >= 0 ? '+' : '-'}₹{fmtL(Math.abs(analysis.dayChangeValue))}
             <span className="ml-2 text-lg">{analysis.dayChangePct >= 0 ? '+' : ''}{analysis.dayChangePct.toFixed(2)}%</span>
           </div>
           <div className="mt-0.5 text-xs text-muted">Across equity funds with published NAV. Debt and other holdings are not included in this figure.</div>
