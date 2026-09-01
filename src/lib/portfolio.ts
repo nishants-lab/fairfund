@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from 'react'
 import { getFund, fetchFundDetail, mergeFundDetail } from './data'
+import { getUniverseFund, universeCategoryLabel } from './matcherUniverse'
 import type { Fund, Holding } from '../types'
 
 // ---- Types ----
@@ -208,11 +209,12 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
           fetchFundDetail(s.fundCode).then(d => { mergeFundDetail(fund, d) })
         )
       }
+      const uni = fund ? undefined : getUniverseFund(s.fundCode)
       holdings.push({
         code: s.fundCode,
-        name: fund?.name ?? s.fundName,
-        category: fund?.category ?? 'Unknown',
-        categoryDisplay: fund?.categoryDisplay ?? 'Unknown',
+        name: fund?.name ?? uni?.name ?? s.fundName,
+        category: fund?.category ?? (uni ? universeCategoryLabel(uni.amfiCategory) : 'Unknown'),
+        categoryDisplay: fund?.categoryDisplay ?? (uni ? universeCategoryLabel(uni.amfiCategory) : 'Unknown'),
         units: s.closingUnits,
         invested: s.totalCost,
         currentValue: s.marketValue || s.closingUnits * s.latestNav,
@@ -250,11 +252,12 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
           fetchFundDetail(code).then(d => { mergeFundDetail(fund, d) })
         )
       }
+      const uni = fund ? undefined : getUniverseFund(code)
       holdings.push({
         code,
-        name: fund?.name ?? entry.name,
-        category: fund?.category ?? 'Unknown',
-        categoryDisplay: fund?.categoryDisplay ?? 'Unknown',
+        name: fund?.name ?? uni?.name ?? entry.name,
+        category: fund?.category ?? (uni ? universeCategoryLabel(uni.amfiCategory) : 'Unknown'),
+        categoryDisplay: fund?.categoryDisplay ?? (uni ? universeCategoryLabel(uni.amfiCategory) : 'Unknown'),
         units: entry.units,
         invested: Math.max(entry.invested, 0),
         currentValue: 0,
