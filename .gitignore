@@ -23,3 +23,6 @@ __pycache__/
 /holdings_cache/
 /scheme_meta_cache/
 /manager_signals.json
+
+# Local npm registry override (CodeArtifact workaround)
+.npmrc
