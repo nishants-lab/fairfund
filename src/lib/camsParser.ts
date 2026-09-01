@@ -10,6 +10,13 @@
 import { funds } from './data'
 import type { Transaction, ParsedPortfolio, FundSummary } from './portfolio'
 
+/**
+ * Bump whenever fund-matching logic changes. Stored with each parsed
+ * portfolio so stale parses (matched with older logic) can be detected
+ * and the user prompted to re-upload.
+ */
+export const MATCHER_VERSION = 2
+
 // ---- Fuzzy fund code matching ----
 
 interface FundIndex { code: number; searchable: string; name: string }
@@ -347,6 +354,7 @@ export function parseCAMSText(text: string): ParsedPortfolio {
   return {
     id: crypto.randomUUID?.() ?? Date.now().toString(36),
     uploadedAt: new Date().toISOString(),
+    matcherVersion: MATCHER_VERSION,
     investorName,
     pan: maskedPan,
     transactions,

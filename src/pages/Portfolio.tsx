@@ -2,10 +2,10 @@
  * /my/portfolio - CAMS upload + portfolio analysis.
  * Upload → parse in browser → show analysis. No server round-trip.
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
-import { parseCAMSText, parseCAMSPdf } from '../lib/camsParser'
+import { parseCAMSText, parseCAMSPdf, MATCHER_VERSION } from '../lib/camsParser'
 import { usePortfolio, savePortfolio, clearPortfolio, analyzePortfolio, type PortfolioAnalysis, type ParsedPortfolio } from '../lib/portfolio'
 import { getCategoryColor } from '../lib/categoryColors'
 import { pct, signedPct, fundSlug } from '../lib/format'
@@ -168,8 +168,39 @@ function fmtNavDate(d: string): string {
   return `${parseInt(parts[2], 10)} ${months[mi] ?? parts[1]}`
 }
 
+type HoldingSortKey = 'name' | 'weight' | 'value' | 'gainPct' | 'xirr' | 'fund3y' | 'dayChangePct' | 'drift' | 'verdict'
+type HoldingSort = { k: HoldingSortKey; dir: 1 | -1 }
+
+/** Format INR value in lakhs: 2219073 -> "22.2L" */
+function fmtL(v: number): string {
+  return `${(v / 100000).toFixed(1)}L`
+}
+
+function SortTh({ label, k, sort, onSort, align = 'right' }: {
+  label: string
+  k: HoldingSortKey
+  sort: HoldingSort
+  onSort: (s: HoldingSort) => void
+  align?: 'left' | 'right'
+}) {
+  const active = sort.k === k
+  return (
+    <th className={`px-2.5 py-2 ${align === 'left' ? 'text-left' : 'text-right'}`}>
+      <button
+        onClick={() => onSort({ k, dir: active ? (sort.dir === 1 ? -1 : 1) : (k === 'name' ? 1 : -1) })}
+        className={`inline-flex items-center gap-0.5 uppercase tracking-wide whitespace-nowrap transition ${active ? 'font-semibold text-fg' : 'hover:text-fg'}`}
+        title={`Sort by ${label}`}
+      >
+        {label}
+        <span className={`text-[9px] ${active ? '' : 'invisible'}`}>{active && sort.dir === 1 ? '\u25b2' : '\u25bc'}</span>
+      </button>
+    </th>
+  )
+}
+
 function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; portfolio: ParsedPortfolio }) {
   const diag = portfolio.diagnostics
+  const [openStock, setOpenStock] = useState<number | null>(null)
   // A scheme is only "dropped" if we built fewer blocks than there are ISINs.
   // Fully-redeemed (closed) funds are parsed as zero-balance blocks, not dropped.
   const dropped = diag ? Math.max(0, diag.isinCount - diag.schemesParsed) : 0
@@ -177,9 +208,44 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
   // Cross-check our total against the statement's own Portfolio Summary total.
   const stated = diag?.statedTotalValue ?? null
   const gapPct = stated && stated > 0 ? (Math.abs(analysis.totalValue - stated) / stated) * 100 : null
-  const valueMatches = gapPct !== null && gapPct <= 2
   const valueMismatch = gapPct !== null && gapPct > 2
   const inr = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 0 })
+  // Holdings table: sortable rows with rank trajectory + verdict
+  const [sort, setSort] = useState<HoldingSort>({ k: 'weight', dir: -1 })
+  const rankByCode = new Map(analysis.reshuffleScore.map(r => [r.code, r]))
+  const VERDICT_RANK: Record<string, number> = { Strong: 4, Solid: 3, Mixed: 2 }
+  const holdingRows = analysis.holdings.filter(h => h.covered).map(h => {
+    const rank = rankByCode.get(h.code)
+    return {
+      h,
+      name: h.name.toLowerCase(),
+      weight: h.weight,
+      value: h.currentValue,
+      gainPct: h.gainPct,
+      xirr: h.personalCagr,
+      fund3y: h.fund?.metrics['3Y']?.cagr ?? null,
+      dayChangePct: h.prevNav > 0 ? h.dayChangePct : null,
+      rankAtPurchase: rank?.rankAtPurchase ?? null,
+      rankNow: rank?.rankNow ?? null,
+      drift: rank?.drift ?? null,
+      verdict: h.fund?.management?.signal ?? null,
+    }
+  })
+  type Row = typeof holdingRows[number]
+  const sortVal = (r: Row, k: HoldingSortKey): number | string | null => {
+    if (k === 'name') return r.name
+    if (k === 'verdict') return r.verdict ? (VERDICT_RANK[r.verdict] ?? 1) : null
+    return r[k]
+  }
+  const sortedRows = [...holdingRows].sort((a, b) => {
+    const av = sortVal(a, sort.k)
+    const bv = sortVal(b, sort.k)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1 // nulls always last
+    if (bv == null) return -1
+    if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * sort.dir
+    return ((av as number) - (bv as number)) * sort.dir
+  })
   return (
     <div className="space-y-8">
       {/* Parse warning: only for genuinely dropped or unreadable schemes */}
@@ -197,12 +263,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
         </div>
       )}
 
-      {/* Statement reconciliation: confirms we match the CAMS total */}
-      {valueMatches && stated && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
-          Matches your statement's total value of ₹{inr(stated)}.
-        </div>
-      )}
+      {/* Statement reconciliation: only surface a mismatch (actionable); a match needs no banner */}
       {valueMismatch && stated && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
           We calculated ₹{inr(analysis.totalValue)} but your statement shows ₹{inr(stated)}. Some holdings may not have parsed correctly.
@@ -260,65 +321,68 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       {/* Holdings table */}
       <section>
         <h3 className="text-lg font-semibold text-fg">Your holdings</h3>
-        <p className="mt-1 text-sm text-muted">Sorted by portfolio weight. Fund ranks and signals from FairFund's analysis.</p>
+        <p className="mt-1 text-sm text-muted">Click a column to sort. XIRR is your annualized return from your own SIP history; Fund 3Y CAGR is the fund's own trailing return.</p>
         <div className="mt-3 overflow-x-auto rounded-xl border border-line">
-          <table className="w-full text-sm">
-            <thead className="bg-surface2 text-xs uppercase text-faint">
+          <table className="w-full text-[13px]">
+            <thead className="sticky top-0 z-10 bg-surface2 text-[11px] uppercase text-faint">
               <tr>
-                <th className="px-4 py-2 text-left">Fund</th>
-                <th className="px-3 py-2 text-right">Weight</th>
-                <th className="px-3 py-2 text-right">Value</th>
-                <th className="px-3 py-2 text-right">Gain</th>
-                <th className="px-3 py-2 text-right hidden lg:table-cell">1D</th>
-                <th className="px-3 py-2 text-right hidden sm:table-cell">Rank</th>
-                <th className="px-3 py-2 text-right hidden md:table-cell">Signal</th>
+                <SortTh label="Fund" k="name" sort={sort} onSort={setSort} align="left" />
+                <SortTh label="Weight" k="weight" sort={sort} onSort={setSort} />
+                <SortTh label="Value" k="value" sort={sort} onSort={setSort} />
+                <SortTh label="Abs Gain%" k="gainPct" sort={sort} onSort={setSort} />
+                <SortTh label="XIRR" k="xirr" sort={sort} onSort={setSort} />
+                <SortTh label="Fund 3Y CAGR" k="fund3y" sort={sort} onSort={setSort} />
+                <SortTh label="1D" k="dayChangePct" sort={sort} onSort={setSort} />
+                <SortTh label="Rank" k="drift" sort={sort} onSort={setSort} />
+                <SortTh label="Verdict" k="verdict" sort={sort} onSort={setSort} />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {analysis.holdings.filter(h => h.covered).map(h => {
-                const m = h.fund?.metrics['3Y'] ?? h.fund?.metrics['1Y']
-                const mgmt = h.fund?.management
-                return (
-                  <tr key={h.code} className="hover:bg-surface2/50">
-                    <td className="px-4 py-3">
-                      <Link to={h.fund ? `/fund/${h.code}/${fundSlug(h.name)}` : '#'} className="font-medium text-fg hover:text-brand-600">
-                        {h.name}
-                      </Link>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`pill text-xs ${getCategoryColor(h.category).bg} ${getCategoryColor(h.category).text}`}>
-                          {h.categoryDisplay}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-right font-semibold text-fg">{h.weight.toFixed(1)}%</td>
-                    <td className="px-3 py-3 text-right text-muted">₹{(h.currentValue / 1000).toFixed(0)}K</td>
-                    <td className={`px-3 py-3 text-right font-semibold ${h.gain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {h.gain >= 0 ? '+' : ''}{h.gainPct.toFixed(1)}%
-                    </td>
-                    <td className={`px-3 py-3 text-right text-xs font-medium hidden lg:table-cell ${h.prevNav > 0 ? (h.dayChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400') : 'text-faint'}`}>
-                      {h.prevNav > 0 ? `${h.dayChangePct >= 0 ? '+' : ''}${h.dayChangePct.toFixed(2)}%` : 'n/a'}
-                    </td>
-                    <td className="px-3 py-3 text-right hidden sm:table-cell">
-                      {m ? (
-                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                          m.catRank <= 5 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-surface2 text-muted'
-                        }`}>
-                          {m.catRank}
-                        </span>
-                      ) : <span className="text-faint">—</span>}
-                    </td>
-                    <td className="px-3 py-3 text-right hidden md:table-cell">
-                      {mgmt?.signal ? (
-                        <span className={`text-xs font-semibold ${
-                          mgmt.signal === 'Strong' ? 'text-emerald-600' :
-                          mgmt.signal === 'Solid' ? 'text-brand-600' :
-                          mgmt.signal === 'Mixed' ? 'text-amber-600' : 'text-muted'
-                        }`}>{mgmt.signal}</span>
-                      ) : <span className="text-faint">—</span>}
-                    </td>
-                  </tr>
-                )
-              })}
+              {sortedRows.map(r => (
+                <tr key={r.h.code} className="hover:bg-surface2/50">
+                  <td className="px-3 py-2.5">
+                    <Link to={r.h.fund ? `/fund/${r.h.code}/${fundSlug(r.h.name)}` : '#'} className="font-medium text-fg hover:text-brand-600">
+                      {r.h.name}
+                    </Link>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`pill text-xs ${getCategoryColor(r.h.category).bg} ${getCategoryColor(r.h.category).text}`}>
+                        {r.h.categoryDisplay}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-fg whitespace-nowrap">{r.weight.toFixed(1)}%</td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">₹{fmtL(r.value)}</td>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.gainPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {r.gainPct >= 0 ? '+' : ''}{r.gainPct.toFixed(1)}%
+                  </td>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.xirr == null ? 'text-faint' : r.xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {r.xirr == null ? '—' : `${r.xirr >= 0 ? '+' : ''}${r.xirr.toFixed(1)}%`}
+                  </td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">
+                    {r.fund3y != null ? `${r.fund3y >= 0 ? '+' : ''}${r.fund3y.toFixed(1)}%` : <span className="text-faint">—</span>}
+                  </td>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums text-xs font-medium whitespace-nowrap ${r.dayChangePct == null ? 'text-faint' : r.dayChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {r.dayChangePct == null ? 'n/a' : `${r.dayChangePct >= 0 ? '+' : ''}${r.dayChangePct.toFixed(2)}%`}
+                  </td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap">
+                    {r.rankAtPurchase != null && r.rankNow != null ? (
+                      <span className={`text-xs font-semibold ${
+                        (r.drift ?? 0) < 0 ? 'text-emerald-600 dark:text-emerald-400' :
+                        (r.drift ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted'
+                      }`}>#{r.rankAtPurchase}→#{r.rankNow}</span>
+                    ) : <span className="text-faint">—</span>}
+                  </td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap">
+                    {r.verdict ? (
+                      <span className={`text-xs font-semibold ${
+                        r.verdict === 'Strong' ? 'text-emerald-600' :
+                        r.verdict === 'Solid' ? 'text-brand-600' :
+                        r.verdict === 'Mixed' ? 'text-amber-600' : 'text-muted'
+                      }`}>{r.verdict}</span>
+                    ) : <span className="text-faint">—</span>}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -345,7 +409,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   <tr key={h.name} className="hover:bg-surface2/50">
                     <td className="px-4 py-3 font-medium text-fg">{h.name}</td>
                     <td className="px-3 py-3 text-right font-semibold text-fg">{h.weight.toFixed(1)}%</td>
-                    <td className="px-3 py-3 text-right text-muted">₹{(h.currentValue / 1000).toFixed(0)}K</td>
+                    <td className="px-3 py-3 text-right text-muted">₹{fmtL(h.currentValue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -354,34 +418,39 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
         </section>
       )}
 
-      {/* Reshuffle Score */}
-      <section>
-        <h3 className="text-lg font-semibold text-fg">Rank drift since purchase</h3>
-        <p className="mt-1 text-sm text-muted">Has your portfolio gotten better or worse relative to peers?</p>
-        <div className="mt-3 space-y-2">
-          {analysis.reshuffleScore.filter(r => r.drift !== null).map(r => (
-            <div key={r.code} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3">
-              <Link to={`/fund/${r.code}/${fundSlug(r.name)}`} className="min-w-0 flex-1 truncate font-medium text-fg hover:text-brand-600">
-                {r.name}
-              </Link>
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-muted">#{r.rankAtPurchase}</span>
-                <span className="text-faint">to</span>
-                <span className={`font-bold ${
-                  r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
-                  r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
-                }`}>#{r.rankNow}</span>
-                <span className={`text-xs font-semibold ${
-                  r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
-                  r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'
-                }`}>
-                  ({r.drift! > 0 ? '+' : ''}{r.drift})
-                </span>
+      {/* Reshuffle Score — only funds whose category rank actually moved */}
+      {analysis.reshuffleScore.some(r => r.drift !== null && r.drift !== 0) && (
+        <section>
+          <h3 className="text-lg font-semibold text-fg">Rank drift since purchase</h3>
+          <p className="mt-1 text-sm text-muted">Funds whose standing among peers has shifted since you bought in. 3Y CAGR shown for context.</p>
+          <div className="mt-3 space-y-2">
+            {analysis.reshuffleScore.filter(r => r.drift !== null && r.drift !== 0).map(r => (
+              <div key={r.code} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3">
+                <Link to={`/fund/${r.code}/${fundSlug(r.name)}`} className="min-w-0 flex-1 truncate font-medium text-fg hover:text-brand-600">
+                  {r.name}
+                </Link>
+                {r.cagr != null && (
+                  <span className="hidden sm:inline whitespace-nowrap text-xs text-muted">3Y CAGR {r.cagr >= 0 ? '+' : ''}{r.cagr.toFixed(1)}%</span>
+                )}
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-muted">#{r.rankAtPurchase}</span>
+                  <span className="text-faint">to</span>
+                  <span className={`font-bold ${
+                    r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
+                    r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
+                  }`}>#{r.rankNow}</span>
+                  <span className={`text-xs font-semibold ${
+                    r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
+                    r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'
+                  }`}>
+                    ({r.drift! > 0 ? '+' : ''}{r.drift})
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Sector concentration */}
       {analysis.sectorConcentration.length > 0 && (
@@ -411,7 +480,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       {analysis.stockConcentration.length > 0 && (
         <section>
           <h3 className="text-lg font-semibold text-fg">Top stock exposure</h3>
-          <p className="mt-1 text-sm text-muted">Stocks held across multiple funds, portfolio-weighted.</p>
+          <p className="mt-1 text-sm text-muted">Stocks held across multiple funds, portfolio-weighted. Tap a row to see which of your funds hold it.</p>
           <div className="mt-3 overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-sm">
               <thead className="bg-surface2 text-xs uppercase text-faint">
@@ -422,42 +491,48 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {analysis.stockConcentration.slice(0, 15).map((s, i) => (
-                  <tr key={i} className="hover:bg-surface2/50">
-                    <td className="px-4 py-2 text-fg">{s.name}</td>
-                    <td className={`px-3 py-2 text-right font-semibold ${s.weight > 5 ? 'text-amber-600 dark:text-amber-400' : 'text-fg'}`}>
-                      {s.weight.toFixed(1)}%
-                    </td>
-                    <td className={`px-3 py-2 text-right ${s.fundCount >= 3 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-muted'}`}>
-                      {s.fundCount}
-                    </td>
-                  </tr>
-                ))}
+                {analysis.stockConcentration.slice(0, 15).map((s, i) => {
+                  const open = openStock === i
+                  return (
+                    <Fragment key={i}>
+                      <tr
+                        className="cursor-pointer hover:bg-surface2/50"
+                        onClick={() => setOpenStock(open ? null : i)}
+                      >
+                        <td className="px-4 py-2 text-fg">
+                          <span className="mr-1.5 inline-block w-2 text-faint">{open ? '▾' : '▸'}</span>
+                          {s.name}
+                        </td>
+                        <td className={`px-3 py-2 text-right font-semibold ${s.weight > 5 ? 'text-amber-600 dark:text-amber-400' : 'text-fg'}`}>
+                          {s.weight.toFixed(1)}%
+                        </td>
+                        <td className={`px-3 py-2 text-right ${s.fundCount >= 3 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-muted'}`}>
+                          {s.fundCount}
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr className="bg-surface2/40">
+                          <td colSpan={3} className="px-4 py-2">
+                            <div className="space-y-1">
+                              {s.holders.map(hld => (
+                                <div key={hld.code} className="flex items-center justify-between gap-3 text-xs">
+                                  <span className="min-w-0 truncate text-muted">{hld.name}</span>
+                                  <span className="whitespace-nowrap font-medium text-fg">{hld.weight.toFixed(2)}% of portfolio</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </section>
       )}
 
-      {/* Manager alerts */}
-      {analysis.managerAlerts.length > 0 && (
-        <section>
-          <h3 className="text-lg font-semibold text-fg">Manager alerts</h3>
-          <div className="mt-3 space-y-2">
-            {analysis.managerAlerts.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20">
-                <span className="mt-0.5 text-amber-500">⚠</span>
-                <div>
-                  <Link to={`/fund/${a.code}/${fundSlug(a.fundName)}`} className="font-medium text-fg hover:text-brand-600">
-                    {a.fundName}
-                  </Link>
-                  <p className="text-sm text-muted">{a.alert}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   )
 }
@@ -514,6 +589,21 @@ export default function Portfolio() {
 
       <div className="mt-6">
         {!portfolio && <UploadPanel onParsed={handleParsed} />}
+
+        {portfolio && portfolio.matcherVersion !== MATCHER_VERSION && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-900/20">
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund matching has improved since this analysis was saved</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">Some funds may be mislabeled. Clear and re-upload your CAMS statement to refresh.</p>
+            </div>
+            <button
+              onClick={() => { clearPortfolio(); setAnalysis(null) }}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+            >
+              Clear & re-upload
+            </button>
+          </div>
+        )}
 
         {portfolio && showDebug && <DebugPanel portfolio={portfolio} />}
 
