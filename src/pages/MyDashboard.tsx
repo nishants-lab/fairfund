@@ -69,7 +69,7 @@ export default function MyDashboard() {
             </div>
             <p className="font-semibold text-fg">Upload your CAMS statement</p>
             <p className="mt-1 text-sm text-muted">
-              See what Groww won't tell you: rank drift, hidden concentration, manager risk.
+              Spot rank drift, hidden concentration, and manager risk across your holdings.
             </p>
             <Link to="/my/portfolio" className="mt-4 inline-block rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
               Upload CAMS
