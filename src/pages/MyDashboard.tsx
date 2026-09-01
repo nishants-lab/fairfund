@@ -69,11 +69,14 @@ export default function MyDashboard() {
             </div>
             <p className="font-semibold text-fg">Upload your CAMS statement</p>
             <p className="mt-1 text-sm text-muted">
-              Spot rank drift, hidden concentration, and manager risk across your holdings.
+              Your CAMS statement holds more insight than you think. Deep diagnostics for your mutual fund portfolio.
             </p>
             <Link to="/my/portfolio" className="mt-4 inline-block rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
               Upload CAMS
             </Link>
+            <p className="mt-4 text-xs text-muted">
+              Optimized for Direct-plan equity mutual funds. Other fund types (Regular plans, debt, hybrid) may not match or may show approximate values.
+            </p>
           </div>
         )}
 
