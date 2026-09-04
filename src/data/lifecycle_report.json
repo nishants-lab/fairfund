@@ -1,1 +1,80 @@
-{}
+{
+  "120749": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='UTI-Dividend Yield Fund.-Growth-Direct' vs AMFI='UTI - Dividend Yield Fund'",
+    "name": "UTI-Dividend Yield Fund.",
+    "new_name": "UTI - Dividend Yield Fund"
+  },
+  "141808": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Groww ELSS Tax Saver Fund (formerly know' vs AMFI='Groww ELSS Tax Saver Fund'",
+    "name": "Groww ELSS Tax Saver Fund (formerly known as Indiabulls Tax Savings Fund)",
+    "new_name": "Groww ELSS Tax Saver Fund"
+  },
+  "120492": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='JM Flexicap Fund (Direct) - Growth Optio' vs AMFI='JM Flexi Cap Fund'",
+    "name": "JM Flexicap Fund",
+    "new_name": "JM Flexi Cap Fund"
+  },
+  "120166": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Kotak Flexicap Fund - Growth - Direct' vs AMFI='Kotak Flexi Cap Fund'",
+    "name": "Kotak Flexicap Fund",
+    "new_name": "Kotak Flexi Cap Fund"
+  },
+  "152869": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Kotak CRISIL -IBX AAA Financial Services' vs AMFI='Kotak CRISIL-IBX AAA Financial Services '",
+    "name": "Kotak CRISIL -IBX AAA Financial Services Index Sep-2027 Fund",
+    "new_name": "Kotak CRISIL-IBX AAA Financial Services Index-Sep 2027 Fund"
+  },
+  "119133": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Groww Largecap Fund (formerly known as I' vs AMFI='Groww Large Cap Fund'",
+    "name": "Groww Largecap Fund (formerly known as Indiabulls Blue Chip Fund)",
+    "new_name": "Groww Large Cap Fund"
+  },
+  "119775": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Kotak Midcap Fund - Direct Plan - Growth' vs AMFI='Kotak Mid Cap Fund'",
+    "name": "Kotak Midcap Fund",
+    "new_name": "Kotak Mid Cap Fund"
+  },
+  "150815": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='JM Midcap Fund (Direct) - Growth' vs AMFI='JM Mid Cap Fund'",
+    "name": "JM Midcap Fund",
+    "new_name": "JM Mid Cap Fund"
+  },
+  "150404": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='BANDHAN MIDCAP FUND - GROWTH - DIRECT PL' vs AMFI='BANDHAN MID CAP FUND'",
+    "name": "Bandhan Midcap Fund",
+    "new_name": "BANDHAN MID CAP FUND"
+  },
+  "149185": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Kotak Multicap Fund-Direct Plan-Growth' vs AMFI='Kotak Multi Cap Fund'",
+    "name": "Kotak Multicap Fund",
+    "new_name": "Kotak Multi Cap Fund"
+  },
+  "152310": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='DSP Multicap Fund - Direct - Growth' vs AMFI='DSP Multi Cap Fund'",
+    "name": "DSP Multicap Fund",
+    "new_name": "DSP Multi Cap Fund"
+  },
+  "120164": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Kotak-Small Cap Fund - Growth - Direct' vs AMFI='Kotak Small Cap Fund'",
+    "name": "Kotak-Small Cap Fund",
+    "new_name": "Kotak Small Cap Fund"
+  },
+  "135341": {
+    "status": "renamed",
+    "note": "Name mismatch: ours='Groww Value Fund (formerly known as Indi' vs AMFI='Groww Value Fund'",
+    "name": "Groww Value Fund (formerly known as Indiabulls Value Fund)",
+    "new_name": "Groww Value Fund"
+  }
+}
