@@ -7,7 +7,7 @@ import {
 import { useTheme } from '../lib/theme'
 import { funds as ALL } from '../lib/data'
 import { fundSlug } from '../lib/format'
-import type { Fund } from '../types'
+import type { Fund, Horizon } from '../types'
 
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
 let aumPromise: Promise<Record<string, number>> | null = null
@@ -36,7 +36,7 @@ interface Row {
   code: number; name: string; current: boolean
 }
 
-export default function FundLandscape({ fund, category }: { fund?: Fund; category?: string }) {
+export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund?: Fund; category?: string; horizon?: Horizon }) {
   const { theme } = useTheme()
   const navigate = useNavigate()
   const [aum, setAum] = useState<Record<string, number>>({})
@@ -47,10 +47,10 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
 
   const { rows, xDomain, yDomain, xMed, yMed, n, catDisplay, fundPlotted } = useMemo(() => {
     const peers = ALL.filter(
-      (f) => f.category === catKey && f.metrics['3Y']?.volatility && f.metrics['3Y']?.cagr != null,
+      (f) => f.category === catKey && f.metrics[horizon]?.volatility && f.metrics[horizon]?.cagr != null,
     )
     const rows: Row[] = peers.map((f) => {
-      const m = f.metrics['3Y']!
+      const m = f.metrics[horizon]!
       const a = aum[String(f.code)]
       return {
         x: m.volatility, y: m.cagr,
@@ -69,7 +69,7 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
       catDisplay: peers[0]?.categoryDisplay ?? catKey ?? '',
       fundPlotted: currentCode != null && rows.some((r) => r.current),
     }
-  }, [catKey, currentCode, aum])
+  }, [catKey, currentCode, aum, horizon])
 
   if (n < 4) return null
 
@@ -103,12 +103,12 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
         <span className="text-xs text-faint">{n} {catDisplay} funds</span>
       </div>
       <p className="mb-3 text-xs text-muted">
-        Risk vs return over 3 years. Up and to the left is better: more return for less risk. Bubble size = AUM.
+        Risk vs return over {horizon}. Up and to the left is better: more return for less risk. Bubble size = AUM.
         Hover any fund for detail; click to open it.
       </p>
       {fundMissing && (
         <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-          This fund is under 3 years old, so it has no 3-year track record yet and can't be placed on this chart. The peers shown all have 3+ years of history.
+          This fund has no {horizon} track record yet, so it can't be placed on this {horizon} chart. The peers shown all have {horizon} history.
         </p>
       )}
       <ResponsiveContainer width="100%" height={360}>
@@ -128,7 +128,7 @@ export default function FundLandscape({ fund, category }: { fund?: Fund; categor
             type="number" dataKey="y" domain={yDomain} tick={{ fontSize: 11, fill: axis }}
             tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             width={44}
-            label={{ value: '3Y CAGR (return)', angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
+            label={{ value: `${horizon} CAGR (return)`, angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
           />
           <ZAxis type="number" dataKey="z" range={[60, 620]} />
           <Tooltip content={tooltip} cursor={{ strokeDasharray: '3 3', stroke: axis }} />

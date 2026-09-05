@@ -77,18 +77,56 @@ def _name_overlap(a, b):
     return len(ta & tb) / len(ta | tb)
 
 
-def _clean_query(name):
+def _base_name(name):
+    """Strip plan/option noise and normalise a fund name to its core tokens."""
     n = re.sub(r"\(formerly[^)]*\)", " ", name, flags=re.IGNORECASE)
     n = re.sub(r"formerly known as[^-]*", " ", n, flags=re.IGNORECASE)
     for w in ["growth option", "growth plan", "idcw", "dividend", "payout",
               "reinvestment", "bonus option", "bonus", "- growth", "growth",
-              "regular plan", "option"]:
+              "regular plan", "direct plan", "option"]:
         n = re.sub(re.escape(w), " ", n, flags=re.IGNORECASE)
     n = re.sub(r"[-\u2013|]", " ", n)
-    n = re.sub(r"\s+", " ", n).strip()
+    # Strip standalone plan/option tokens ("Direct", "Regular", "Plan"): Groww's
+    # search returns zero rows for e.g. "Sundaram Flexicap Fund Direct" but
+    # resolves "Sundaram Flexicap Fund" to an exact scheme_code.
+    n = re.sub(r"\b(direct|regular|plan)\b", " ", n, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", n).strip()
+
+
+def _clean_query(name):
+    """Primary query: core name + explicit Direct Growth suffix."""
+    n = _base_name(name)
     if "direct" not in n.lower():
         n = n + " Direct"
     return re.sub(r"\s+", " ", n + " Growth").strip()
+
+
+def _query_variants(name):
+    """Groww's search is sensitive to query length and filler tokens ("and",
+    "Fund", the appended plan words). A long exact query can return zero rows
+    for a fund Groww definitely lists. Yield progressively simpler queries so a
+    single missed variant does not lose an otherwise-available fund. De-duped,
+    order preserved (richest first)."""
+    base = _base_name(name)
+    no_fund = re.sub(r"\bfund\b", " ", base, flags=re.IGNORECASE)
+    no_and = re.sub(r"\band\b", " ", no_fund, flags=re.IGNORECASE)
+    toks = base.split()
+    cands = [
+        _clean_query(name),                       # core + "Direct Growth"
+        base,                                     # core name as-is
+        re.sub(r"\s+", " ", no_fund).strip(),     # drop "Fund"
+        re.sub(r"\s+", " ", no_and).strip(),      # drop "Fund" + "and"
+        " ".join(toks[:5]),                       # first 5 tokens
+        " ".join(toks[:4]),                       # first 4 tokens
+    ]
+    seen, out = set(), []
+    for c in cands:
+        c = re.sub(r"\s+", " ", (c or "")).strip()
+        k = c.lower()
+        if c and k not in seen:
+            seen.add(k)
+            out.append(c)
+    return out
 
 
 def resolve_and_validate(code, name):
@@ -96,17 +134,23 @@ def resolve_and_validate(code, name):
     Returns (slug, validation_status, details_dict_or_None).
     validation_status: "exact_match" | "name_match" | "mismatch" | "not_found"
     """
-    query = _clean_query(name)
-    d = _get(GROWW_SEARCH_URL + urllib.parse.quote(query), timeout=15)
-    if not d or not d.get("data", {}).get("content"):
+    # Try progressively simpler queries; accept the FIRST exact scheme_code
+    # match. This recovers funds Groww lists but that the single long query
+    # failed to surface (measured: 34/40 previously-unresolved funds).
+    content = []
+    for query in _query_variants(name):
+        d = _get(GROWW_SEARCH_URL + urllib.parse.quote(query), timeout=15)
+        rows = (d or {}).get("data", {}).get("content") or []
+        if not rows:
+            continue
+        for c in rows:
+            if str(c.get("scheme_code")) == str(code) and c.get("search_id"):
+                return c["search_id"], "exact_match", None
+        # Keep the richest non-empty result set for the name-overlap fallback.
+        if not content:
+            content = rows
+    if not content:
         return None, "not_found", None
-
-    content = d["data"]["content"]
-
-    # Best case: exact scheme_code match
-    for c in content:
-        if str(c.get("scheme_code")) == str(code) and c.get("search_id"):
-            return c["search_id"], "exact_match", None
 
     # Fallback: name overlap (but flag as needing verification)
     best_slug = None
