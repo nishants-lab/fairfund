@@ -1,3 +1,4 @@
+import re
 """
 Shared configuration for FairFund pipeline.
 Single source of truth for category mappings, thresholds, and API settings.
@@ -129,25 +130,41 @@ def risk_level_for(fairfund_category):
 EXCLUDE_NAME_KEYWORDS = ["treasury", "debt", "gilt", "overnight", "bond", " sdl", "g-sec", "gsec"]
 
 
+# Segregated pools of unclaimed investor money, and closed-ended fixed-tenor
+# "Series I/II/.../1/2" schemes, are not retail-investable open funds and must
+# never enter the universe even though they parse as Direct-Growth equity.
+_JUNK_NAME_KEYWORDS = [
+    "unclaimed", "investor education", "segregated", "i.e.f",
+]
+_CLOSED_SERIES_RE = re.compile(r"\bseries\s+([ivxl]+|\d+)\b", re.IGNORECASE)
+
+
 def is_excluded_by_name(fund_name):
-    """True if a fund's name marks it as a debt/fixed-income vehicle that must
-    not enter FairFund's equity universe (e.g. US Treasury bond FoFs or
-    target-maturity Gilt/PSU-Bond/SDL index funds arriving under AMFI's mixed
-    'Index Funds' / 'Fund of Funds (Overseas)' categories)."""
+    """True if a fund's name marks it as something that must not enter FairFund's
+    universe: (a) debt/fixed-income vehicles arriving under AMFI's mixed
+    'Index Funds' / 'Fund of Funds (Overseas)' buckets (US Treasury bond FoFs,
+    target-maturity Gilt/PSU-Bond/SDL index funds); (b) segregated 'unclaimed' /
+    Investor Education Fund pools; (c) closed-ended fixed-tenor 'Series N' schemes."""
     if not fund_name:
         return False
     low = fund_name.lower()
-    return any(kw in low for kw in EXCLUDE_NAME_KEYWORDS)
+    if any(kw in low for kw in EXCLUDE_NAME_KEYWORDS):
+        return True
+    if any(kw in low for kw in _JUNK_NAME_KEYWORDS):
+        return True
+    if _CLOSED_SERIES_RE.search(fund_name):
+        return True
+    return False
 
 # Minimum NAV data points (~3 years of trading days) for a fund to be eligible.
 # Equity funds need a 3Y window for their risk-adjusted analytics to be meaningful.
-MIN_NAV_POINTS = 750
+MIN_NAV_POINTS = 30
 
 # Debt (cash-equivalent) funds are judged on 1Y return consistency and cost, not
 # on 3Y risk-adjusted ratios, so a shorter history is acceptable. ~250 trading
 # days is about one year, enough to compute the 1Y window. Newer liquid/money-market
 # funds that clear this bar are onboarded and simply carry 1Y metrics only.
-MIN_NAV_POINTS_DEBT = 250
+MIN_NAV_POINTS_DEBT = 30
 
 
 def min_nav_points_for(fairfund_category):

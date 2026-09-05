@@ -47,6 +47,51 @@ def get_fund_data_coverage(code):
         return "error"
 
 
+def write_young_stub(f):
+    """Write a no_disclosure fund-data stub for a newly-launched fund that AMFI
+    lists but our holdings source (Groww) has not indexed yet. We never hide new
+    funds: the stub gives them the honest reduced surface (NAV chart + since-
+    inception return) with a clear 'holdings not yet available' note."""
+    fp = os.path.join(FUND_DATA_DIR, f"{f['code']}.json")
+    stub = {
+        "holdingsMeta": {
+            "coverage": "no_disclosure",
+            "portfolioDate": None,
+            "note": (
+                "This is a cash-equivalent debt fund; stock-level holdings are "
+                "not applicable and it is judged on cost, not portfolio."
+                if f.get("isDebt")
+                else "This fund is new; its monthly stock-level holdings are not "
+                     "yet available from the public Groww disclosure. It will fill "
+                     "in as the fund builds a track record."
+            ),
+            "underlying": None,
+            "count": 0,
+        },
+        "category": f.get("category"),
+        "categoryDisplay": f.get("categoryDisplay"),
+        "categorySize": f.get("categorySize"),
+    }
+    with open(fp, "w", encoding="utf-8") as fh:
+        json.dump(stub, fh, separators=(",", ":"))
+
+
+def get_fund_data_aum(code):
+    """Read the authoritative, correctly-dated AUM object from fund-data/{code}.json.
+    The detail file's aum.asOf is the real monthly-disclosure date (portfolio
+    date) and carries the previous-month trend; the index entry historically
+    held a stale, mislabeled copy. Returns the aum dict or None."""
+    fp = os.path.join(FUND_DATA_DIR, f"{code}.json")
+    if not os.path.exists(fp):
+        return None
+    try:
+        d = json.load(open(fp, encoding="utf-8"))
+        aum = d.get("aum")
+        return aum if isinstance(aum, dict) and aum.get("current") is not None else None
+    except Exception:
+        return None
+
+
 def main():
     data = json.load(open(FUNDS_JSON, encoding="utf-8"))
     before = len(data["funds"])
@@ -54,10 +99,25 @@ def main():
     # --- Step 1: Prune funds with placeholder/missing fund-data ---
     keep = []
     pruned_codes = []
+    young_stubbed = []
     for f in data["funds"]:
         cov = get_fund_data_coverage(f["code"])
         if cov in ("none", "missing", "error"):
-            pruned_codes.append(f["code"])
+            # Never hide funds that legitimately have no stock-level holdings:
+            #  - young funds: AMFI lists them but our holdings source (Groww)
+            #    has not indexed them yet.
+            #  - debt funds (Liquid / Money Market): cash-equivalent books that
+            #    show a reduced cost-focused surface, no holdings needed.
+            # Keep them with a no_disclosure stub so they show up with an honest
+            # reduced surface instead of vanishing from the universe.
+            if f.get("isYoung") or f.get("isDebt"):
+                write_young_stub(f)
+                young_stubbed.append(f["code"])
+                f.pop("holdingsMeta", None)
+                f.pop("holdings", None)
+                keep.append(f)
+            else:
+                pruned_codes.append(f["code"])
         else:
             # Strip transient fields from index (they live in fund-data)
             f.pop("holdingsMeta", None)
@@ -84,6 +144,37 @@ def main():
     cats = data.get("categories", {})
     for cat_key, cat_info in cats.items():
         cat_info["fundCount"] = cat_counts.get(cat_key, 0)
+
+    # Sync authoritative, correctly-dated AUM from the detail files into the
+    # index. The detail aum.asOf is the true monthly-disclosure date and carries
+    # the month-over-month trend; the index copy was previously stale (asOf
+    # stamped to the run date, trend fields dropped). Keeping them in sync fixes
+    # the AUM date shown across the app and powers the AUM-shift view.
+    aum_synced = 0
+    aum_undated = 0
+    for f in keep:
+        det_aum = get_fund_data_aum(f["code"])
+        if det_aum is not None:
+            if f.get("aum") != det_aum:
+                f["aum"] = det_aum
+                aum_synced += 1
+        else:
+            # No detail-file AUM to date this value. The index copy (if any) was
+            # stamped with the run date, which is a false disclosure date. Detail
+            # files are the single source of truth for AUM dates, so keep the raw
+            # size but drop the unverifiable date + trend rather than lie about it.
+            idx_aum = f.get("aum")
+            if isinstance(idx_aum, dict) and idx_aum.get("asOf") is not None:
+                cur = idx_aum.get("current")
+                if cur is not None:
+                    f["aum"] = {"current": cur, "asOf": None}
+                else:
+                    f.pop("aum", None)
+                aum_undated += 1
+    if aum_synced:
+        print(f"  Synced AUM from fund-data into index for {aum_synced} fund(s)")
+    if aum_undated:
+        print(f"  Cleared unverifiable AUM date on {aum_undated} fund(s) (no detail-file disclosure date)")
 
     # holdingsCoverage aggregate (from fund-data on disk)
     coverage_counts = {}
@@ -160,6 +251,8 @@ def main():
     with open(FUNDS_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))
 
+    if young_stubbed:
+        print(f"  Kept {len(young_stubbed)} new fund(s) with no_disclosure stub (no holdings yet): {young_stubbed[:10]}{'...' if len(young_stubbed) > 10 else ''}")
     print(f"Finalize: {before} -> {len(keep)} funds ({len(pruned_codes)} pruned)")
     if pruned_codes:
         print(f"  Removed: {pruned_codes[:10]}{'...' if len(pruned_codes) > 10 else ''}")

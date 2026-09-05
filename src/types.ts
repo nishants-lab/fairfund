@@ -35,6 +35,17 @@ export interface Fund {
   // the debt funds' reduced analytics surface since equity risk metrics are noise
   // on a market-neutral book.
   isArbitrage?: boolean
+  // True for funds with a short NAV history (< 750 daily points, ~3 years).
+  // These get an honest reduced surface: a "New fund" badge, since-inception
+  // return instead of the 3Y-anchored verdict, and a "1M" chart preset. isYoung
+  // is orthogonal to isDebt/isArbitrage (it is about history depth, not asset class).
+  isYoung?: boolean
+  navPoints?: number
+  inceptionDate?: string
+  // Since-inception performance. Stamped for every fund that has a NAV history
+  // (compute_metrics), so present in practice, but kept optional and guarded at
+  // use sites. Headline metric for young funds that lack a full 3Y/5Y window.
+  si?: { totalReturn: number; days: number; since: string; cagr?: number }
   categorySize: number
   metrics: {
     '1Y'?: WindowMetrics
@@ -47,7 +58,7 @@ export interface Fund {
   management?: Management
   analytics?: Analytics
   stockMoves?: StockMoves | null
-  aum?: { current: number; asOf: string; previous?: number; prevDate?: string; changePct?: number } | null
+  aum?: { current: number; asOf: string | null; previous?: number; prevDate?: string; changePct?: number } | null
   expenseRatio?: number | null
   investInfo?: {
     exit_load?: string
