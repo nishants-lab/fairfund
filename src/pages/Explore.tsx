@@ -101,7 +101,7 @@ export default function Explore() {
   const navigate = useNavigate()
   const initial = params.get('cat') ?? 'Flexi Cap'
   const [cat, setCat] = useState(initial)
-  const isDebtCat = cat === 'Liquid' || cat === 'Money Market'
+  const isDebtCat = cat === 'Liquid' || cat === 'Money Market' || cat === 'Arbitrage'
   const EQUITY_ONLY_KEYS = new Set(['alpha', 'sharpe', 'maxDrawdown', 'batting', 'score'])
   const cols = isDebtCat ? [...COLUMNS.filter((c) => !EQUITY_ONLY_KEYS.has(c.key)), ...DEBT_COLUMNS] : COLUMNS
   const [horizon, setHorizon] = useState<Horizon>('3Y')
@@ -204,9 +204,20 @@ export default function Explore() {
 
       {isDebtCat && (
         <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 text-sm text-muted dark:border-cyan-900/40 dark:bg-cyan-900/10">
-          <strong className="text-fg">Reading a debt category.</strong> Liquid and money market funds are cash-equivalent
-          products - returns track short-term rates and gaps between funds are small, so judge them on expense ratio and
-          consistency rather than risk-adjusted ratios. Ratio-based columns (Sharpe, Sortino, alpha) are far less meaningful here.
+          {cat === 'Arbitrage' ? (
+            <>
+              <strong className="text-fg">Reading an arbitrage category.</strong> Arbitrage funds hedge every long cash
+              position with a matching short future, so net market exposure is near zero and returns are cash-like - gaps
+              between funds are small, so judge them on expense ratio, size and consistency rather than risk-adjusted ratios.
+              Ratio-based columns (Sharpe, Sortino, alpha) are far less meaningful here. Note they are taxed as equity.
+            </>
+          ) : (
+            <>
+              <strong className="text-fg">Reading a debt category.</strong> Liquid and money market funds are cash-equivalent
+              products - returns track short-term rates and gaps between funds are small, so judge them on expense ratio and
+              consistency rather than risk-adjusted ratios. Ratio-based columns (Sharpe, Sortino, alpha) are far less meaningful here.
+            </>
+          )}
         </div>
       )}
 

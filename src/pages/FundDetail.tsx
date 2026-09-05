@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFundDetail } from '../lib/data'
+import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
 import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
@@ -35,7 +35,9 @@ export default function FundDetail() {
 
   usePageMeta(
     fund ? `${fund.name} - ${fund.categoryDisplay}` : 'Fund not found',
-    fund ? (fund.isDebt
+    fund ? (fund.isArbitrage
+      ? `${fund.name} by ${fund.amc}: expense ratio, category rank, fund size and cost context for this arbitrage fund over any period.`
+      : fund.isDebt
       ? `${fund.name} by ${fund.amc}: returns, category rank, NAV variability and expense-ratio context for this debt fund over any period.`
       : `${fund.name} by ${fund.amc}: CAGR, Sharpe, Sortino, max drawdown, peer alpha and forward-looking signals over any time period.`) : undefined
   )
@@ -357,7 +359,7 @@ export default function FundDetail() {
                 ? `CAGR is the annualized (per-year) return. "${pct(live.totalReturn)} absolute" is the cumulative (point-to-point) return over the whole ${live.years.toFixed(1)}-year period - e.g. Rs 1L would have become Rs ${(100000 * (1 + live.totalReturn / 100) / 1000).toFixed(0)}K.`
                 : 'Total return over the selected sub-1-year period (not annualized).'}
             />
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard
               label="Sharpe Ratio"
               value={num(live.sharpe)}
@@ -366,7 +368,7 @@ export default function FundDetail() {
               hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range, with the real worst and best peer values printed at each end; the coloured caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marked '≥1.00' is the 'good' level (shown only when it falls in range)."
             />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard
               label="Max Drawdown"
               value={pct(live.maxDrawdown)}
@@ -377,13 +379,13 @@ export default function FundDetail() {
             />
             )}
             <MetricCard
-              label={fund.isDebt ? 'NAV Variability' : 'Volatility'}
+              label={usesReducedSurface(fund) ? 'NAV Variability' : 'Volatility'}
               value={pct(live.volatility)}
               tone={volatilityTone(live.volatility)}
               spectrum={volSpec(live.volatility)}
               hint={volatilityHint(live.volatility)}
             />
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard
               label="Sortino Ratio"
               value={num(live.sortino)}
@@ -392,7 +394,7 @@ export default function FundDetail() {
               hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
             />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard
               label="Calmar Ratio"
               value={num(live.calmar)}
@@ -429,22 +431,22 @@ export default function FundDetail() {
         <>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <MetricCard label="CAGR" value={pct(baseline.cagr)} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={ratioTone(baseline.sharpe)} hint="Return per unit of total risk. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis." />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is always a loss - shallower is better." />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
             )}
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />
             )}
-            <MetricCard label={fund.isDebt ? 'NAV Variability' : 'Volatility'} value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
+            <MetricCard label={usesReducedSurface(fund) ? 'NAV Variability' : 'Volatility'} value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
             <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
           <p className="mt-2 text-xs text-faint">
@@ -462,7 +464,7 @@ export default function FundDetail() {
 
       {/* Category landscape: risk-vs-return scatter. Hidden for debt funds, where
           returns are near-identical and volatility is ~0, so the plot is meaningless. */}
-      {!fund.isDebt && <FundLandscape fund={fund} />}
+      {!usesReducedSurface(fund) && <FundLandscape fund={fund} />}
 
       {/* Chart */}
       <div className="mt-6 card p-5">
@@ -474,7 +476,7 @@ export default function FundDetail() {
             >
               NAV Growth
             </button>
-            {!fund.isDebt && (
+            {!usesReducedSurface(fund) && (
             <button
               onClick={() => setChartMode('drawdown')}
               className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
@@ -514,7 +516,7 @@ export default function FundDetail() {
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
       <VerdictCard fund={fund} />
 
-      {fund.isDebt && (() => {
+      {usesReducedSurface(fund) && (() => {
         const ter = typeof fund.expenseRatio === 'string' ? parseFloat(fund.expenseRatio) : fund.expenseRatio
         const hasTer = ter != null && !isNaN(ter)
         const exit = fund.investInfo?.exit_load
@@ -524,9 +526,9 @@ export default function FundDetail() {
           <div className="mt-6 card p-5">
             <h3 className="font-bold text-fg">Costs matter most here</h3>
             <p className="mt-2 text-sm text-muted">
-              For a debt fund, gross returns are driven largely by prevailing short-term rates and are near-identical across
-              peers, so the expense ratio, exit load and fund size are the real differentiators, not risk-adjusted return
-              metrics. That is why the ranking here leans on these facts rather than on Sharpe, alpha or drawdown.
+              {fund.isArbitrage
+                ? 'For an arbitrage fund, returns come from the price gap between the cash and futures markets on fully hedged positions, so net market exposure is near zero and returns are cash-like and similar across peers. That makes the expense ratio, exit load and fund size the real differentiators, not risk-adjusted return metrics. That is why the ranking here leans on these facts rather than on Sharpe, alpha or drawdown.'
+                : 'For a debt fund, gross returns are driven largely by prevailing short-term rates and are near-identical across peers, so the expense ratio, exit load and fund size are the real differentiators, not risk-adjusted return metrics. That is why the ranking here leans on these facts rather than on Sharpe, alpha or drawdown.'}
             </p>
             {anyFact ? (
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -550,14 +552,15 @@ export default function FundDetail() {
               <p className="mt-3 text-xs text-faint">Cost and size data not yet available for this scheme.</p>
             )}
             <p className="mt-3 text-xs text-faint">
-              Holdings, sector, management and forward-return components are hidden here because they are not meaningful for a
-              cash-equivalent portfolio.
+              {fund.isArbitrage
+                ? 'Sector, management and forward-return components are hidden here because the book is fully hedged (long cash equities offset by short futures) with net market exposure near zero, so equity-style analysis is not meaningful.'
+                : 'Holdings, sector, management and forward-return components are hidden here because they are not meaningful for a cash-equivalent portfolio.'}
             </p>
           </div>
         )
       })()}
 
-      {!fund.isDebt && (
+      {!usesReducedSurface(fund) && (
         <>
           {/* Portfolio holdings */}
           <HoldingsTable fund={fund} peerCode={peers[0]?.code} />
@@ -575,6 +578,54 @@ export default function FundDetail() {
         </>
       )}
 
+      {/* Arbitrage: fully-hedged equity book + exposure summary */}
+      {fund.isArbitrage && fund.holdings && fund.holdings.length > 0 && (() => {
+        const hedge = fund.holdingsMeta?.hedge
+        const netTxt = hedge ? (Math.abs(hedge.netEquity) < 1 ? '\u22480%' : `${hedge.netEquity.toFixed(1)}%`) : ''
+        return (
+          <>
+            {hedge && (
+              <div className="mt-6 card border-l-4 border-l-teal-400 p-5">
+                <h3 className="font-bold text-fg">The equity book is fully hedged</h3>
+                <p className="mt-2 text-sm text-muted">
+                  This fund holds the stocks below long and sells a matching stock future against each one, locking in the
+                  small price gap between the cash and futures markets. Because every long position is offset by a short,
+                  net equity exposure is near zero and returns are cash-like, not equity-like. The bulk of the corpus sits
+                  in cash margin, short-term debt and liquid funds as collateral for the futures positions.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                    <div className="text-xs uppercase tracking-wide text-faint">Gross long equity</div>
+                    <div className="mt-1 text-lg font-bold text-fg">{hedge.grossLong.toFixed(1)}%</div>
+                    <div className="mt-0.5 text-xs text-muted">Each hedged by a short future.</div>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                    <div className="text-xs uppercase tracking-wide text-faint">Net equity exposure</div>
+                    <div className="mt-1 text-lg font-bold text-fg">{netTxt}</div>
+                    <div className="mt-0.5 text-xs text-muted">After hedging. Near zero.</div>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                    <div className="text-xs uppercase tracking-wide text-faint">Cash margin</div>
+                    <div className="mt-1 text-lg font-bold text-fg">{hedge.cash.toFixed(1)}%</div>
+                    <div className="mt-0.5 text-xs text-muted">Collateral for the futures.</div>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                    <div className="text-xs uppercase tracking-wide text-faint">Debt + liquid funds</div>
+                    <div className="mt-1 text-lg font-bold text-fg">{(hedge.debt + hedge.liquidMf).toFixed(1)}%</div>
+                    <div className="mt-0.5 text-xs text-muted">Short-term, cash-equivalent.</div>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-faint">
+                  The table below lists the gross long equity positions only. The percentages are share of total corpus
+                  before hedging, so they sum to the gross long figure above, not to 100%.
+                </p>
+              </div>
+            )}
+            <HoldingsTable fund={fund} />
+          </>
+        )
+      })()}
+
       {/* Peers */}
       {peers.length > 0 && (
         <div className="mt-6">
@@ -590,7 +641,7 @@ export default function FundDetail() {
                   <div className="mt-1 font-semibold text-fg line-clamp-2">{p.name}</div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-muted">{pct(pm?.cagr)}</span>
-                    {!fund.isDebt && <span className={`text-sm font-semibold ${alphaColor(pm?.alpha ?? 0)}`}>{signedPct(pm?.alpha)}</span>}
+                    {!usesReducedSurface(fund) && <span className={`text-sm font-semibold ${alphaColor(pm?.alpha ?? 0)}`}>{signedPct(pm?.alpha)}</span>}
                   </div>
                 </button>
               )

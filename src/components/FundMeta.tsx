@@ -23,9 +23,45 @@ function fmtLockIn(lock: { years?: number | null; months?: number | null; days?:
   return parts.length > 0 ? parts.join(' ') : null
 }
 
-function fmtExitLoad(raw: string): string {
-  // Strip redundant "Exit load of" prefix since the label already says "Exit load"
-  return raw.replace(/^exit\s*load\s*(of\s*)?/i, '').replace(/^,\s*/, '')
+function fmtPct(n: number): string {
+  return parseFloat(n.toFixed(4)).toString()
+}
+
+/**
+ * Parse a free-text exit-load string into a compact headline plus the full
+ * detail for a tooltip. Handles graded liquid loads (many tiers), partial-
+ * redemption ("in excess of X% of the investment") clauses, and simple
+ * single-rate loads. Keeps the headline short enough for mobile.
+ */
+function parseExitLoad(raw: string): { headline: string; detail: string | null } {
+  const text = raw.trim()
+  if (/^(nil|none|no\s*exit\s*load|not\s*applicable|na|n\/a|0%?)\.?$/i.test(text)) {
+    return { headline: 'Nil', detail: null }
+  }
+  // Drop "X% of the investment/units" thresholds so they aren't read as the rate
+  const cleaned = text.replace(/\d+(?:\.\d+)?\s*%\s*of\s*the\s*(investment|units)/gi, ' ')
+  const pcts = [...cleaned.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((m) => parseFloat(m[1]))
+  const wins = [...text.matchAll(/(\d+)\s*(day|month|year)s?/gi)].map((m) => {
+    const n = parseInt(m[1], 10)
+    const unit = m[2].toLowerCase()
+    const days = unit === 'year' ? n * 365 : unit === 'month' ? n * 30 : n
+    return { n, unit, days }
+  })
+  let window: string | null = null
+  if (wins.length) {
+    const mx = wins.reduce((a, b) => (b.days > a.days ? b : a))
+    window = `\u2264${mx.n} ${mx.unit}${mx.n > 1 ? 's' : ''}`
+  }
+  if (!pcts.length) {
+    const first = text.replace(/^exit\s*load\s*(of\s*)?/i, '').split(/,\s|;\s/)[0].trim()
+    return { headline: first.length > 40 ? first.slice(0, 38) + '\u2026' : first, detail: text }
+  }
+  const max = Math.max(...pcts)
+  const distinct = new Set(pcts.map((p) => p.toFixed(4)))
+  const rate = distinct.size > 1 ? `up to ${fmtPct(max)}%` : `${fmtPct(max)}%`
+  const headline = window ? `${rate} \u00b7 ${window}` : rate
+  const detail = distinct.size > 1 || text.length > headline.length + 6 ? text : null
+  return { headline, detail }
 }
 
 export default function FundMeta({ fund }: { fund: Fund }) {
@@ -64,15 +100,13 @@ export default function FundMeta({ fund }: { fund: Fund }) {
           </div>
         )}
         {inv?.exit_load && (() => {
-          const full = fmtExitLoad(inv.exit_load)
-          const isLong = full.length > 44
-          const short = isLong ? full.split(/[,.]/)[0].trim() + '\u2026' : full
+          const { headline, detail } = parseExitLoad(inv.exit_load)
           return (
             <div className="flex items-baseline gap-1">
               <span className="text-faint">Exit load</span>
-              <span className="font-semibold text-fg">{short}</span>
-              {isLong && (
-                <InfoTip label="Exit load" width={300}>{full}</InfoTip>
+              <span className="font-semibold text-fg whitespace-nowrap">{headline}</span>
+              {detail && (
+                <InfoTip label="Exit load" width={300}>{detail}</InfoTip>
               )}
             </div>
           )

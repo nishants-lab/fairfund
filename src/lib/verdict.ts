@@ -35,7 +35,17 @@ function clamp(n: number, lo: number, hi: number) {
  * forward signals come from fund.analytics + fund.management.
  */
 export function buildVerdict(fund: Fund): Verdict {
-  // Debt funds are cash-equivalent; equity pillar scoring is meaningless.
+  // Debt and arbitrage funds are cash-equivalent; equity pillar scoring is meaningless.
+  if (fund.isArbitrage) {
+    return {
+      score: 0,
+      label: 'Average',
+      tone: 'warn',
+      positives: [],
+      negatives: [],
+      oneLiner: 'Arbitrage fund: fully hedged equity with near-zero net exposure; judge on expense ratio, size and consistency, not equity-style conviction.',
+    }
+  }
   if (fund.isDebt) {
     return {
       score: 0,
