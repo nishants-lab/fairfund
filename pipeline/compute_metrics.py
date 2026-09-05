@@ -204,6 +204,22 @@ def main():
             no_nav += 1
             continue
 
+        # Always stamp history depth, inception, and a since-inception return so
+        # young funds (which lack a full 1Y/3Y/5Y window) still have honest,
+        # non-empty analytics to show. isYoung => no full 3Y track record yet.
+        first_d, first_v = nav_points[0]
+        last_d, last_v = nav_points[-1]
+        f["navPoints"] = len(nav_points)
+        f["inceptionDate"] = first_d
+        f["isYoung"] = len(nav_points) < 750
+        si_days = (datetime.strptime(last_d, "%Y-%m-%d") - datetime.strptime(first_d, "%Y-%m-%d")).days
+        if first_v > 0 and si_days >= 1 and last_v > 0:
+            si = {"totalReturn": round((last_v / first_v - 1) * 100, 2), "days": si_days, "since": first_d}
+            if si_days >= 90:
+                si_years = si_days / 365.25
+                si["cagr"] = round((mpow(last_v / first_v, 1 / si_years) - 1) * 100, 2)
+            f["si"] = si
+
         for horizon_key, years in horizons.items():
             sliced = slice_nav(nav_points, years)
             if not sliced:

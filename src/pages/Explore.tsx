@@ -292,19 +292,42 @@ export default function Explore() {
             <tbody>
               {funds.map((f) => {
                 const m = f.metrics[horizon]
-                if (!m)
+                if (!m) {
+                  const si = f.si
+                  const launched = f.inceptionDate
+                    ? new Date(f.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+                    : null
                   return (
-                    <tr key={f.code} className="border-b border-line text-faint">
-                      <td className="px-4 py-3">—</td>
+                    <tr
+                      key={f.code}
+                      onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)}
+                      className="cursor-pointer border-b border-line text-faint transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
+                    >
                       <td className="px-4 py-3">
-                        <button onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)} className="font-semibold text-muted hover:text-brand-600">
-                          {f.name}
-                        </button>
-                        <div className="text-xs text-faint">No full {horizon} history</div>
+                        {f.isYoung ? (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">NEW</span>
+                        ) : '—'}
                       </td>
-                      <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <WishlistButton code={f.code} compact />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-fg truncate">{f.name}</div>
+                            <div className="text-xs text-faint">{f.amc}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {f.isYoung && si ? (
+                        <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-right text-xs">
+                          <span className="font-semibold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}% since launch</span>
+                          {launched && <span className="text-faint"> · new fund, launched {launched}, too new for a {horizon} rank</span>}
+                        </td>
+                      ) : (
+                        <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
+                      )}
                     </tr>
                   )
+                }
                 return (
                   <tr
                     key={f.code}

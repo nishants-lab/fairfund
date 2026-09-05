@@ -22,6 +22,7 @@ import FundMeta from '../components/FundMeta'
 import SectorBreakdown from '../components/SectorBreakdown' 
 import type { NavPoint } from '../types'
 import ShareButton from '../components/ShareButton'
+import TaxCard from '../components/TaxCard'
 import WishlistButton from '../components/WishlistButton'
 import { usePageMeta } from '../lib/usePageMeta'
 
@@ -77,9 +78,11 @@ export default function FundDetail() {
         if (pts.length > 0) {
           const earliest = pts[0].date
           const latest = pts[pts.length - 1].date
-          const [s, e] = presetRange('3Y', earliest, latest)
+          const defPreset: Preset = fund.isYoung ? 'MAX' : '3Y'
+          const [s, e] = presetRange(defPreset, earliest, latest)
           setStart(s)
           setEnd(e)
+          setPreset(defPreset)
         }
       })
       .catch(() => !cancelled && setError(true))
@@ -273,6 +276,14 @@ export default function FundDetail() {
             {fund.metrics['3Y'] && (
               <span className="pill bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                 Rank #{fund.metrics['3Y'].catRank} of {fund.metrics['3Y'].catSize ?? fund.categorySize} (3Y)
+              </span>
+            )}
+            {fund.isYoung && fund.inceptionDate && (
+              <span
+                className="pill bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+                title={`Launched ${fmtDate(fund.inceptionDate)} · ${fund.navPoints ?? 0} trading days of history. Long-window metrics (3Y/5Y) and category rank are not yet available; judged on since-inception performance.`}
+              >
+                New fund · since {new Date(fund.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
               </span>
             )}
           </div>
@@ -625,6 +636,9 @@ export default function FundDetail() {
           </>
         )
       })()}
+
+      {/* Taxation */}
+      <TaxCard fund={fund} />
 
       {/* Peers */}
       {peers.length > 0 && (
