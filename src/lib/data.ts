@@ -4,6 +4,16 @@ import type { FundsData, Fund } from '../types'
 export const data = fundsJson as unknown as FundsData
 export const funds: Fund[] = data.funds
 
+/**
+ * Funds that use the reduced, honest analytics surface: debt (cash-equivalent)
+ * and arbitrage (fully hedged, market-neutral). For both, equity risk-adjusted
+ * metrics (Sharpe, alpha, drawdown, manager skill) are meaningless, so the UI
+ * hides those sections. Note arbitrage is still taxed as equity (isDebt=false).
+ */
+export function usesReducedSurface(f: { isDebt?: boolean; isArbitrage?: boolean }): boolean {
+  return !!(f.isDebt || f.isArbitrage)
+}
+
 // Build a quick lookup by code
 const byCode = new Map<number, Fund>()
 funds.forEach((f) => byCode.set(f.code, f))
@@ -144,6 +154,8 @@ export const categoryOrder = [
   // Debt (cash-equivalent) categories, grouped last as a Cash / Debt block.
   'Liquid',
   'Money Market',
+  // Arbitrage: hedged equity, cash-like behaviour, equity taxation.
+  'Arbitrage',
 ]
 
 export function topFundsForCategory(category: string, n = 5): Fund[] {

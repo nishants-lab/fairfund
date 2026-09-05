@@ -40,6 +40,14 @@ HORIZONS = ["1Y", "3Y", "5Y"]
 DEBT_CATS = {"Liquid", "Money Market"}
 DEBT_WEIGHTS = {"ter": 0.70, "aum": 0.20, "cagr": 0.10}
 
+# Arbitrage funds are equity-taxed but their return is arbitrage spread capture,
+# not stock-picking, so the 6 equity risk-adjusted metrics are misleading. They
+# rank on the same honest cost+return basis as debt, but with MORE weight on
+# return: arbitrage spread-capture skill produces real CAGR dispersion (unlike
+# near-identical liquid yields), while thin net returns still make TER decisive.
+ARBITRAGE_CATS = {"Arbitrage"}
+ARBITRAGE_WEIGHTS = {"ter": 0.45, "aum": 0.20, "cagr": 0.35}
+
 
 def percentile_rank_higher(val, all_vals):
     """Fraction of peers with a strictly lower value. Range: [0, 1]."""
@@ -59,7 +67,7 @@ def percentile_rank_lower(val, all_vals):
     return above / (n - 1)
 
 
-def debt_score(fund, m, ter_vals, aum_vals, cagr_vals):
+def debt_score(fund, m, ter_vals, aum_vals, cagr_vals, weights=DEBT_WEIGHTS):
     """Cost-anchored score for cash-equivalent funds. Weighted arithmetic mean of
     percentile ranks: cheaper TER, larger AUM, higher return. Missing TER/AUM
     fall back to a neutral 0.5 percentile so they neither help nor hurt."""
@@ -71,7 +79,7 @@ def debt_score(fund, m, ter_vals, aum_vals, cagr_vals):
     p_ter = percentile_rank_lower(ter, ter_vals) if (ter is not None and ter_vals) else 0.5
     p_aum = percentile_rank_higher(aum, aum_vals) if (aum is not None and aum_vals) else 0.5
     p_cagr = percentile_rank_higher(m["cagr"], cagr_vals) if cagr_vals else 0.5
-    w = DEBT_WEIGHTS
+    w = weights
     return w["ter"] * p_ter + w["aum"] * p_aum + w["cagr"] * p_cagr
 
 
@@ -117,8 +125,9 @@ def recompute_rankings(data, dry_run=False):
 
             # Compute composite score for each fund
             scored = []
-            if cat in DEBT_CATS:
-                # Cost-anchored ranking for cash-equivalent funds.
+            if cat in DEBT_CATS or cat in ARBITRAGE_CATS:
+                # Cost-anchored ranking for cash-equivalent AND arbitrage funds.
+                _w = ARBITRAGE_WEIGHTS if cat in ARBITRAGE_CATS else DEBT_WEIGHTS
                 def _ter_of(f):
                     t = f.get("expenseRatio")
                     if isinstance(t, str):
@@ -131,7 +140,7 @@ def recompute_rankings(data, dry_run=False):
                 cagr_vals = [f["metrics"][horizon]["cagr"] for f in cat_funds]
                 for f in cat_funds:
                     m = f["metrics"][horizon]
-                    score = debt_score(f, m, ter_vals, aum_vals, cagr_vals)
+                    score = debt_score(f, m, ter_vals, aum_vals, cagr_vals, _w)
                     scored.append((score, f))
             else:
                 # Equity/other: geometric mean of 6 risk-adjusted percentile ranks.

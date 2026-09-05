@@ -30,6 +30,11 @@ export interface Fund {
   // UI hides equity-only sections (holdings, managers, regimes, forward signals,
   // risk-adjusted verdict) and shows a reduced, honest surface.
   isDebt?: boolean
+  // True for arbitrage funds: fully hedged equity (long cash + short futures),
+  // near-zero net market exposure. Taxed as equity (isDebt stays false) but shares
+  // the debt funds' reduced analytics surface since equity risk metrics are noise
+  // on a market-neutral book.
+  isArbitrage?: boolean
   categorySize: number
   metrics: {
     '1Y'?: WindowMetrics
@@ -153,6 +158,11 @@ export interface HoldingsMeta {
   note?: string
   underlying?: string | null
   count?: number
+  // Arbitrage funds only: the exposure split behind the long equity book. The
+  // listed stocks are the gross long positions; each is hedged by a matching
+  // short future, so net equity exposure is near zero and the corpus sits in
+  // cash margin, debt and liquid funds as collateral. All numbers are % of corpus.
+  hedge?: { grossLong: number; netEquity: number; cash: number; debt: number; liquidMf: number }
 }
 
 // ---- Stock-move intelligence (portfolio change analysis) ----
