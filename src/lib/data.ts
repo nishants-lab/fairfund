@@ -141,6 +141,9 @@ export const categoryOrder = [
   'Index-SmallCap',
   'Index-Sectoral/Thematic',
   'Index-Other',
+  // Debt (cash-equivalent) categories, grouped last as a Cash / Debt block.
+  'Liquid',
+  'Money Market',
 ]
 
 export function topFundsForCategory(category: string, n = 5): Fund[] {

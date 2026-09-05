@@ -393,6 +393,8 @@ for code in fund_by_code:
 print(f"  loaded {len(_nav_mem)} fund NAVs into memory")
 
 for code, fund in fund_by_code.items():
+    if fund.get("isDebt"):
+        continue  # debt funds have no manager signals; ManagementCard is hidden for them
     processed += 1
     if processed % 100 == 0:
         elapsed = _time.time() - _t0

@@ -308,6 +308,11 @@ def main():
         code = str(fund["code"])
         name = fund.get("fullName") or fund["name"]
 
+        # Debt funds (liquid, money market) have no equity-style holdings to
+        # onboard; they are flagged isDebt with coverage "not_applicable".
+        if fund.get("isDebt") or fund.get("holdingsMeta", {}).get("coverage") == "not_applicable":
+            continue
+
         needs_onboard = False
         # Check if coverage is pending
         if fund.get("holdingsMeta", {}).get("coverage") == "pending":

@@ -35,7 +35,9 @@ export default function FundDetail() {
 
   usePageMeta(
     fund ? `${fund.name} - ${fund.categoryDisplay}` : 'Fund not found',
-    fund ? `${fund.name} by ${fund.amc}: CAGR, Sharpe, Sortino, max drawdown, peer alpha and forward-looking signals over any time period.` : undefined
+    fund ? (fund.isDebt
+      ? `${fund.name} by ${fund.amc}: returns, category rank, NAV variability and expense-ratio context for this debt fund over any period.`
+      : `${fund.name} by ${fund.amc}: CAGR, Sharpe, Sortino, max drawdown, peer alpha and forward-looking signals over any time period.`) : undefined
   )
 
   const [allNav, setAllNav] = useState<NavPoint[]>([])
@@ -43,6 +45,7 @@ export default function FundDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [chartMode, setChartMode] = useState<'nav' | 'drawdown' | 'alpha'>('nav')
+  useEffect(() => setChartMode('nav'), [fund?.code]) // reset to NAV when navigating between funds
 
   // Range state
   const [start, setStart] = useState('')
@@ -260,6 +263,11 @@ export default function FundDetail() {
           <div className="flex flex-wrap items-center gap-2">
             <Link to={`/explore?cat=${encodeURIComponent(fund.category)}`} className={`pill ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
             <RiskBadge level={fund.riskLevel} />
+            {fund.sebiRisk && fund.sebiRisk !== fund.riskLevel && (
+              <span className="pill border border-line bg-surface2/60 text-muted" title="SEBI regulatory riskometer, as published by the AMC. Post-2021 nearly all equity funds are rated Very High, so this label rarely differentiates funds - FairFund's own risk grade (left) is the more useful comparison.">
+                SEBI: {fund.sebiRisk}
+              </span>
+            )}
             {fund.metrics['3Y'] && (
               <span className="pill bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                 Rank #{fund.metrics['3Y'].catRank} of {fund.metrics['3Y'].catSize ?? fund.categorySize} (3Y)
@@ -349,6 +357,7 @@ export default function FundDetail() {
                 ? `CAGR is the annualized (per-year) return. "${pct(live.totalReturn)} absolute" is the cumulative (point-to-point) return over the whole ${live.years.toFixed(1)}-year period - e.g. Rs 1L would have become Rs ${(100000 * (1 + live.totalReturn / 100) / 1000).toFixed(0)}K.`
                 : 'Total return over the selected sub-1-year period (not annualized).'}
             />
+            {!fund.isDebt && (
             <MetricCard
               label="Sharpe Ratio"
               value={num(live.sharpe)}
@@ -356,6 +365,8 @@ export default function FundDetail() {
               spectrum={ratioSpec(live.sharpe, catStats.sharpe)}
               hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range, with the real worst and best peer values printed at each end; the coloured caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marked '≥1.00' is the 'good' level (shown only when it falls in range)."
             />
+            )}
+            {!fund.isDebt && (
             <MetricCard
               label="Max Drawdown"
               value={pct(live.maxDrawdown)}
@@ -364,13 +375,15 @@ export default function FundDetail() {
               note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
               hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is always a loss; shallower is better."
             />
+            )}
             <MetricCard
-              label="Volatility"
+              label={fund.isDebt ? 'NAV Variability' : 'Volatility'}
               value={pct(live.volatility)}
               tone={volatilityTone(live.volatility)}
               spectrum={volSpec(live.volatility)}
               hint={volatilityHint(live.volatility)}
             />
+            {!fund.isDebt && (
             <MetricCard
               label="Sortino Ratio"
               value={num(live.sortino)}
@@ -378,6 +391,8 @@ export default function FundDetail() {
               spectrum={ratioSpec(live.sortino, catStats.sortino)}
               hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
             />
+            )}
+            {!fund.isDebt && (
             <MetricCard
               label="Calmar Ratio"
               value={num(live.calmar)}
@@ -385,6 +400,7 @@ export default function FundDetail() {
               spectrum={ratioSpec(live.calmar, catStats.calmar)}
               hint="Return relative to the worst drawdown. Higher is better (above 1 strong, above 3 excellent); below 0 means it lost money. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
             />
+            )}
             <MetricCard
               label="Best Month"
               value={signedPct(live.best1M)}
@@ -413,12 +429,22 @@ export default function FundDetail() {
         <>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <MetricCard label="CAGR" value={pct(baseline.cagr)} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
+            {!fund.isDebt && (
             <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
+            )}
+            {!fund.isDebt && (
             <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={ratioTone(baseline.sharpe)} hint="Return per unit of total risk. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis." />
+            )}
+            {!fund.isDebt && (
             <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is always a loss - shallower is better." />
+            )}
+            {!fund.isDebt && (
             <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
+            )}
+            {!fund.isDebt && (
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />
-            <MetricCard label="Volatility" value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
+            )}
+            <MetricCard label={fund.isDebt ? 'NAV Variability' : 'Volatility'} value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
             <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
           <p className="mt-2 text-xs text-faint">
@@ -434,8 +460,9 @@ export default function FundDetail() {
         </div>
       )}
 
-      {/* Category landscape: where this fund sits on risk vs return (peer context) */}
-      <FundLandscape fund={fund} />
+      {/* Category landscape: risk-vs-return scatter. Hidden for debt funds, where
+          returns are near-identical and volatility is ~0, so the plot is meaningless. */}
+      {!fund.isDebt && <FundLandscape fund={fund} />}
 
       {/* Chart */}
       <div className="mt-6 card p-5">
@@ -447,12 +474,14 @@ export default function FundDetail() {
             >
               NAV Growth
             </button>
+            {!fund.isDebt && (
             <button
               onClick={() => setChartMode('drawdown')}
               className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
             >
               Drawdowns
             </button>
+            )}
             {fund.analytics?.rollingAlpha && fund.analytics.rollingAlpha.spark.length >= 3 && (
               <button
                 onClick={() => setChartMode('alpha')}
@@ -485,19 +514,66 @@ export default function FundDetail() {
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
       <VerdictCard fund={fund} />
 
-      {/* Portfolio holdings */}
-      <HoldingsTable fund={fund} peerCode={peers[0]?.code} />
+      {fund.isDebt && (() => {
+        const ter = typeof fund.expenseRatio === 'string' ? parseFloat(fund.expenseRatio) : fund.expenseRatio
+        const hasTer = ter != null && !isNaN(ter)
+        const exit = fund.investInfo?.exit_load
+        const aum = fund.aum?.current
+        const anyFact = hasTer || !!exit || aum != null
+        return (
+          <div className="mt-6 card p-5">
+            <h3 className="font-bold text-fg">Costs matter most here</h3>
+            <p className="mt-2 text-sm text-muted">
+              For a debt fund, gross returns are driven largely by prevailing short-term rates and are near-identical across
+              peers, so the expense ratio, exit load and fund size are the real differentiators, not risk-adjusted return
+              metrics. That is why the ranking here leans on these facts rather than on Sharpe, alpha or drawdown.
+            </p>
+            {anyFact ? (
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                  <div className="text-xs uppercase tracking-wide text-faint">Expense ratio</div>
+                  <div className="mt-1 text-lg font-bold text-fg">{hasTer ? `${ter.toFixed(2)}%` : '—'}</div>
+                  <div className="mt-0.5 text-xs text-muted">Annual fee, deducted daily. Lower is better.</div>
+                </div>
+                <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                  <div className="text-xs uppercase tracking-wide text-faint">Exit load</div>
+                  <div className="mt-1 text-lg font-bold text-fg">{exit ? exit.replace(/^exit\s*load\s*(of\s*)?/i, '').replace(/^,\s*/, '') : '—'}</div>
+                  <div className="mt-0.5 text-xs text-muted">Charge on early redemption.</div>
+                </div>
+                <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                  <div className="text-xs uppercase tracking-wide text-faint">Fund size (AUM)</div>
+                  <div className="mt-1 text-lg font-bold text-fg">{aum != null ? (aum >= 100000 ? `₹${(aum/100000).toFixed(1)}L Cr` : aum >= 1000 ? `₹${(aum/1000).toFixed(1)}K Cr` : `₹${aum.toFixed(0)} Cr`) : '—'}</div>
+                  <div className="mt-0.5 text-xs text-muted">Larger tends to mean steadier liquidity.</div>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-faint">Cost and size data not yet available for this scheme.</p>
+            )}
+            <p className="mt-3 text-xs text-faint">
+              Holdings, sector, management and forward-return components are hidden here because they are not meaningful for a
+              cash-equivalent portfolio.
+            </p>
+          </div>
+        )
+      })()}
 
-      <SectorBreakdown fund={fund} />
+      {!fund.isDebt && (
+        <>
+          {/* Portfolio holdings */}
+          <HoldingsTable fund={fund} peerCode={peers[0]?.code} />
 
-      {/* Portfolio changes (stock-picking intelligence) */}
-      <PortfolioMoves fund={fund} />
+          <SectorBreakdown fund={fund} />
 
-      {/* Management quality */}
-      <ManagementCard fund={fund} />
+          {/* Portfolio changes (stock-picking intelligence) */}
+          <PortfolioMoves fund={fund} />
 
-      {/* Forward-looking analytics (v3): "If you stay invested for..." + signals */}
-      <ForwardAnalytics fund={fund} nav={allNav} />
+          {/* Management quality */}
+          <ManagementCard fund={fund} />
+
+          {/* Forward-looking analytics (v3): "If you stay invested for..." + signals */}
+          <ForwardAnalytics fund={fund} nav={allNav} />
+        </>
+      )}
 
       {/* Peers */}
       {peers.length > 0 && (
@@ -514,7 +590,7 @@ export default function FundDetail() {
                   <div className="mt-1 font-semibold text-fg line-clamp-2">{p.name}</div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-muted">{pct(pm?.cagr)}</span>
-                    <span className={`text-sm font-semibold ${alphaColor(pm?.alpha ?? 0)}`}>{signedPct(pm?.alpha)}</span>
+                    {!fund.isDebt && <span className={`text-sm font-semibold ${alphaColor(pm?.alpha ?? 0)}`}>{signedPct(pm?.alpha)}</span>}
                   </div>
                 </button>
               )

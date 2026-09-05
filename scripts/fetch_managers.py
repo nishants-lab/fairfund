@@ -36,7 +36,7 @@ os.makedirs(MGR_CACHE, exist_ok=True)
 # Load universe from funds.json
 _funds_path = os.path.join(ROOT, "src", "data", "funds.json")
 _funds_data = json.load(open(_funds_path, encoding="utf-8"))
-names = {int(f["code"]): f["name"] for f in _funds_data["funds"]}
+names = {int(f["code"]): f["name"] for f in _funds_data["funds"] if not f.get("isDebt")}  # debt funds have no manager attribution
 META = os.path.join(ROOT, "scheme_meta_cache")
 
 # Support --refresh-all: re-fetch managers older than 30 days

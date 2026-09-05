@@ -63,12 +63,20 @@ export default function FundMeta({ fund }: { fund: Fund }) {
             <span className="font-semibold text-fg">{er.toFixed(2)}%</span>
           </div>
         )}
-        {inv?.exit_load && (
-          <div className="flex items-baseline gap-1">
-            <span className="text-faint">Exit load</span>
-            <span className="font-semibold text-fg">{fmtExitLoad(inv.exit_load)}</span>
-          </div>
-        )}
+        {inv?.exit_load && (() => {
+          const full = fmtExitLoad(inv.exit_load)
+          const isLong = full.length > 44
+          const short = isLong ? full.split(/[,.]/)[0].trim() + '\u2026' : full
+          return (
+            <div className="flex items-baseline gap-1">
+              <span className="text-faint">Exit load</span>
+              <span className="font-semibold text-fg">{short}</span>
+              {isLong && (
+                <InfoTip label="Exit load" width={300}>{full}</InfoTip>
+              )}
+            </div>
+          )
+        })()}
         {lockIn && (
           <div className="flex items-baseline gap-1">
             <span className="text-faint">Lock-in</span>

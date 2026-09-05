@@ -20,6 +20,16 @@ export interface Fund {
   category: string
   categoryDisplay: string
   riskLevel: string
+  // SEBI regulatory riskometer (from Groww). Distinct from our own riskLevel:
+  // post-2021 nearly all equity funds are "Very High". Shown for reference only.
+  sebiRisk?: string
+  benchmark?: string
+  launchDate?: string
+  ratings?: { groww?: number | null; crisil?: number | null }
+  // True for debt (cash-equivalent) funds: liquid, money market. When set, the
+  // UI hides equity-only sections (holdings, managers, regimes, forward signals,
+  // risk-adjusted verdict) and shows a reduced, honest surface.
+  isDebt?: boolean
   categorySize: number
   metrics: {
     '1Y'?: WindowMetrics

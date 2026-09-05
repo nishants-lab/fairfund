@@ -9,8 +9,15 @@ import FundLandscape from '../components/FundLandscape'
 import WishlistButton from '../components/WishlistButton'
 import type { Horizon, Fund } from '../types'
 
-type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting'
+type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
 type SortDir = 'asc' | 'desc'
+
+// Format an AUM value already expressed in Rs crore.
+function fmtCrore(cr: number): string {
+  if (cr >= 100000) return `₹${(cr / 100000).toFixed(1)}L Cr`
+  if (cr >= 1000) return `₹${(cr / 1000).toFixed(1)}K Cr`
+  return `₹${cr.toFixed(0)} Cr`
+}
 
 // For each sortable key: default direction when first clicked, and whether higher is "better".
 // `tip` (optional) renders an info tooltip next to the header label.
@@ -52,6 +59,37 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
   },
 ]
 
+
+// Extra columns shown only for debt categories, where cost/size are the real differentiators.
+const DEBT_COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDir: SortDir; tip?: React.ReactNode }[] = [
+  {
+    key: 'ter',
+    label: 'Expense',
+    align: 'right',
+    defaultDir: 'asc',
+    tip: (
+      <>
+        <strong>Total Expense Ratio - the annual fee, deducted daily from NAV.</strong>
+        <br /><br />For debt funds where gross returns are near-identical, a lower expense ratio is the
+        single biggest driver of what you actually keep. Lower is better.
+      </>
+    ),
+  },
+  {
+    key: 'aum',
+    label: 'AUM',
+    align: 'right',
+    defaultDir: 'desc',
+    tip: (
+      <>
+        <strong>Assets Under Management (Rs crore).</strong>
+        <br /><br />Larger liquid/money-market funds tend to be more stable and liquid, with tighter
+        spreads on redemptions. Size matters less for returns here than cost does.
+      </>
+    ),
+  },
+]
+
 const TREND_TONE: Record<string, string> = {
   climbing: 'text-emerald-600 dark:text-emerald-400',
   fading: 'text-rose-600 dark:text-rose-400',
@@ -63,6 +101,9 @@ export default function Explore() {
   const navigate = useNavigate()
   const initial = params.get('cat') ?? 'Flexi Cap'
   const [cat, setCat] = useState(initial)
+  const isDebtCat = cat === 'Liquid' || cat === 'Money Market'
+  const EQUITY_ONLY_KEYS = new Set(['alpha', 'sharpe', 'maxDrawdown', 'batting', 'score'])
+  const cols = isDebtCat ? [...COLUMNS.filter((c) => !EQUITY_ONLY_KEYS.has(c.key)), ...DEBT_COLUMNS] : COLUMNS
   const [horizon, setHorizon] = useState<Horizon>('3Y')
   const [sortKey, setSortKey] = useState<SortKey>('rank')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -104,6 +145,12 @@ export default function Explore() {
           return m?.score ?? -Infinity
         case 'batting':
           return f.analytics?.battingAverage?.pct ?? -Infinity
+        case 'ter': {
+          const t = typeof f.expenseRatio === 'string' ? parseFloat(f.expenseRatio) : f.expenseRatio
+          return t == null || isNaN(t) ? Infinity : t
+        }
+        case 'aum':
+          return f.aum?.current ?? -Infinity
         default:
           return 0
       }
@@ -155,6 +202,14 @@ export default function Explore() {
           ))}
       </div>
 
+      {isDebtCat && (
+        <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/60 p-4 text-sm text-muted dark:border-cyan-900/40 dark:bg-cyan-900/10">
+          <strong className="text-fg">Reading a debt category.</strong> Liquid and money market funds are cash-equivalent
+          products - returns track short-term rates and gaps between funds are small, so judge them on expense ratio and
+          consistency rather than risk-adjusted ratios. Ratio-based columns (Sharpe, Sortino, alpha) are far less meaningful here.
+        </div>
+      )}
+
       {/* Category summary bar */}
       {summary && (
         <div className="mt-5 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-surface p-4">
@@ -189,7 +244,7 @@ export default function Explore() {
       {/* Fund table */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
         <span className="font-semibold uppercase tracking-wide">What the columns mean:</span>
-        {COLUMNS.filter((c) => c.tip).map((c) => (
+        {cols.filter((c) => c.tip).map((c) => (
           <span key={c.key} className="inline-flex items-center gap-1 text-muted">
             {c.label}
             <InfoTip align="left" width={290} label={`What ${c.label} means`}>
@@ -203,7 +258,7 @@ export default function Explore() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line bg-surface2 text-xs uppercase tracking-wide text-faint">
-                {COLUMNS.map((col) => {
+                {cols.map((col) => {
                   const active = sortKey === col.key
                   return (
                     <th
@@ -236,7 +291,7 @@ export default function Explore() {
                         </button>
                         <div className="text-xs text-faint">No full {horizon} history</div>
                       </td>
-                      <td colSpan={6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
+                      <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
                     </tr>
                   )
                 return (
@@ -262,9 +317,17 @@ export default function Explore() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-fg">{pct(m.cagr)}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>
-                    <td className="px-4 py-3 text-right text-muted">{num(m.sharpe)}</td>
-                    <td className="px-4 py-3 text-right text-rose-500">{pct(m.maxDrawdown)}</td>
+                    {isDebtCat && (() => {
+                      const ter = typeof f.expenseRatio === 'string' ? parseFloat(f.expenseRatio) : f.expenseRatio
+                      return <td className="px-4 py-3 text-right font-semibold text-fg">{ter != null && !isNaN(ter) ? `${ter.toFixed(2)}%` : <span className="text-faint">-</span>}</td>
+                    })()}
+                    {isDebtCat && (
+                      <td className="px-4 py-3 text-right text-muted">{f.aum?.current != null ? fmtCrore(f.aum.current) : <span className="text-faint">-</span>}</td>
+                    )}
+                    {!isDebtCat && <td className={`px-4 py-3 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>}
+                    {!isDebtCat && <td className="px-4 py-3 text-right text-muted">{num(m.sharpe)}</td>}
+                    {!isDebtCat && <td className="px-4 py-3 text-right text-rose-500">{pct(m.maxDrawdown)}</td>}
+                    {!isDebtCat && (
                     <td className="px-4 py-3 text-right">
                       {f.analytics?.battingAverage ? (
                         <span className={`font-semibold ${TREND_TONE[f.analytics.rankTrajectory?.direction ?? 'steady']}`}>{f.analytics.battingAverage.pct}%</span>
@@ -272,11 +335,14 @@ export default function Explore() {
                         <span className="text-faint">—</span>
                       )}
                     </td>
+                    )}
+                    {!isDebtCat && (
                     <td className="px-4 py-3 text-right">
                       <div className="ml-auto h-1.5 w-16 overflow-hidden rounded-full bg-surface2">
                         <div className="h-full rounded-full bg-brand-500" style={{ width: `${m.score * 100}%` }} />
                       </div>
                     </td>
+                    )}
                   </tr>
                 )
               })}

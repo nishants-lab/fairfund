@@ -23,13 +23,16 @@ ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 
 from config import (
-    ELIGIBLE_AMFI_CATEGORIES as EQUITY_CATEGORIES,
+    ELIGIBLE_AMFI_CATEGORIES as ELIGIBLE_CATEGORIES,
     MIN_NAV_POINTS,
+    min_nav_points_for,
     STALE_NAV_DAYS,
     AMFI_NAV_ALL_URL as AMFI_URL,
     MFAPI_BASE_URL as MFAPI_URL,
     map_amfi_category,
     is_excluded_by_name,
+    is_debt_category,
+    risk_level_for,
 )
 
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
@@ -211,7 +214,7 @@ def main():
             skipped_fetch += 1
             continue
         
-        if len(dates) < MIN_NAV_POINTS:
+        if len(dates) < min_nav_points_for(scheme["_mapped_category"]):
             skipped_short += 1
             continue
 
@@ -245,11 +248,14 @@ def main():
             "amc": scheme["amc"].replace(" Mutual Fund", "").strip(),
             "category": cat,
             "categoryDisplay": cat,
-            "riskLevel": "High",
+            "riskLevel": risk_level_for(cat),
+            "isDebt": is_debt_category(cat),
             "categorySize": 0,  # will be updated by compute_rankings
             "metrics": {},
             "holdings": [],
-            "holdingsMeta": {"coverage": "pending"},
+            # Debt funds hold CPs/T-bills/repos, not stocks: never fetch equity
+            # holdings for them (marker keeps onboard_new_funds from calling Groww).
+            "holdingsMeta": {"coverage": "not_applicable" if is_debt_category(cat) else "pending"},
             "management": None,
             "analytics": {},
             "stockMoves": None,
@@ -478,7 +484,7 @@ def main_with_lifecycle():
             skipped_fetch += 1
             continue
 
-        if len(dates) < MIN_NAV_POINTS:
+        if len(dates) < min_nav_points_for(scheme["_mapped_category"]):
             skipped_short += 1
             continue
 
@@ -509,11 +515,12 @@ def main_with_lifecycle():
             "amc": scheme["amc"].replace(" Mutual Fund", "").strip(),
             "category": cat,
             "categoryDisplay": cat,
-            "riskLevel": "High",
+            "riskLevel": risk_level_for(cat),
+            "isDebt": is_debt_category(cat),
             "categorySize": 0,
             "metrics": {},
             "holdings": [],
-            "holdingsMeta": {"coverage": "pending"},
+            "holdingsMeta": {"coverage": "not_applicable" if is_debt_category(cat) else "pending"},
             "management": None,
             "analytics": {},
             "stockMoves": None,
