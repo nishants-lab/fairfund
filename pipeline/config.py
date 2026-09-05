@@ -27,6 +27,8 @@ ELIGIBLE_AMFI_CATEGORIES = {
     # Debt (cash-equivalent only)
     "Liquid Fund",
     "Money Market Fund",
+    # Hybrid (equity-taxed, cash-alternative)
+    "Arbitrage Fund",
     # Index
     "Index Funds",
     "Index Fund",
@@ -50,6 +52,7 @@ AMFI_TO_FAIRFUND_CATEGORY = {
     "ELSS": "ELSS",
     "Liquid Fund": "Liquid",
     "Money Market Fund": "Money Market",
+    "Arbitrage Fund": "Arbitrage",
 }
 
 # Fallback rules applied after the direct mapping above.
@@ -74,12 +77,23 @@ AMFI_CATEGORY_FALLBACKS = [
 # --------------------------------------------------------------------------
 DEBT_CATEGORIES = {"Liquid", "Money Market"}
 
+# Arbitrage funds are a HYBRID asset class: they hold >=65% equity via fully
+# hedged cash-futures positions, so they are TAXED AS EQUITY (STCG 20% <12mo,
+# LTCG 12.5% >=12mo above the annual exemption) - NOT at slab like true debt.
+# But their return comes from arbitrage spread capture, not stock-picking, so
+# the equity-skill analytics (holdings X-ray, manager alpha, regime behaviour,
+# capture ratios) are misleading and must be hidden, exactly like debt. Hence
+# they share the "reduced surface" treatment while keeping equity taxation and
+# their own cost+return ranking.
+ARBITRAGE_CATEGORIES = {"Arbitrage"}
+
 # SEBI riskometer band per FairFund category. Equity categories default to
 # "High" (unchanged behaviour); debt cash-equivalents carry their true, lower
 # band so the risk pill does not lie.
 RISK_BY_CATEGORY = {
     "Liquid": "Low to Moderate",
     "Money Market": "Moderate",
+    "Arbitrage": "Low to Moderate",
 }
 DEFAULT_RISK_LEVEL = "High"
 
@@ -88,6 +102,19 @@ def is_debt_category(fairfund_category):
     """True if a FairFund internal category is a debt (cash-equivalent) fund
     for which equity-only enrichment (holdings/managers/regimes) must be skipped."""
     return fairfund_category in DEBT_CATEGORIES
+
+
+def is_arbitrage_category(fairfund_category):
+    """True for arbitrage funds: equity-taxed but return comes from hedged
+    arbitrage spread, so equity-skill analytics must be hidden (like debt)."""
+    return fairfund_category in ARBITRAGE_CATEGORIES
+
+
+def uses_reduced_surface(fairfund_category):
+    """True if a category should hide equity-only analytics (holdings X-ray,
+    manager skill, regimes, capture ratios): all debt AND arbitrage funds.
+    Taxation is handled separately - arbitrage stays equity-taxed."""
+    return is_debt_category(fairfund_category) or is_arbitrage_category(fairfund_category)
 
 
 def risk_level_for(fairfund_category):
@@ -126,7 +153,7 @@ MIN_NAV_POINTS_DEBT = 250
 def min_nav_points_for(fairfund_category):
     """Minimum NAV history a fund needs to enter the universe. Debt cash-equivalents
     qualify on ~1Y of history; equity funds require ~3Y."""
-    return MIN_NAV_POINTS_DEBT if is_debt_category(fairfund_category) else MIN_NAV_POINTS
+    return MIN_NAV_POINTS_DEBT if uses_reduced_surface(fairfund_category) else MIN_NAV_POINTS
 
 # Groww API settings
 GROWW_SEARCH_URL = "https://groww.in/v1/api/search/v3/query/global/st_query?query="

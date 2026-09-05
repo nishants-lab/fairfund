@@ -108,6 +108,12 @@ const colorMap: Record<string, CategoryColor> = {
     text: 'text-cyan-700 dark:text-cyan-300',
     border: 'border-cyan-500 dark:border-cyan-400',
   },
+  // Arbitrage: hedged equity, cash-like. Teal reads as adjacent-to-cash but distinct.
+  'Arbitrage': {
+    bg: 'bg-teal-100 dark:bg-teal-900/25',
+    text: 'text-teal-700 dark:text-teal-300',
+    border: 'border-teal-500 dark:border-teal-400',
+  },
 }
 
 const fallback: CategoryColor = {

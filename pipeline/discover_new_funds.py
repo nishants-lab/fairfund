@@ -32,6 +32,8 @@ from config import (
     map_amfi_category,
     is_excluded_by_name,
     is_debt_category,
+    is_arbitrage_category,
+    uses_reduced_surface,
     risk_level_for,
 )
 
@@ -250,12 +252,13 @@ def main():
             "categoryDisplay": cat,
             "riskLevel": risk_level_for(cat),
             "isDebt": is_debt_category(cat),
+            "isArbitrage": is_arbitrage_category(cat),
             "categorySize": 0,  # will be updated by compute_rankings
             "metrics": {},
             "holdings": [],
             # Debt funds hold CPs/T-bills/repos, not stocks: never fetch equity
             # holdings for them (marker keeps onboard_new_funds from calling Groww).
-            "holdingsMeta": {"coverage": "not_applicable" if is_debt_category(cat) else "pending"},
+            "holdingsMeta": {"coverage": "not_applicable" if uses_reduced_surface(cat) else "pending"},
             "management": None,
             "analytics": {},
             "stockMoves": None,
@@ -517,10 +520,11 @@ def main_with_lifecycle():
             "categoryDisplay": cat,
             "riskLevel": risk_level_for(cat),
             "isDebt": is_debt_category(cat),
+            "isArbitrage": is_arbitrage_category(cat),
             "categorySize": 0,
             "metrics": {},
             "holdings": [],
-            "holdingsMeta": {"coverage": "not_applicable" if is_debt_category(cat) else "pending"},
+            "holdingsMeta": {"coverage": "not_applicable" if uses_reduced_surface(cat) else "pending"},
             "management": None,
             "analytics": {},
             "stockMoves": None,

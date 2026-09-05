@@ -3,7 +3,7 @@ import type { Fund, NavPoint } from '../types'
 import { pct, signedPct, num, inr, fundSlug } from '../lib/format'
 import { rollingReturnsDistribution, deepestDrawdown, outcomeCone } from '../lib/forward'
 import { fmtDate, fmtMonth } from '../lib/metrics'
-import { funds, data } from '../lib/data'
+import { funds, data, usesReducedSurface } from '../lib/data'
 import { bandSpectrum } from '../lib/spectrum'
 import Sparkline from './Sparkline'
 import InfoTip from './InfoTip'
@@ -118,7 +118,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
     a && (a.rankTrajectory || a.battingAverage || a.capture || a.alpha || a.meanReversion || a.regimes?.length)
   const navAvailable = nav.length > 30
 
-  if (fund.isDebt) return null // forward analytics are not meaningful for cash-equivalent debt funds
+  if (usesReducedSurface(fund)) return null // forward analytics are not meaningful for cash-equivalent debt or fully-hedged arbitrage funds
   if (!hasAny && !navAvailable) return null
 
   return (

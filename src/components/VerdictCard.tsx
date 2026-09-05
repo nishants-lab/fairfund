@@ -27,6 +27,26 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
   // not stock-picking alpha. The equity conviction pillars (peer alpha, Sharpe,
   // downside capture, manager skill) are meaningless at near-zero volatility, so
   // we show an honest note instead of an inflated "Standout" verdict.
+  if (fund.isArbitrage) {
+    return (
+      <div className="mt-6 card border-l-4 border-l-teal-400 p-5">
+        <h3 className="font-bold text-fg">How to read this fund</h3>
+        <p className="mt-2 text-sm text-muted">
+          This is an arbitrage fund. It buys stocks in the cash market and simultaneously sells
+          the matching futures, locking in the price gap between the two. Because every long
+          position is hedged by a short, net market exposure is near zero, so returns are
+          cash-like and steady rather than equity-like. The equity-style signals we show for
+          growth funds (peer alpha, Sharpe, drawdown recovery, manager skill) do not apply here.
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Judge it on three things: how cheap it is (expense ratio), how consistent its returns
+          are, and its size. Note the tax treatment: arbitrage funds are taxed as equity, so gains
+          held 12 months or more are long-term (12.5% above the ₹1.25L annual exemption), which is
+          why they are often used as a tax-efficient alternative to a liquid fund.
+        </p>
+      </div>
+    )
+  }
   if (fund.isDebt) {
     return (
       <div className="mt-6 card border-l-4 border-l-slate-400 p-5">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
-import { getFund, fetchFundDetail, mergeFundDetail } from '../lib/data'
+import { getFund, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
 import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
@@ -149,8 +149,8 @@ export default function Compare() {
 
   const categories = new Set(funds.map((f) => f.category))
   const crossCategory = categories.size > 1
-  const hasDebt = funds.some((f) => f.isDebt)
-  const hasEquity = funds.some((f) => !f.isDebt)
+  const hasDebt = funds.some((f) => usesReducedSurface(f))
+  const hasEquity = funds.some((f) => !usesReducedSurface(f))
   const crossAsset = hasDebt && hasEquity
 
   // Map the selected range to the closest stored horizon (1Y/3Y/5Y) so we can
@@ -288,10 +288,10 @@ export default function Compare() {
         <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-900/20 dark:text-rose-300">
           <span className="text-fg">&#9888;&#65039;</span>
           <div>
-            <strong>You&apos;re mixing debt and equity funds.</strong> These are different asset classes with
-            different goals - a liquid or money market fund is a cash-equivalent parking product, not a
-            growth investment. Comparing their CAGR or risk-adjusted ratios side by side is misleading. Judge
-            debt funds on expense ratio and consistency, equity funds on long-run risk-adjusted return.
+            <strong>You&apos;re mixing cash-equivalent and equity funds.</strong> These are different asset classes
+            with different goals - a liquid, money market or arbitrage fund is a cash-equivalent parking product,
+            not a growth investment. Comparing their CAGR or risk-adjusted ratios side by side is misleading. Judge
+            debt and arbitrage funds on expense ratio and consistency, equity funds on long-run risk-adjusted return.
           </div>
         </div>
       )}
@@ -406,7 +406,7 @@ export default function Compare() {
                       {funds.map((f, i) => {
                         const m = effective(f).m
                         const v = m ? (m[row.key] as number | undefined) : undefined
-                        const debtNA = f.isDebt && ['sharpe', 'sortino', 'maxDrawdown', 'calmar'].includes(row.key)
+                        const debtNA = usesReducedSurface(f) && ['sharpe', 'sortino', 'maxDrawdown', 'calmar'].includes(row.key)
                         const isWinner = i === winner && funds.length > 1
                         const period = row.sub ? periodFor(f, row.key) : ''
                         return (
@@ -547,9 +547,9 @@ export default function Compare() {
                     Overall verdict <span className="text-xs font-normal text-faint">(all signals)</span>
                   </td>
                   {funds.map((f, i) => {
-                    if (f.isDebt) return (
+                    if (usesReducedSurface(f)) return (
                       <td key={f.code} className="px-4 py-3 text-right align-top">
-                        <span className="text-sm text-faint">Debt fund</span>
+                        <span className="text-sm text-faint">{f.isArbitrage ? 'Arbitrage fund' : 'Debt fund'}</span>
                       </td>
                     )
                     const v = verdicts[i]

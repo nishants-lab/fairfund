@@ -55,7 +55,7 @@ def _clean(o):
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.join(ROOT, "pipeline"))
-from config import is_debt_category  # noqa: E402
+from config import is_debt_category, uses_reduced_surface  # noqa: E402
 NAV_DIR = os.path.join(ROOT, "public", "nav")
 ANCHOR = pd.Timestamp(datetime.now().strftime("%Y-%m-%d"))  # dynamic
 
@@ -192,7 +192,7 @@ def main():
         # Debt (cash-equivalent) funds: skip all equity analytics (regimes,
         # capture, batting, rank trajectory, skill). The UI treats an empty
         # analytics object as "no forward-signals section".
-        if is_debt_category(cat):
+        if uses_reduced_surface(cat):
             out[code] = {}
             continue
         rec = {}
