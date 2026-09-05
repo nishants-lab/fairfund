@@ -28,6 +28,10 @@ export function inrFull(n: number): string {
 
 export function riskColor(level: string): string {
   switch (level) {
+    case 'Low':
+      return 'bg-teal-100 text-teal-700'
+    case 'Low to Moderate':
+      return 'bg-emerald-100 text-emerald-600'
     case 'Moderate':
       return 'bg-emerald-100 text-emerald-700'
     case 'Moderately High':

@@ -149,6 +149,9 @@ export default function Compare() {
 
   const categories = new Set(funds.map((f) => f.category))
   const crossCategory = categories.size > 1
+  const hasDebt = funds.some((f) => f.isDebt)
+  const hasEquity = funds.some((f) => !f.isDebt)
+  const crossAsset = hasDebt && hasEquity
 
   // Map the selected range to the closest stored horizon (1Y/3Y/5Y) so we can
   // show baseline metrics from funds.json even when live NAV is unavailable.
@@ -202,7 +205,7 @@ export default function Compare() {
     { label: 'Sortino Ratio', key: 'sortino', fmt: (v) => num(v), better: 'high' },
     { label: 'Max Drawdown', key: 'maxDrawdown', fmt: (v) => pct(v), better: 'high', sub: 'maxDrawdown' },
     { label: 'Calmar Ratio', key: 'calmar', fmt: (v) => num(v), better: 'high' },
-    { label: 'Volatility', key: 'volatility', fmt: (v) => pct(v), better: 'low' },
+    { label: hasDebt ? 'NAV Variability' : 'Volatility', key: 'volatility', fmt: (v) => pct(v), better: 'low' },
     { label: 'Best Month', key: 'best1M', fmt: (v) => signedPct(v), better: 'high', sub: 'best1M' },
     { label: 'Worst Month', key: 'worst1M', fmt: (v) => signedPct(v), better: 'high', sub: 'worst1M' },
   ]
@@ -281,7 +284,19 @@ export default function Compare() {
         </div>
       )}
 
-      {crossCategory && (
+      {crossAsset && (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-900/20 dark:text-rose-300">
+          <span className="text-fg">&#9888;&#65039;</span>
+          <div>
+            <strong>You&apos;re mixing debt and equity funds.</strong> These are different asset classes with
+            different goals - a liquid or money market fund is a cash-equivalent parking product, not a
+            growth investment. Comparing their CAGR or risk-adjusted ratios side by side is misleading. Judge
+            debt funds on expense ratio and consistency, equity funds on long-run risk-adjusted return.
+          </div>
+        </div>
+      )}
+
+      {crossCategory && !crossAsset && (
         <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
           <span className="text-fg">⚠️</span>
           <div>
@@ -391,11 +406,14 @@ export default function Compare() {
                       {funds.map((f, i) => {
                         const m = effective(f).m
                         const v = m ? (m[row.key] as number | undefined) : undefined
+                        const debtNA = f.isDebt && ['sharpe', 'sortino', 'maxDrawdown', 'calmar'].includes(row.key)
                         const isWinner = i === winner && funds.length > 1
                         const period = row.sub ? periodFor(f, row.key) : ''
                         return (
                           <td key={f.code} className="px-4 py-3 text-right align-top">
-                            {v === undefined || isNaN(v as number) ? (
+                            {debtNA ? (
+                              <span className="text-faint">n/a</span>
+                            ) : v === undefined || isNaN(v as number) ? (
                               <span className="text-faint">—</span>
                             ) : (
                               <>
@@ -529,6 +547,11 @@ export default function Compare() {
                     Overall verdict <span className="text-xs font-normal text-faint">(all signals)</span>
                   </td>
                   {funds.map((f, i) => {
+                    if (f.isDebt) return (
+                      <td key={f.code} className="px-4 py-3 text-right align-top">
+                        <span className="text-sm text-faint">Debt fund</span>
+                      </td>
+                    )
                     const v = verdicts[i]
                     const isWin = i === verdictWinner && funds.length > 1
                     const tone = v.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : v.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'

@@ -281,7 +281,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
             {analysis.dayChangeValue >= 0 ? '+' : '-'}₹{fmtL(Math.abs(analysis.dayChangeValue))}
             <span className="ml-2 text-lg">{analysis.dayChangePct >= 0 ? '+' : ''}{analysis.dayChangePct.toFixed(2)}%</span>
           </div>
-          <div className="mt-0.5 text-xs text-muted">Across equity funds with published NAV. Debt and other holdings are not included in this figure.</div>
+          <div className="mt-0.5 text-xs text-muted">Across funds we track with published NAV. Holdings outside our coverage are not included in this figure.</div>
         </div>
       )}
 
@@ -388,12 +388,12 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
         </div>
       </section>
 
-      {/* Other holdings — not covered by FairFund (debt, hybrid, gilt, etc.) */}
+      {/* Other holdings — not covered by FairFund (hybrid, gilt, arbitrage, etc.) */}
       {analysis.holdings.some(h => !h.covered) && (
         <section>
           <h3 className="text-lg font-semibold text-fg">Other holdings</h3>
           <p className="mt-1 text-sm text-muted">
-            Not covered by FairFund's equity analysis (debt, hybrid, gilt, liquid, arbitrage, and similar). Counted in your portfolio value, but not ranked or signalled.
+            Not covered by FairFund's analysis (hybrid, gilt, arbitrage, and similar). Counted in your portfolio value, but not ranked or signalled.
           </p>
           <div className="mt-3 overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-sm">

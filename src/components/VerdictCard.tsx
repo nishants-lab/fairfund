@@ -23,6 +23,28 @@ const TONE_BAR: Record<string, string> = {
  * Spells out the drivers so it's transparent, never a black-box rating.
  */
 export default function VerdictCard({ fund }: { fund: Fund }) {
+  // Debt (liquid / money-market) funds are cash-equivalents: they earn accrual,
+  // not stock-picking alpha. The equity conviction pillars (peer alpha, Sharpe,
+  // downside capture, manager skill) are meaningless at near-zero volatility, so
+  // we show an honest note instead of an inflated "Standout" verdict.
+  if (fund.isDebt) {
+    return (
+      <div className="mt-6 card border-l-4 border-l-slate-400 p-5">
+        <h3 className="font-bold text-fg">How to read this fund</h3>
+        <p className="mt-2 text-sm text-muted">
+          This is a {fund.categoryDisplay.toLowerCase()} fund, a cash-equivalent used to park
+          money for the short term. It carries very low risk and low, steady returns, so the
+          equity-style signals we show for growth funds (peer alpha, Sharpe, drawdown recovery,
+          manager skill, stock holdings) do not apply here.
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Judge it on three things: how cheap it is (expense ratio), how consistent its returns
+          are, and its portfolio quality. Small differences in expense ratio, not returns, usually
+          decide the winner in this category.
+        </p>
+      </div>
+    )
+  }
   const v = buildVerdict(fund)
   return (
     <div className={`mt-6 card border-l-4 ${TONE_RING[v.tone]} p-5`}>

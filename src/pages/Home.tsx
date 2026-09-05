@@ -194,7 +194,7 @@ export default function Home() {
                 NAV updated <strong className="font-semibold text-fg">{fmtNavDate(navDate)}</strong>
               </span>
               <span className="text-muted">
-                <strong className="font-semibold text-fg">{data.totalFunds}</strong> equity funds tracked across{' '}
+                <strong className="font-semibold text-fg">{data.totalFunds}</strong> funds tracked across{' '}
                 <strong className="font-semibold text-fg">{categoryOrder.length}</strong> categories
               </span>
               {tickerItems.map((t, i) => (
@@ -219,7 +219,7 @@ export default function Home() {
               <em className="text-brand-700 dark:text-brand-300">fair.</em>
             </h1>
             <p className="rise rise-1 mt-5 max-w-lg text-lg leading-relaxed text-muted">
-              All <strong className="font-semibold text-fg">{data.totalFunds}</strong> Indian equity
+              <strong className="font-semibold text-fg">{data.totalFunds}</strong> Indian mutual
               funds, ranked over any time period you pick.
             </p>
             <div className="rise rise-2 relative z-30 mt-7 max-w-xl">
@@ -236,7 +236,7 @@ export default function Home() {
       <section className="border-b border-line bg-surface">
         <div className="mx-auto grid max-w-6xl grid-cols-2 px-4 md:grid-cols-4 md:divide-x md:divide-line">
           {[
-            { n: String(data.totalFunds), l: 'equity funds, full AMFI universe' },
+            { n: String(data.totalFunds), l: 'funds tracked and ranked' },
             { n: String(categoryOrder.length), l: 'categories, every one covered' },
             { n: 'Daily', l: `NAV refresh, latest ${fmtNavDate(navDate)}` },
             { n: 'Zero', l: 'ads, ratings-for-sale or commissions' },
@@ -354,7 +354,7 @@ export default function Home() {
           <div>
             <div className="eyebrow text-xs font-bold uppercase text-faint">The index</div>
             <h2 className="mt-2 text-2xl font-semibold text-fg">Browse by category</h2>
-            <p className="mt-1 text-sm text-muted">{categoryOrder.length} categories covering the full AMFI equity universe</p>
+            <p className="mt-1 text-sm text-muted">{categoryOrder.length} categories spanning equity, index and cash-equivalent funds</p>
           </div>
           <div className="hidden items-center gap-3 text-xs text-faint sm:flex">
             <span className="flex items-center gap-1">
@@ -420,7 +420,7 @@ export default function Home() {
               to="/explore"
               className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-semibold text-slate-900 transition-colors hover:bg-slate-100"
             >
-              Explore all {data.totalFunds} funds
+              Explore {data.totalFunds} funds
             </Link>
             <Link
               to="/compare"

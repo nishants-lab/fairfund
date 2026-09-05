@@ -35,6 +35,18 @@ function clamp(n: number, lo: number, hi: number) {
  * forward signals come from fund.analytics + fund.management.
  */
 export function buildVerdict(fund: Fund): Verdict {
+  // Debt funds are cash-equivalent; equity pillar scoring is meaningless.
+  if (fund.isDebt) {
+    return {
+      score: 0,
+      label: 'Average',
+      tone: 'warn',
+      positives: [],
+      negatives: [],
+      oneLiner: 'Debt fund: judge on expense ratio and consistency, not equity-style conviction.',
+    }
+  }
+
   const base = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
   const a = fund.analytics
   const positives: VerdictPillar[] = []

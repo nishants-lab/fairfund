@@ -33,6 +33,13 @@ SCORE_METRICS = ["sharpe", "sortino", "calmar", "maxDrawdown", "alpha", "cagr"]
 # Horizons to rank (each gets its own catRank + score)
 HORIZONS = ["1Y", "3Y", "5Y"]
 
+# Debt (cash-equivalent) categories rank on a different, honest basis: gross
+# returns are near-identical, so cost dominates net return, size guards liquidity,
+# and raw return is only a low-weight tie-breaker (it already embeds TER via NAV).
+# Weights are tunable; they must sum to 1.0.
+DEBT_CATS = {"Liquid", "Money Market"}
+DEBT_WEIGHTS = {"ter": 0.70, "aum": 0.20, "cagr": 0.10}
+
 
 def percentile_rank_higher(val, all_vals):
     """Fraction of peers with a strictly lower value. Range: [0, 1]."""
@@ -41,6 +48,31 @@ def percentile_rank_higher(val, all_vals):
         return 0.5
     below = sum(1 for v in all_vals if v < val)
     return below / (n - 1)
+
+
+def percentile_rank_lower(val, all_vals):
+    """Fraction of peers with a strictly higher value (lower raw value = better)."""
+    n = len(all_vals)
+    if n <= 1:
+        return 0.5
+    above = sum(1 for v in all_vals if v > val)
+    return above / (n - 1)
+
+
+def debt_score(fund, m, ter_vals, aum_vals, cagr_vals):
+    """Cost-anchored score for cash-equivalent funds. Weighted arithmetic mean of
+    percentile ranks: cheaper TER, larger AUM, higher return. Missing TER/AUM
+    fall back to a neutral 0.5 percentile so they neither help nor hurt."""
+    ter = fund.get("expenseRatio")
+    if isinstance(ter, str):
+        try: ter = float(ter)
+        except: ter = None
+    aum = (fund.get("aum") or {}).get("current") if isinstance(fund.get("aum"), dict) else None
+    p_ter = percentile_rank_lower(ter, ter_vals) if (ter is not None and ter_vals) else 0.5
+    p_aum = percentile_rank_higher(aum, aum_vals) if (aum is not None and aum_vals) else 0.5
+    p_cagr = percentile_rank_higher(m["cagr"], cagr_vals) if cagr_vals else 0.5
+    w = DEBT_WEIGHTS
+    return w["ter"] * p_ter + w["aum"] * p_aum + w["cagr"] * p_cagr
 
 
 def geometric_mean_score(ranks):
@@ -83,21 +115,37 @@ def recompute_rankings(data, dry_run=False):
                     f["metrics"][horizon]["score"] = 1.0
                 continue
 
-            # Compute percentile ranks for each metric across this category
-            metric_values = {}
-            for metric in SCORE_METRICS:
-                metric_values[metric] = [f["metrics"][horizon][metric] for f in cat_funds]
-
             # Compute composite score for each fund
             scored = []
-            for f in cat_funds:
-                m = f["metrics"][horizon]
-                ranks = []
+            if cat in DEBT_CATS:
+                # Cost-anchored ranking for cash-equivalent funds.
+                def _ter_of(f):
+                    t = f.get("expenseRatio")
+                    if isinstance(t, str):
+                        try: return float(t)
+                        except: return None
+                    return t
+                ter_vals = [t for t in (_ter_of(f) for f in cat_funds) if t is not None]
+                aum_vals = [ (f.get("aum") or {}).get("current") for f in cat_funds
+                             if isinstance(f.get("aum"), dict) and (f.get("aum") or {}).get("current") is not None ]
+                cagr_vals = [f["metrics"][horizon]["cagr"] for f in cat_funds]
+                for f in cat_funds:
+                    m = f["metrics"][horizon]
+                    score = debt_score(f, m, ter_vals, aum_vals, cagr_vals)
+                    scored.append((score, f))
+            else:
+                # Equity/other: geometric mean of 6 risk-adjusted percentile ranks.
+                metric_values = {}
                 for metric in SCORE_METRICS:
-                    prank = percentile_rank_higher(m[metric], metric_values[metric])
-                    ranks.append(prank)
-                score = geometric_mean_score(ranks)
-                scored.append((score, f))
+                    metric_values[metric] = [f["metrics"][horizon][metric] for f in cat_funds]
+                for f in cat_funds:
+                    m = f["metrics"][horizon]
+                    ranks = []
+                    for metric in SCORE_METRICS:
+                        prank = percentile_rank_higher(m[metric], metric_values[metric])
+                        ranks.append(prank)
+                    score = geometric_mean_score(ranks)
+                    scored.append((score, f))
 
             # Sort descending by score -> assign ranks
             scored.sort(key=lambda x: -x[0])

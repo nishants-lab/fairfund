@@ -24,6 +24,9 @@ ELIGIBLE_AMFI_CATEGORIES = {
     "Focused Fund",
     "Sectoral/Thematic",
     "ELSS",
+    # Debt (cash-equivalent only)
+    "Liquid Fund",
+    "Money Market Fund",
     # Index
     "Index Funds",
     "Index Fund",
@@ -45,6 +48,8 @@ AMFI_TO_FAIRFUND_CATEGORY = {
     "Contra Fund": "Value/Contra",
     "Focused Fund": "Focused",
     "ELSS": "ELSS",
+    "Liquid Fund": "Liquid",
+    "Money Market Fund": "Money Market",
 }
 
 # Fallback rules applied after the direct mapping above.
@@ -55,6 +60,39 @@ AMFI_CATEGORY_FALLBACKS = [
     (["index"], "Index-Other"),
     (["overseas", "international"], "International"),
 ]
+
+# --------------------------------------------------------------------------
+# Asset-class awareness.
+#
+# FairFund's analytics (holdings X-ray, manager skill, market-regime behaviour,
+# drawdown/recovery, capture ratios) are built for EQUITY funds. Debt funds
+# earn accrual, not stock-picking alpha, so those enrichment steps must be
+# SKIPPED for them and the UI must hide the equity-only sections.
+#
+# DEBT_CATEGORIES holds the FairFund internal category keys that are debt
+# (cash-equivalent) funds. Keep this in sync with AMFI_TO_FAIRFUND_CATEGORY.
+# --------------------------------------------------------------------------
+DEBT_CATEGORIES = {"Liquid", "Money Market"}
+
+# SEBI riskometer band per FairFund category. Equity categories default to
+# "High" (unchanged behaviour); debt cash-equivalents carry their true, lower
+# band so the risk pill does not lie.
+RISK_BY_CATEGORY = {
+    "Liquid": "Low to Moderate",
+    "Money Market": "Moderate",
+}
+DEFAULT_RISK_LEVEL = "High"
+
+
+def is_debt_category(fairfund_category):
+    """True if a FairFund internal category is a debt (cash-equivalent) fund
+    for which equity-only enrichment (holdings/managers/regimes) must be skipped."""
+    return fairfund_category in DEBT_CATEGORIES
+
+
+def risk_level_for(fairfund_category):
+    """SEBI riskometer band for a FairFund category (equity -> High by default)."""
+    return RISK_BY_CATEGORY.get(fairfund_category, DEFAULT_RISK_LEVEL)
 
 # FairFund is an equity-only universe. AMFI's "Index Funds" and
 # "Fund of Funds (Overseas)" buckets are mixed: they also carry debt/fixed-income
@@ -74,8 +112,21 @@ def is_excluded_by_name(fund_name):
     low = fund_name.lower()
     return any(kw in low for kw in EXCLUDE_NAME_KEYWORDS)
 
-# Minimum NAV data points (~3 years of trading days) for a fund to be eligible
+# Minimum NAV data points (~3 years of trading days) for a fund to be eligible.
+# Equity funds need a 3Y window for their risk-adjusted analytics to be meaningful.
 MIN_NAV_POINTS = 750
+
+# Debt (cash-equivalent) funds are judged on 1Y return consistency and cost, not
+# on 3Y risk-adjusted ratios, so a shorter history is acceptable. ~250 trading
+# days is about one year, enough to compute the 1Y window. Newer liquid/money-market
+# funds that clear this bar are onboarded and simply carry 1Y metrics only.
+MIN_NAV_POINTS_DEBT = 250
+
+
+def min_nav_points_for(fairfund_category):
+    """Minimum NAV history a fund needs to enter the universe. Debt cash-equivalents
+    qualify on ~1Y of history; equity funds require ~3Y."""
+    return MIN_NAV_POINTS_DEBT if is_debt_category(fairfund_category) else MIN_NAV_POINTS
 
 # Groww API settings
 GROWW_SEARCH_URL = "https://groww.in/v1/api/search/v3/query/global/st_query?query="

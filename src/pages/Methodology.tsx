@@ -11,8 +11,8 @@ export default function Methodology() {
       <h1 className="text-3xl font-bold text-fg">How FairFund works</h1>
       <p className="mt-2 max-w-prose text-muted leading-relaxed">
         Most fund screeners rank funds in a way that quietly flatters them. FairFund is built to
-        avoid that. This page explains the full method, in plain terms, for all {data.totalFunds} active
-        equity funds we cover.
+        avoid that. This page explains the full method, in plain terms, for the {data.totalFunds} active
+        funds we cover.
       </p>
 
       {/* TL;DR box */}
@@ -72,17 +72,31 @@ export default function Methodology() {
         <p>
           Which funds to include matters as much as how we rank them. We build the universe from
           <strong> AMFI's published scheme category</strong> for every fund, validated against
-          the official taxonomy. If AMFI classifies it as equity and it is an active Direct-Growth
+          the official taxonomy. If AMFI classifies it as an equity or eligible debt scheme (liquid, money market) and it is an active Direct-Growth
           plan, it is in. No silent misses.
+        </p>
+        <p className="mt-2">
+          <strong>Debt funds (liquid, money market)</strong> are shown for NAV-based returns, category ranking
+          and NAV variability only. Equity-specific signals (Sharpe, Sortino, Calmar, drawdown, alpha,
+          holdings analysis, management attribution, and forward analytics) are hidden because they are
+          not meaningful for cash-equivalent portfolios. Since gross returns across these funds are
+          near-identical, the expense ratio is the biggest differentiator of net return, so we surface
+          the TER, exit load and AUM and rank debt funds on cost rather than on risk-adjusted metrics.
         </p>
       </Section>
 
       <Section title="The composite score">
         <p>
-          Each fund's within-category score is the <strong>geometric mean of its percentile ranks</strong> across
-          Sharpe, Sortino, Calmar, drawdown protection, alpha, and CAGR. The geometric mean (not a
-          simple average) means a fund cannot hide a terrible weakness behind one strong number. There
+          For equity funds, each fund's within-category score is the <strong>geometric mean of its percentile
+          ranks</strong> across Sharpe, Sortino, Calmar, drawdown protection, alpha, and CAGR. The geometric mean
+          (not a simple average) means a fund cannot hide a terrible weakness behind one strong number. There
           are <strong>no arbitrary weights</strong>: every metric contributes equally through its rank.
+        </p>
+        <p className="mt-2">
+          For <strong>debt funds (liquid, money market)</strong>, where returns are near-identical, that composite
+          would be noise. Instead we rank on a cost-anchored score: <strong>expense ratio (70%)</strong> since it
+          drives net return, <strong>AUM (20%)</strong> as a liquidity and stability guard, and <strong>return (10%)</strong>
+          as a tie-breaker. Exit load is shown as a fact but not scored.
         </p>
       </Section>
 
