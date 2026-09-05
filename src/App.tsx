@@ -18,6 +18,7 @@ const Wishlist = lazy(() => import('./pages/Wishlist'))
 const SignIn = lazy(() => import('./pages/SignIn'))
 const MyDashboard = lazy(() => import('./pages/MyDashboard'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
+const Movers = lazy(() => import('./pages/Movers'))
 
 function PageLoader() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/movers" element={<Movers />} />
             <Route path="/fund/:code/:slug?" element={<FundDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/methodology" element={<Methodology />} />

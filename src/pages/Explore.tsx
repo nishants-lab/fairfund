@@ -250,7 +250,7 @@ export default function Explore() {
       )}
 
       {/* Category risk-vs-return map */}
-      <FundLandscape category={cat} />
+      <FundLandscape category={cat} horizon={horizon} />
 
       {/* Fund table */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
