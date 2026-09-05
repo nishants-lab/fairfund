@@ -24,7 +24,7 @@ const FUND_COUNT_LABEL = `${Math.floor(data.totalFunds / 10) * 10}+`
 // (so the Compare box keeps its static "Add a fund" prompt). Order is
 // randomized per mount and cycles every few seconds as a vertical ticker.
 const ROTATING_PROMPTS = [
-  `Search ${FUND_COUNT_LABEL} Indian equity funds…`,
+  `Search ${FUND_COUNT_LABEL} Indian mutual funds…`,
   'Try “Parag Parikh Flexi Cap”…',
   'Analyze any fund over any time period…',
   'Is its edge skill or luck? Find out…',

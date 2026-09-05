@@ -118,6 +118,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
     a && (a.rankTrajectory || a.battingAverage || a.capture || a.alpha || a.meanReversion || a.regimes?.length)
   const navAvailable = nav.length > 30
 
+  if (fund.isDebt) return null // forward analytics are not meaningful for cash-equivalent debt funds
   if (!hasAny && !navAvailable) return null
 
   return (

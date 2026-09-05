@@ -97,6 +97,17 @@ const colorMap: Record<string, CategoryColor> = {
     text: 'text-gray-600 dark:text-gray-300',
     border: 'border-gray-500 dark:border-gray-400',
   },
+  // Debt (cash-equivalent) categories: cool, low-key tones reading as parked cash.
+  'Liquid': {
+    bg: 'bg-slate-100 dark:bg-slate-800/40',
+    text: 'text-slate-700 dark:text-slate-300',
+    border: 'border-slate-500 dark:border-slate-400',
+  },
+  'Money Market': {
+    bg: 'bg-cyan-100 dark:bg-cyan-900/25',
+    text: 'text-cyan-700 dark:text-cyan-300',
+    border: 'border-cyan-500 dark:border-cyan-400',
+  },
 }
 
 const fallback: CategoryColor = {
