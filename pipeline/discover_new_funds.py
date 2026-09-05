@@ -16,7 +16,7 @@ import json
 import sys
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
@@ -41,6 +41,24 @@ FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
 
 H = {"User-Agent": "Mozilla/5.0"}
+
+_NAME_SUFFIXES = [
+    " - Direct Plan - Growth", " - Direct Plan-Growth",
+    " -Direct Plan - Growth", " - Direct - Growth Option",
+    " - Direct Plan Growth", " Direct - Growth",
+    " - Growth - Direct Plan", " Direct Plan Growth",
+]
+
+
+def _clean_scheme_name(name):
+    """Strip the Direct-Growth plan/option suffix so a scheme's display name is
+    stable across the several AMFI plan codes it may appear under."""
+    out = name
+    for suffix in _NAME_SUFFIXES:
+        if out.lower().endswith(suffix.lower()):
+            out = out[:-len(suffix)]
+            break
+    return out.strip()
 
 
 def fetch_amfi_universe():
@@ -206,7 +224,11 @@ def main():
     added = 0
     skipped_short = 0
     skipped_fetch = 0
+    skipped_stale = 0
+    skipped_dup = 0
     os.makedirs(NAV_DIR, exist_ok=True)
+    stale_before = (datetime.now() - timedelta(days=STALE_NAV_DAYS)).strftime("%Y-%m-%d")
+    seen_namecat = {(_clean_scheme_name(f["name"]).lower(), f["category"]) for f in data["funds"]}
 
     for i, scheme in enumerate(equity_new):
         code = scheme["code"]
@@ -220,7 +242,18 @@ def main():
             skipped_short += 1
             continue
 
+        # Skip wound-up / delisted funds: latest NAV older than the staleness bar.
+        if dates[-1] < stale_before:
+            skipped_stale += 1
+            continue
+
         cat = scheme["_mapped_category"]
+
+        _key = (_clean_scheme_name(scheme["name"]).lower(), cat)
+        if _key in seen_namecat:
+            skipped_dup += 1
+            continue
+        seen_namecat.add(_key)
         
         if dry_run:
             print(f"  Would add: {scheme['name'][:50]} ({cat}, {len(dates)} points)")
@@ -254,6 +287,9 @@ def main():
             "isDebt": is_debt_category(cat),
             "isArbitrage": is_arbitrage_category(cat),
             "categorySize": 0,  # will be updated by compute_rankings
+            "inceptionDate": dates[0],
+            "navPoints": len(dates),
+            "isYoung": len(dates) < 750,
             "metrics": {},
             "holdings": [],
             # Debt funds hold CPs/T-bills/repos, not stocks: never fetch equity
@@ -274,6 +310,8 @@ def main():
     print(f"\nResults:")
     print(f"  Added: {added}")
     print(f"  Skipped (too short): {skipped_short}")
+    print(f"  Skipped (stale/wound-up): {skipped_stale}")
+    print(f"  Skipped (duplicate name+category): {skipped_dup}")
     print(f"  Skipped (fetch failed): {skipped_fetch}")
 
     if dry_run:
@@ -477,7 +515,11 @@ def main_with_lifecycle():
     added = 0
     skipped_short = 0
     skipped_fetch = 0
+    skipped_stale = 0
+    skipped_dup = 0
     os.makedirs(NAV_DIR, exist_ok=True)
+    stale_before = (datetime.now() - timedelta(days=STALE_NAV_DAYS)).strftime("%Y-%m-%d")
+    seen_namecat = {(_clean_scheme_name(f["name"]).lower(), f["category"]) for f in data["funds"]}
 
     for i, scheme in enumerate(equity_new):
         code = scheme["code"]
@@ -491,7 +533,18 @@ def main_with_lifecycle():
             skipped_short += 1
             continue
 
+        # Skip wound-up / delisted funds: latest NAV older than the staleness bar.
+        if dates[-1] < stale_before:
+            skipped_stale += 1
+            continue
+
         cat = scheme["_mapped_category"]
+
+        _key = (_clean_scheme_name(scheme["name"]).lower(), cat)
+        if _key in seen_namecat:
+            skipped_dup += 1
+            continue
+        seen_namecat.add(_key)
 
         if dry_run:
             print(f"  Would add: {scheme['name'][:50]} ({cat}, {len(dates)} points)")
@@ -522,6 +575,9 @@ def main_with_lifecycle():
             "isDebt": is_debt_category(cat),
             "isArbitrage": is_arbitrage_category(cat),
             "categorySize": 0,
+            "inceptionDate": dates[0],
+            "navPoints": len(dates),
+            "isYoung": len(dates) < 750,
             "metrics": {},
             "holdings": [],
             "holdingsMeta": {"coverage": "not_applicable" if uses_reduced_surface(cat) else "pending"},
@@ -545,6 +601,8 @@ def main_with_lifecycle():
     print(f"\nResults:")
     print(f"  Added: {added}")
     print(f"  Skipped (too short): {skipped_short}")
+    print(f"  Skipped (stale/wound-up): {skipped_stale}")
+    print(f"  Skipped (duplicate name+category): {skipped_dup}")
     print(f"  Skipped (fetch failed): {skipped_fetch}")
     if findings:
         print(f"  Lifecycle changes: {len(findings)}")

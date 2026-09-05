@@ -81,14 +81,14 @@ export default function FundMeta({ fund }: { fund: Fund }) {
           <div className="flex items-baseline gap-1">
             <span className="text-faint">AUM</span>
             <span className="font-semibold text-fg">{fmtAum(aum.current)}</span>
-            {aum.changePct != null && aum.prevDate && (
+            {aum.changePct != null && aum.prevDate && aum.asOf && (
               <span className={`font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                 {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% ({monthLabel(aum.prevDate)} – {monthLabel(aum.asOf)})
               </span>
             )}
             <InfoTip label="Assets Under Management" width={220}>
-              Total fund size as of {aum.asOf}.
-              {aum.previous != null && ` Was ${fmtAum(aum.previous)} in ${aum.prevDate}.`}
+              {aum.asOf ? `Total fund size as of ${aum.asOf}.` : 'Total fund size (latest available; disclosure date not published).'}
+              {aum.asOf && aum.previous != null && ` Was ${fmtAum(aum.previous)} in ${aum.prevDate}.`}
               {' '}Very large AUM can limit agility in small/mid-cap strategies.
             </InfoTip>
           </div>

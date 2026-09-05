@@ -65,6 +65,54 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       </div>
     )
   }
+  // Young funds without a full backward window (< ~1Y history) have no
+  // meaningful rank/alpha/Sharpe yet. Show an honest since-inception read
+  // instead of a fabricated conviction score.
+  const hasWindow = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
+  if (!hasWindow) {
+    const si = fund.si
+    const sinceTxt = fund.inceptionDate
+      ? new Date(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null
+    return (
+      <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
+        <h3 className="font-bold text-fg">Too new for a full verdict</h3>
+        <p className="mt-2 text-sm text-muted">
+          This fund launched {sinceTxt ? `on ${sinceTxt}` : 'recently'} and has only{' '}
+          {fund.navPoints ? `${fund.navPoints} trading days` : 'a limited history'}, less than the
+          ~1 year we need to judge peer rank, risk-adjusted return and consistency. We are not
+          hiding it, but we will not
+          fabricate a conviction score from too little data. Here is the honest read so far:
+        </p>
+        {si && (
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-line bg-surface2/40 p-3">
+              <div className="text-xs uppercase tracking-wide text-faint">Return since launch</div>
+              <div className="mt-1 text-lg font-bold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}%</div>
+              <div className="mt-0.5 text-xs text-muted">Absolute, not annualised.</div>
+            </div>
+            {si.cagr != null && (
+              <div className="rounded-lg border border-line bg-surface2/40 p-3">
+                <div className="text-xs uppercase tracking-wide text-faint">Annualised (CAGR)</div>
+                <div className="mt-1 text-lg font-bold text-fg">{si.cagr >= 0 ? '+' : ''}{si.cagr.toFixed(1)}%</div>
+                <div className="mt-0.5 text-xs text-muted">Early, small-sample; treat with caution.</div>
+              </div>
+            )}
+            <div className="rounded-lg border border-line bg-surface2/40 p-3">
+              <div className="text-xs uppercase tracking-wide text-faint">Track record</div>
+              <div className="mt-1 text-lg font-bold text-fg">{si.days} days</div>
+              <div className="mt-0.5 text-xs text-muted">Use the chart above to see the full history.</div>
+            </div>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-faint">
+          A full risk-adjusted verdict, peer rank and forward signals will appear once this fund
+          builds up a longer track record.
+        </p>
+      </div>
+    )
+  }
+
   const v = buildVerdict(fund)
   return (
     <div className={`mt-6 card border-l-4 ${TONE_RING[v.tone]} p-5`}>
