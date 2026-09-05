@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth'
 const links = [
   { to: '/explore', label: 'Explore' },
   { to: '/compare', label: 'Compare' },
+  { to: '/movers', label: 'Movers' },
   { to: '/my', label: 'My Portfolio' },
   { to: '/methodology', label: 'Methodology' },
 ]

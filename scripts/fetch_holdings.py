@@ -111,6 +111,36 @@ def _clean_query(name):
     return n
 
 
+def _query_variants(name):
+    """Progressively simpler Groww queries (richest first, de-duped). Groww's
+    search can return zero rows for a long exact query even when it lists the
+    fund; shorter variants that drop "Fund"/"and"/plan words recover it."""
+    import re
+    core = name
+    core = re.sub(r"\(formerly[^)]*\)", " ", core, flags=re.IGNORECASE)
+    core = re.sub(r"formerly known as[^-]*", " ", core, flags=re.IGNORECASE)
+    for w in ["growth option", "growth plan", "idcw", "dividend", "payout",
+              "reinvestment", "bonus option", "bonus", "- growth", "growth",
+              "regular plan", "direct plan", "option"]:
+        core = re.sub(re.escape(w), " ", core, flags=re.IGNORECASE)
+    core = re.sub(r"[-\u2013|]", " ", core)
+    core = re.sub(r"\b(direct|regular|plan)\b", " ", core, flags=re.IGNORECASE)
+    core = re.sub(r"\s+", " ", core).strip()
+    no_fund = re.sub(r"\bfund\b", " ", core, flags=re.IGNORECASE)
+    no_and = re.sub(r"\band\b", " ", no_fund, flags=re.IGNORECASE)
+    toks = core.split()
+    cands = [_clean_query(name), core,
+             re.sub(r"\s+", " ", no_fund).strip(),
+             re.sub(r"\s+", " ", no_and).strip(),
+             " ".join(toks[:5]), " ".join(toks[:4])]
+    seen, out = set(), []
+    for c in cands:
+        c = re.sub(r"\s+", " ", (c or "")).strip()
+        if c and c.lower() not in seen:
+            seen.add(c.lower()); out.append(c)
+    return out
+
+
 def resolve_slug(code, name):
     """Resolve a Groww scheme slug for a given MFAPI scheme_code + name.
 
@@ -126,18 +156,27 @@ def resolve_slug(code, name):
         except:
             pass
     import urllib.parse
-    query = _clean_query(name)
-    d = _get(SEARCH + urllib.parse.quote(query), timeout=15)
     slug = None
     best_overlap = 0.0
-    if d and d.get("data", {}).get("content"):
-        content = d["data"]["content"]
-        # 1) exact scheme_code match (most reliable)
-        for c in content:
+    content = []
+    # Try progressively simpler queries; accept the FIRST exact scheme_code match.
+    for query in _query_variants(name):
+        d = _get(SEARCH + urllib.parse.quote(query), timeout=15)
+        rows = (d or {}).get("data", {}).get("content") or []
+        if not rows:
+            continue
+        hit = None
+        for c in rows:
             if str(c.get("scheme_code")) == str(code) and c.get("search_id"):
-                slug = c["search_id"]
-                best_overlap = 1.0
+                hit = c["search_id"]
                 break
+        if hit:
+            slug = hit
+            best_overlap = 1.0
+            break
+        if not content:
+            content = rows
+    if not slug and content:
         # 2) otherwise pick the BEST name-token (Jaccard) match among Scheme
         #    results, and accept only if it is both strong and unambiguous.
         if not slug:
