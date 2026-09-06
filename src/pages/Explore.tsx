@@ -7,6 +7,7 @@ import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
 import FundLandscape from '../components/FundLandscape'
 import WishlistButton from '../components/WishlistButton'
+import ShareButton from '../components/ShareButton'
 import type { Horizon, Fund } from '../types'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
@@ -177,7 +178,10 @@ export default function Explore() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-fg">Explore Funds by Category</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-3xl font-bold text-fg">Explore Funds by Category</h1>
+        <ShareButton title="Explore funds by category" text="Funds ranked by risk-adjusted score within each category on FairFund" className="mt-1 shrink-0" />
+      </div>
       <p className="mt-1 text-sm text-muted">
         Ranked by risk-adjusted score within each category. Tap any column header to sort. Alpha shows
         out/under-performance vs the median fund in the same category over the chosen window.
