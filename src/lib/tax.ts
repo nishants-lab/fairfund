@@ -29,6 +29,9 @@ export function taxClass(f: Fund): TaxClass {
   if (DEBT_INDEX.test(f.name)) return 'debt'
   if (f.category === 'International') return 'other'
   if (GOLD_SILVER.test(f.name)) return 'other'
+  // Conservative Hybrid funds hold at most 25% equity (SEBI mandate) and do not
+  // meet the 65% equity threshold. All gains taxed at slab rate post-Apr 2023.
+  if (/Conservative Hybrid/i.test(f.category ?? '')) return 'debt'
   return 'equity' // all domestic equity, incl. arbitrage and ELSS
 }
 

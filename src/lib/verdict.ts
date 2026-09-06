@@ -35,26 +35,11 @@ function clamp(n: number, lo: number, hi: number) {
  * forward signals come from fund.analytics + fund.management.
  */
 export function buildVerdict(fund: Fund): Verdict {
-  // Debt and arbitrage funds are cash-equivalent; equity pillar scoring is meaningless.
-  if (fund.isArbitrage) {
-    return {
-      score: 0,
-      label: 'Average',
-      tone: 'warn',
-      positives: [],
-      negatives: [],
-      oneLiner: 'Arbitrage fund: fully hedged equity with near-zero net exposure; judge on expense ratio, size and consistency, not equity-style conviction.',
-    }
-  }
-  if (fund.isDebt) {
-    return {
-      score: 0,
-      label: 'Average',
-      tone: 'warn',
-      positives: [],
-      negatives: [],
-      oneLiner: 'Debt fund: judge on expense ratio and consistency, not equity-style conviction.',
-    }
+  // Debt and arbitrage funds are scored by buildDebtVerdict (debtVerdict.ts).
+  // This guard should never be reached in production; it is a safety net only.
+  if (fund.isArbitrage || fund.isDebt) {
+    console.warn('[buildVerdict] debt/arb fund reached equity verdict — use buildDebtVerdict instead', fund.code)
+    return { score: 0, label: 'Average' as const, tone: 'warn' as const, positives: [], negatives: [], oneLiner: 'Use buildDebtVerdict for this fund type.' }
   }
 
   const base = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
