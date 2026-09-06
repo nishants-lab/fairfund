@@ -101,7 +101,7 @@ const stat = (value: string | null, label: string) =>
     </div>
   )
 
-const ShareCard = forwardRef<HTMLDivElement, { fund: Fund }>(function ShareCard({ fund }, ref) {
+const ShareCard = forwardRef<HTMLDivElement, { fund: Fund; qr?: string | null }>(function ShareCard({ fund, qr }, ref) {
   const d = cardData(fund)
   const toneColor = TONE_COLOR[d.tone] ?? MUTE
   const stats = [stat(d.rank, 'Category rank'), stat(d.cagr, d.cagrLabel), stat(d.extra, d.extraLabel)].filter(Boolean)
@@ -170,9 +170,21 @@ const ShareCard = forwardRef<HTMLDivElement, { fund: Fund }>(function ShareCard(
         <div style={{ display: 'flex', gap: 16, marginTop: 22, paddingTop: 20, borderTop: `1px solid ${LINE}` }}>{stats}</div>
       )}
 
-      {/* Footer */}
-      <div style={{ fontSize: 11, color: FAINT, marginTop: 22, fontWeight: 600 }}>
-        Read the full analysis at FairFund &middot; A weighted reading of the data, not investment advice
+      {/* Footer: QR to the exact fund deep link (so a pasted image is always
+          actionable - scan to land on this fund), plus the standing disclaimer. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 22 }}>
+        {qr && (
+          <div style={{ flexShrink: 0, textAlign: 'center' }}>
+            <img src={qr} width={72} height={72} style={{ display: 'block', borderRadius: 6 }} alt="" />
+            <div style={{ fontSize: 9, color: FAINT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>
+              Scan to open
+            </div>
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: FAINT, fontWeight: 600, lineHeight: 1.5 }}>
+          See the full analysis on FairFund &middot; forward-looking mutual-fund research.
+          <br />A weighted reading of the data, not investment advice.
+        </div>
       </div>
     </div>
   )
