@@ -91,7 +91,7 @@ export default function Navbar() {
           <Link
             to="/signin"
             aria-label={user ? 'Account' : 'Sign in'}
-            className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+            className={`relative hidden md:inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
               signInActive
                 ? 'border-brand-300 bg-brand-50 text-brand-600 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400'
                 : 'border-line text-muted hover:bg-surface2 hover:text-fg'
@@ -126,6 +126,21 @@ export default function Navbar() {
                 {wishlistCount > 99 ? '99+' : wishlistCount}
               </span>
             )}
+          </Link>
+
+          {/* Compare icon (mobile only; a desktop nav link already exists) */}
+          <Link
+            to="/compare"
+            aria-label="Compare funds"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition md:hidden ${
+              loc.pathname.startsWith('/compare')
+                ? 'border-brand-300 bg-brand-50 text-brand-600 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400'
+                : 'border-line text-muted hover:bg-surface2 hover:text-fg'
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
           </Link>
 
           {/* Desktop search (hidden on Home) */}
@@ -201,7 +216,7 @@ export default function Navbar() {
             aria-hidden="true"
           />
           <nav className="relative z-40 border-t border-line bg-surface px-4 py-2 shadow-lg">
-            {links.map((l) => (
+            {links.filter((l) => l.to !== '/compare').map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
@@ -215,17 +230,6 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <Link
-              to="/wishlist"
-              onClick={() => setOpen(false)}
-              className={`block rounded-lg px-3 py-3 text-base font-medium transition ${
-                wishlistActive
-                  ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300'
-                  : 'text-fg hover:bg-surface2'
-              }`}
-            >
-              Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
-            </Link>
             <Link
               to="/signin"
               onClick={() => setOpen(false)}

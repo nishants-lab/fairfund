@@ -28,17 +28,21 @@ for hist_file in HISTORY_DIR.glob("*.json"):
 
     changed = False
 
-    # AUM (in crores)
-    aum = latest.get("aum")
-    if aum is not None:
-        aum_data = {"current": round(aum, 1), "asOf": dates[-1]}
-        # Add trend if 2+ snapshots
-        if len(dates) >= 2:
-            prev_aum = snapshots[dates[-2]].get("aum")
-            if prev_aum and prev_aum > 0:
-                aum_data["previous"] = round(prev_aum, 1)
-                aum_data["prevDate"] = dates[-2]
-                aum_data["changePct"] = round((aum - prev_aum) / prev_aum * 100, 1)
+    # AUM (in crores). Build the FULL dated series from every aum-bearing
+    # snapshot (not just the last two) so the UI can trend over any window.
+    aum_series = [[d, round(float(snapshots[d]["aum"]), 1)]
+                  for d in dates
+                  if isinstance(snapshots[d].get("aum"), (int, float)) and snapshots[d]["aum"] > 0]
+    if aum_series:
+        last_date, last_val = aum_series[-1]
+        aum_data = {"current": last_val, "asOf": last_date}
+        if len(aum_series) >= 2:
+            prev_date, prev_val = aum_series[-2]
+            if prev_val > 0:
+                aum_data["previous"] = prev_val
+                aum_data["prevDate"] = prev_date
+                aum_data["changePct"] = round((last_val - prev_val) / prev_val * 100, 1)
+            aum_data["series"] = aum_series
         if detail.get("aum") != aum_data:
             detail["aum"] = aum_data
             changed = True
