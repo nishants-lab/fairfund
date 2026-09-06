@@ -231,10 +231,46 @@ export default function Methodology() {
         </p>
       </Section>
 
+      <Section title="Chart benchmarks: index, peer, and category median">
+        <p>
+          The NAV Growth chart overlays a dashed comparison line, rebased with your fund to a common
+          start of 100 so only relative growth is compared, never rupee price levels. What the dashed
+          line shows depends on the fund, and where more than one option exists you can switch between
+          them above the chart.
+        </p>
+        <ul className="ml-5 mt-2 list-disc space-y-1.5">
+          <li>
+            <strong>Benchmark index</strong> (broad-market equity: Large, Mid, Small, Large &amp; Mid,
+            Flexi, Multi Cap and ELSS). There is no free daily raw-index feed that matches our NAV
+            pipeline, so we proxy the SEBI category index with a low-cost passive index fund tracking
+            it (Direct-Growth plan, so tracking drag is minimal): Nifty 100 for Large Cap, Nifty Midcap
+            150 for Mid Cap, Nifty Smallcap 250 for Small Cap, Nifty LargeMidcap 250 for Large &amp; Mid,
+            and Nifty 500 for Flexi, Multi Cap and ELSS. Multi Cap uses Nifty 500 as a deep-history
+            broad-market stand-in because the exact Nifty 500 Multicap 50:25:25 index fund is still too
+            new for a meaningful chart. Each proxy is pinned and re-checked at build time for freshness
+            and depth, so a delisted fund cannot silently break the line.
+          </li>
+          <li>
+            <strong>Category median</strong> (cash-like categories: Liquid, Money Market, Arbitrage).
+            These cluster too tightly for an index to add signal, so the line is the typical fund in the
+            category: the median of every constituent fund's daily return, chained into one continuous
+            growth curve. Young funds join the median the day they have data, and no single fund's price
+            level distorts it. This is the default line for these categories; you can still switch to the
+            category leader.
+          </li>
+          <li>
+            <strong>Category leader / top peer</strong> (everything else, and always available as a base).
+            The category's rank-1 fund by 3-year risk-adjusted rank, or the next best if this fund is
+            itself the leader. An honest "vs the best in class" reference where a clean index proxy does
+            not exist (sectoral / thematic, international, and index funds).
+          </li>
+        </ul>
+      </Section>
+
       <Section title="Known limitations">
         <ul className="ml-5 list-disc space-y-1.5">
           <li>All of this is <strong>backward-derived</strong>. Past alpha does not guarantee future results.</li>
-          <li>We benchmark against the <strong>peer median</strong>, not the official index, because index-fund history in India is often too short for a clean 5-year comparison.</li>
+          <li>Benchmark-index lines use a passive <strong>index-fund proxy</strong>, not the raw index, and only for broad-market equity categories with enough index-fund history; cash-like categories fall back to a category median and sectoral / international funds to the category leader.</li>
           <li>Funds that closed or merged are not in our active set (survivorship bias).</li>
           <li>We do not model forward catalysts: valuations, manager changes, or fund flows.</li>
           <li>The skill t-test assumes independent monthly excess returns; the modeled cone assumes the past distribution repeats. Both are simplifications.</li>
