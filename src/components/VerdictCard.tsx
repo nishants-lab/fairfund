@@ -1,5 +1,7 @@
 import type { Fund } from '../types'
 import { buildVerdict } from '../lib/verdict'
+import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
+import { funds as ALL_FUNDS } from '../lib/data'
 
 const TONE_RING: Record<string, string> = {
   good: 'border-l-emerald-500',
@@ -27,44 +29,12 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
   // not stock-picking alpha. The equity conviction pillars (peer alpha, Sharpe,
   // downside capture, manager skill) are meaningless at near-zero volatility, so
   // we show an honest note instead of an inflated "Standout" verdict.
-  if (fund.isArbitrage) {
-    return (
-      <div className="mt-6 card border-l-4 border-l-teal-400 p-5">
-        <h3 className="font-bold text-fg">How to read this fund</h3>
-        <p className="mt-2 text-sm text-muted">
-          This is an arbitrage fund. It buys stocks in the cash market and simultaneously sells
-          the matching futures, locking in the price gap between the two. Because every long
-          position is hedged by a short, net market exposure is near zero, so returns are
-          cash-like and steady rather than equity-like. The equity-style signals we show for
-          growth funds (peer alpha, Sharpe, drawdown recovery, manager skill) do not apply here.
-        </p>
-        <p className="mt-2 text-sm text-muted">
-          Judge it on three things: how cheap it is (expense ratio), how consistent its returns
-          are, and its size. Note the tax treatment: arbitrage funds are taxed as equity, so gains
-          held 12 months or more are long-term (12.5% above the ₹1.25L annual exemption), which is
-          why they are often used as a tax-efficient alternative to a liquid fund.
-        </p>
-      </div>
-    )
+  // Debt / liquid / arbitrage: category-appropriate tiered verdict (no equity
+  // methodology). Tier 3 shows a data-limitations panel instead of a score.
+  if (fund.isDebt || fund.isArbitrage) {
+    return <DebtVerdictCard fund={fund} />
   }
-  if (fund.isDebt) {
-    return (
-      <div className="mt-6 card border-l-4 border-l-slate-400 p-5">
-        <h3 className="font-bold text-fg">How to read this fund</h3>
-        <p className="mt-2 text-sm text-muted">
-          This is a {fund.categoryDisplay.toLowerCase()} fund, a cash-equivalent used to park
-          money for the short term. It carries very low risk and low, steady returns, so the
-          equity-style signals we show for growth funds (peer alpha, Sharpe, drawdown recovery,
-          manager skill, stock holdings) do not apply here.
-        </p>
-        <p className="mt-2 text-sm text-muted">
-          Judge it on three things: how cheap it is (expense ratio), how consistent its returns
-          are, and its portfolio quality. Small differences in expense ratio, not returns, usually
-          decide the winner in this category.
-        </p>
-      </div>
-    )
-  }
+
   // Young funds without a full backward window (< ~1Y history) have no
   // meaningful rank/alpha/Sharpe yet. Show an honest since-inception read
   // instead of a fabricated conviction score.
@@ -169,6 +139,108 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
         Conviction blends backward-tested rank, peer-relative alpha and risk-adjusted ratios with
         forward-looking consistency, skill confidence, downside capture and management quality. A
         reading of the data, not a recommendation.
+      </p>
+    </div>
+  )
+}
+
+
+const DTONE_RING: Record<string, string> = {
+  good: 'border-l-emerald-500',
+  warn: 'border-l-amber-500',
+  bad: 'border-l-rose-500',
+  neutral: 'border-l-slate-400',
+}
+const DTONE_TEXT: Record<string, string> = {
+  good: 'text-emerald-700 dark:text-emerald-300',
+  warn: 'text-amber-600 dark:text-amber-400',
+  bad: 'text-rose-600 dark:text-rose-400',
+  neutral: 'text-muted',
+}
+const DTONE_BAR: Record<string, string> = {
+  good: 'bg-emerald-500',
+  warn: 'bg-amber-500',
+  bad: 'bg-rose-500',
+  neutral: 'bg-slate-400',
+}
+
+function DebtVerdictCard({ fund }: { fund: Fund }) {
+  const v = buildDebtVerdict(fund, ALL_FUNDS)
+  const info = subcategoryInfo(fund)
+  const isArb = !!fund.isArbitrage
+
+  // Tier 3 (or unscored): data-limitations panel, no score.
+  if (!v.scored) {
+    return (
+      <div className="mt-6 card border-l-4 border-l-slate-400 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-bold text-fg">Why we show no score here</h3>
+          <span className="text-xs font-semibold uppercase tracking-wide text-faint">{v.peerSet}</span>
+        </div>
+        <p className="mt-2 text-sm text-muted">{v.oneLiner}</p>
+        {info && (
+          <p className="mt-2 text-sm text-muted">
+            <span className="font-semibold text-fg">{v.peerSet}:</span> {info.blurb} Typical holding period {info.horizon}. {info.forWhom}
+          </p>
+        )}
+        <p className="mt-3 text-xs text-faint">
+          What to look for on the AMC factsheet: modified duration (rate sensitivity), yield-to-maturity
+          (indicative return), and the credit-quality breakdown (AAA / AA / sovereign share). We show the
+          fund's returns, cost and portfolio mix below, but we will not rank it without those inputs.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`mt-6 card border-l-4 ${DTONE_RING[v.tone]} p-5`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-bold text-fg">{isArb ? 'How this arbitrage fund stacks up' : 'How this fund stacks up'}</h3>
+        {v.score != null && v.label && (
+          <span className={`text-sm font-bold ${DTONE_TEXT[v.tone]}`}>{v.label} · {v.score}/100</span>
+        )}
+      </div>
+
+      {v.rankLabel && (
+        <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-faint">{v.rankLabel}</div>
+      )}
+
+      {v.score != null && (
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
+          <div className={`h-full rounded-full ${DTONE_BAR[v.tone]}`} style={{ width: `${v.score}%` }} />
+        </div>
+      )}
+
+      <p className="mt-3 text-muted">{v.oneLiner}</p>
+
+      {v.caveat && (
+        <div className="mt-3 flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300">
+          <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.007M10.29 3.86 1.82 18a1.5 1.5 0 0 0 1.29 2.25h17.78A1.5 1.5 0 0 0 22.18 18L13.71 3.86a1.5 1.5 0 0 0-2.42 0Z" />
+          </svg>
+          <span>{v.caveat}</span>
+        </div>
+      )}
+
+      {v.pillars.length > 0 && (
+        <ul className="mt-4 grid gap-2 sm:grid-cols-3">
+          {v.pillars.map((p, i) => (
+            <li key={i} className="rounded-lg border border-line bg-surface2/40 p-3">
+              <div className={`text-sm font-bold ${p.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : p.tone === 'bad' ? 'text-rose-600 dark:text-rose-400' : 'text-fg'}`}>{p.label}</div>
+              <div className="mt-0.5 text-xs text-muted">{p.detail}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {info && (
+        <p className="mt-4 text-xs text-faint">
+          <span className="font-semibold text-muted">{v.peerSet}:</span> {info.blurb} Typical holding period {info.horizon}. {info.forWhom}
+        </p>
+      )}
+      <p className="mt-2 text-xs text-faint">
+        Scored within the {v.peerSet} peer set only, on cost, return-vs-peers and size, never against
+        other fund types. {isArb ? 'Taxed as equity, unlike true debt funds.' : 'A reading of the data, not a recommendation.'}
       </p>
     </div>
   )

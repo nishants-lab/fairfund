@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import ThemeToggle from './ThemeToggle'
 import SearchBox from './SearchBox'
 import { useWishlist } from '../lib/wishlist'
 import { useAuth } from '../lib/auth'
+import { useTheme } from '../lib/theme'
 
 const links = [
   { to: '/explore', label: 'Explore' },
@@ -15,41 +15,41 @@ const links = [
 
 export default function Navbar() {
   const loc = useLocation()
-  const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchRefMobile = useRef<HTMLDivElement>(null)
   const wishlistCodes = useWishlist()
   const wishlistCount = wishlistCodes.length
   const { user } = useAuth()
+  const { theme, toggle: toggleTheme } = useTheme()
 
   const isHome = loc.pathname === '/'
 
   useEffect(() => {
-    setOpen(false)
+    setMenuOpen(false)
     setSearchOpen(false)
   }, [loc.pathname])
 
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
+  // Close menu / search on outside click.
   useEffect(() => {
     function onClick(e: MouseEvent) {
       const t = e.target as Node
-      const inDesktop = searchRef.current?.contains(t)
-      const inMobile = searchRefMobile.current?.contains(t)
-      if (!inDesktop && !inMobile) setSearchOpen(false)
+      if (menuOpen && menuRef.current && !menuRef.current.contains(t)) setMenuOpen(false)
+      if (searchOpen && !searchRef.current?.contains(t) && !searchRefMobile.current?.contains(t)) setSearchOpen(false)
     }
-    if (searchOpen) {
+    if (menuOpen || searchOpen) {
       document.addEventListener('mousedown', onClick)
       return () => document.removeEventListener('mousedown', onClick)
     }
-  }, [searchOpen])
+  }, [menuOpen, searchOpen])
 
   const signInActive = loc.pathname === '/signin'
   const wishlistActive = loc.pathname === '/wishlist'
+  const compareActive = loc.pathname.startsWith('/compare')
+
+  const iconBtn = 'inline-flex h-9 w-9 items-center justify-center rounded-lg border transition'
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/80 backdrop-blur">
@@ -70,7 +70,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {/* Desktop nav */}
+          {/* Desktop primary nav */}
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((l) => (
               <Link
@@ -87,32 +87,11 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Sign-in / avatar */}
-          <Link
-            to="/signin"
-            aria-label={user ? 'Account' : 'Sign in'}
-            className={`relative hidden md:inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
-              signInActive
-                ? 'border-brand-300 bg-brand-50 text-brand-600 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400'
-                : 'border-line text-muted hover:bg-surface2 hover:text-fg'
-            }`}
-          >
-            {user ? (
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-                {(user.email?.[0] ?? 'U').toUpperCase()}
-              </div>
-            ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            )}
-          </Link>
-
-          {/* Wishlist icon */}
+          {/* Wishlist icon (both breakpoints) */}
           <Link
             to="/wishlist"
             aria-label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount} funds)` : ''}`}
-            className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+            className={`relative ${iconBtn} ${
               wishlistActive
                 ? 'border-rose-300 bg-rose-50 text-rose-500 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-400'
                 : 'border-line text-muted hover:bg-surface2 hover:text-rose-400'
@@ -132,8 +111,8 @@ export default function Navbar() {
           <Link
             to="/compare"
             aria-label="Compare funds"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition md:hidden ${
-              loc.pathname.startsWith('/compare')
+            className={`${iconBtn} md:hidden ${
+              compareActive
                 ? 'border-brand-300 bg-brand-50 text-brand-600 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400'
                 : 'border-line text-muted hover:bg-surface2 hover:text-fg'
             }`}
@@ -155,7 +134,7 @@ export default function Navbar() {
                   type="button"
                   aria-label="Search funds"
                   onClick={() => setSearchOpen(true)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:bg-surface2 hover:text-fg"
+                  className={`${iconBtn} border-line text-muted hover:bg-surface2 hover:text-fg`}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
@@ -165,15 +144,13 @@ export default function Navbar() {
             </div>
           )}
 
-          <ThemeToggle />
-
           {/* Mobile search icon (hidden on Home) */}
           {!isHome && (
             <button
               type="button"
               aria-label="Search funds"
               onClick={() => setSearchOpen((s) => !s)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:bg-surface2 hover:text-fg md:hidden"
+              className={`${iconBtn} border-line text-muted hover:bg-surface2 hover:text-fg md:hidden`}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
@@ -181,22 +158,86 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* Mobile hamburger */}
-          <button
-            type="button"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            aria-expanded={open}
-            onClick={() => setOpen((o) => !o)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-fg transition hover:bg-surface2 md:hidden"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              {open ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          {/* Menu (both breakpoints): secondary items live here to keep the top clean */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+              className={`${iconBtn} border-line text-fg hover:bg-surface2`}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {menuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-xl">
+                {/* Primary links — mobile only (desktop shows them inline) */}
+                <div className="md:hidden">
+                  {links.map((l) => (
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      onClick={() => setMenuOpen(false)}
+                      className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                        loc.pathname.startsWith(l.to)
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
+                          : 'text-fg hover:bg-surface2'
+                      }`}
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                  <div className="my-1.5 h-px bg-line" />
+                </div>
+
+                {/* Dark mode */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-fg transition hover:bg-surface2"
+                >
+                  <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                  {theme === 'dark' ? (
+                    <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="4" />
+                      <path strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Sign in / account */}
+                <Link
+                  to="/signin"
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    signInActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'text-fg hover:bg-surface2'
+                  }`}
+                >
+                  <span>{user ? 'Account' : 'Sign in'}</span>
+                  {user ? (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                      {(user.email?.[0] ?? 'U').toUpperCase()}
+                    </span>
+                  ) : (
+                    <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                  )}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -204,44 +245,6 @@ export default function Navbar() {
       {searchOpen && !isHome && (
         <div className="border-t border-line bg-surface px-4 py-3 md:hidden" ref={searchRefMobile}>
           <SearchBox placeholder="Search funds..." autoFocus />
-        </div>
-      )}
-
-      {/* Mobile slide-down menu */}
-      {open && (
-        <div className="md:hidden">
-          <div
-            className="fixed inset-0 top-[57px] z-30 bg-black/40 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          <nav className="relative z-40 border-t border-line bg-surface px-4 py-2 shadow-lg">
-            {links.filter((l) => l.to !== '/compare').map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className={`block rounded-lg px-3 py-3 text-base font-medium transition ${
-                  loc.pathname.startsWith(l.to)
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
-                    : 'text-fg hover:bg-surface2'
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
-            <Link
-              to="/signin"
-              onClick={() => setOpen(false)}
-              className={`block rounded-lg px-3 py-3 text-base font-medium transition ${
-                signInActive
-                  ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
-                  : 'text-fg hover:bg-surface2'
-              }`}
-            >
-              {user ? 'Account' : 'Sign in'}
-            </Link>
-          </nav>
         </div>
       )}
     </header>
