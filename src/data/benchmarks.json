@@ -1,0 +1,17 @@
+{
+  "_note": "Single source of truth for chart benchmark overlays. categoryBenchmark maps an internal fund category to a passive index fund whose NAV proxies the SEBI category benchmark (no free daily index-level feed matches our NAV pipeline; Direct-Growth plans = lowest cost = closest to the pure index). Codes are pinned and verified at build time by scripts/verify_benchmarks.mjs. medianCategories maps cash-like categories (no meaningful single index) to a precomputed category-median series file key under public/category-median/.",
+  "categoryBenchmark": {
+    "Large Cap":       { "code": 147666, "index": "Nifty 100 TRI",          "proxy": "Axis Nifty 100 Index Fund (Direct, Growth)" },
+    "Mid Cap":         { "code": 147622, "index": "Nifty Midcap 150 TRI",   "proxy": "Motilal Oswal Nifty Midcap 150 Index Fund (Direct, Growth)" },
+    "Small Cap":       { "code": 147623, "index": "Nifty Smallcap 250 TRI", "proxy": "Motilal Oswal Nifty Smallcap 250 Index Fund (Direct, Growth)" },
+    "Large & Mid Cap": { "code": 149343, "index": "Nifty LargeMidcap 250 TRI", "proxy": "Edelweiss Nifty Large Midcap 250 Index Fund (Direct, Growth)" },
+    "Flexi Cap":       { "code": 147625, "index": "Nifty 500 TRI",          "proxy": "Motilal Oswal Nifty 500 Index Fund (Direct, Growth)" },
+    "ELSS":            { "code": 147625, "index": "Nifty 500 TRI",          "proxy": "Motilal Oswal Nifty 500 Index Fund (Direct, Growth)" },
+    "Multi Cap":       { "code": 147625, "index": "Nifty 500 TRI",          "proxy": "Motilal Oswal Nifty 500 Index Fund (Direct, Growth)", "note": "Broad-market proxy. The exact SEBI benchmark (Nifty 500 Multicap 50:25:25 TRI) has no index fund with meaningful history yet; Nifty 500 is used as the closest deep-history broad-market stand-in." }
+  },
+  "medianCategories": {
+    "Liquid": "liquid",
+    "Money Market": "money-market",
+    "Arbitrage": "arbitrage"
+  }
+}

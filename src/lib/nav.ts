@@ -85,6 +85,23 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
   return points
 }
 
+/** Fetch a precomputed category-median benchmark series (public/category-median/{key}.json),
+ *  used as the chart overlay for cash-like categories (Liquid, Money Market, Arbitrage)
+ *  where no single index proxy is meaningful. Same compact format + parse as self-hosted NAV,
+ *  so RangeChart's rebase path consumes it unchanged. Cached in-memory by key. */
+const medianCache = new Map<string, NavPoint[]>()
+export async function fetchCategoryMedian(key: string): Promise<NavPoint[]> {
+  if (medianCache.has(key)) return medianCache.get(key)!
+  const b = BASE.endsWith('/') ? BASE : BASE + '/'
+  const res = await fetch(`${b}category-median/${key}.json?v=${__DATA_VERSION__}`)
+  if (!res.ok) throw new Error(`No category-median series for ${key}`)
+  const j = (await res.json()) as SelfHostedNav
+  const points = parseSelfHosted(j)
+  if (!points) throw new Error(`Invalid category-median series for ${key}`)
+  medianCache.set(key, points)
+  return points
+}
+
 /** Filter NAV history to a horizon (in years from latest point). */
 export function sliceByYears(points: NavPoint[], years: number): NavPoint[] {
   if (points.length === 0) return []

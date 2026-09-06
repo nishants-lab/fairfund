@@ -4,7 +4,8 @@ import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFu
 import { data } from '../lib/data'
 import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
-import { fetchNavHistory } from '../lib/nav'
+import { fetchNavHistory, fetchCategoryMedian } from '../lib/nav'
+import { benchmarkForCategory, medianKeyForCategory } from '../lib/benchmarks'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth } from '../lib/metrics'
 import { ratioSpectrum, lowerBetterSpectrum } from '../lib/spectrum'
 import MetricCard from '../components/MetricCard'
@@ -45,6 +46,10 @@ export default function FundDetail() {
 
   const [allNav, setAllNav] = useState<NavPoint[]>([])
   const [peerNav, setPeerNav] = useState<NavPoint[]>([])
+  // Chart benchmark overlay: 'leader' (category leader/top peer), 'index'
+  // (benchmark-index proxy, broad-market equity) or 'median' (category-median,
+  // cash-like categories). Default is chosen per fund in an effect below.
+  const [overlay, setOverlay] = useState<'leader' | 'index' | 'median'>('leader')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [chartMode, setChartMode] = useState<'nav' | 'drawdown' | 'alpha'>('nav')
@@ -79,7 +84,7 @@ export default function FundDetail() {
           const earliest = pts[0].date
           const latest = pts[pts.length - 1].date
           const isDebtOrArb = fund.isDebt || fund.isArbitrage
-        const defPreset: Preset = isDebtOrArb ? '1Y' : fund.isYoung ? 'MAX' : '3Y'
+          const defPreset: Preset = isDebtOrArb ? '1Y' : fund.isYoung ? 'MAX' : '3Y'
           const [s, e] = presetRange(defPreset, earliest, latest)
           setStart(s)
           setEnd(e)
@@ -93,25 +98,36 @@ export default function FundDetail() {
     }
   }, [fund?.code])
 
-  // Fetch the benchmark peer's NAV for the chart overlay (#16). Kept separate so
-  // the main metrics never wait on it; failures are silent (overlay just hides).
+  // Pick the default overlay when navigating to a different fund: the category
+  // median for cash-like categories (Liquid/Money Market/Arbitrage), otherwise
+  // the category-leader/top-peer line (equity keeps the benchmark-index toggle).
+  useEffect(() => {
+    setOverlay(fund && medianKeyForCategory(fund.category) ? 'median' : 'leader')
+  }, [fund?.code])
+
+  // Fetch the selected chart benchmark overlay (#16). Kept separate so the main
+  // metrics never wait on it; failures are silent (the overlay just hides).
   useEffect(() => {
     if (!fund) return
-    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
-    const top = ranked[0]
-    const peer = top && top.code !== fund.code ? top : ranked[1]
-    if (!peer) {
-      setPeerNav([])
-      return
-    }
     let cancelled = false
-    fetchNavHistory(peer.code)
-      .then((pts) => !cancelled && setPeerNav(pts))
-      .catch(() => !cancelled && setPeerNav([]))
-    return () => {
-      cancelled = true
+    const done = (pts: NavPoint[]) => { if (!cancelled) setPeerNav(pts) }
+    if (overlay === 'median') {
+      const key = medianKeyForCategory(fund.category)
+      if (!key) { setPeerNav([]); return }
+      fetchCategoryMedian(key).then(done).catch(() => done([]))
+    } else if (overlay === 'index') {
+      const b = benchmarkForCategory(fund.category)
+      if (!b) { setPeerNav([]); return }
+      fetchNavHistory(b.code).then(done).catch(() => done([]))
+    } else {
+      const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+      const top = ranked[0]
+      const peer = top && top.code !== fund.code ? top : ranked[1]
+      if (!peer) { setPeerNav([]); return }
+      fetchNavHistory(peer.code).then(done).catch(() => done([]))
     }
-  }, [fund?.code, fund?.category])
+    return () => { cancelled = true }
+  }, [fund?.code, fund?.category, overlay])
 
   const earliest = allNav[0]?.date ?? ''
   const latest = allNav[allNav.length - 1]?.date ?? ''
@@ -135,6 +151,54 @@ export default function FundDetail() {
       : '1Y'
   const baseline = fund?.metrics[baselineHorizon] ?? null
 
+  // --- Chart benchmark overlay derivations. These use hooks, so per the Rules
+  // of Hooks they MUST come BEFORE the early return below (the hook count has to
+  // stay stable across renders even while `fund` is briefly undefined). Each
+  // gates its body on `fund` being present. ---
+  const benchmarkPeer = useMemo(() => {
+    if (!fund) return null
+    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+    if (!ranked.length) return null
+    const top = ranked[0]
+    if (top.code !== fund.code) return top
+    return ranked[1] ?? null
+  }, [fund?.category, fund?.code])
+  const benchmark = fund ? benchmarkForCategory(fund.category) : null
+  const medianKey = fund ? medianKeyForCategory(fund.category) : null
+  const leaderLabel = benchmarkPeer?.metrics['3Y']?.catRank === 1 ? 'Category leader' : 'Top peer'
+  const overlayOpts = useMemo(() => {
+    const o: { key: 'leader' | 'index' | 'median'; label: string }[] = []
+    if (medianKey) o.push({ key: 'median', label: 'Category median' })
+    if (benchmark) o.push({ key: 'index', label: 'Benchmark index' })
+    if (benchmarkPeer) o.push({ key: 'leader', label: leaderLabel })
+    return o
+  }, [medianKey, benchmark, benchmarkPeer, leaderLabel])
+  const overlayName = !fund
+    ? ''
+    : overlay === 'median'
+      ? `${fund.categoryDisplay} category median`
+      : overlay === 'index'
+        ? benchmark ? `${benchmark.index} (proxy)` : ''
+        : benchmarkPeer?.name ?? ''
+  const catStats = useMemo(
+    () => ({
+      volatility: fund ? categoryMetricStats(fund.category, 'volatility', false) : null,
+      sharpe: fund ? categoryMetricStats(fund.category, 'sharpe', true) : null,
+      sortino: fund ? categoryMetricStats(fund.category, 'sortino', true) : null,
+      calmar: fund ? categoryMetricStats(fund.category, 'calmar', true) : null,
+    }),
+    [fund?.category],
+  )
+  // Redirect to canonical URL with slug (hook - must precede the early return).
+  useEffect(() => {
+    if (fund) {
+      const correctSlug = fundSlug(fund.name)
+      if (slug !== correctSlug) {
+        navigate(`/fund/${fund.code}/${correctSlug}`, { replace: true })
+      }
+    }
+  }, [fund, slug, navigate])
+
   if (!fund) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
@@ -148,30 +212,6 @@ export default function FundDetail() {
 
   const peers = fundsByCategory(fund.category).filter((f) => f.code !== fund.code).slice(0, 4)
   const catDisplay = fund.categoryDisplay // captured (narrowed) for use inside helpers below
-
-  // Benchmark peer for the NAV / drawdown charts (#16): there's no index NAV, so
-  // we overlay the category LEADER as a reference - #1 by 3Y rank, or #2 if this
-  // fund itself is #1. Gives an honest "vs the best in class" comparison.
-  const benchmarkPeer = useMemo(() => {
-    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
-    if (!ranked.length) return null
-    const top = ranked[0]
-    if (top.code !== fund.code) return top
-    return ranked[1] ?? null
-  }, [fund.category, fund.code])
-
-  // Category metric distributions (from stored 3Y metrics) for spectrum peer
-  // context: each gives {min,max,median,best} so a metric's marker is placed
-  // among real peers, with the category median and best also marked.
-  const catStats = useMemo(
-    () => ({
-      volatility: categoryMetricStats(fund.category, 'volatility', false),
-      sharpe: categoryMetricStats(fund.category, 'sharpe', true),
-      sortino: categoryMetricStats(fund.category, 'sortino', true),
-      calmar: categoryMetricStats(fund.category, 'calmar', true),
-    }),
-    [fund.category],
-  )
   const catMedianVol = catStats.volatility?.median ?? null
 
   // Build a plain-English volatility hint that says how this fund's swings
@@ -250,15 +290,6 @@ export default function FundDetail() {
   }
 
 
-  // Redirect to canonical URL with slug
-  useEffect(() => {
-    if (fund) {
-      const correctSlug = fundSlug(fund.name)
-      if (slug !== correctSlug) {
-        navigate(`/fund/${fund.code}/${correctSlug}`, { replace: true })
-      }
-    }
-  }, [fund, slug, navigate])
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -505,23 +536,40 @@ export default function FundDetail() {
               </button>
             )}
           </div>
-          {chartMode !== 'alpha' && benchmarkPeer && peerSlice.length > 1 && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-faint">
-              <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
-              <span className="ml-1 inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
-              {benchmarkPeer.metrics['3Y']?.catRank === 1 ? 'Category leader' : 'Top peer (risk-adj)'}
-            </span>
+          {chartMode !== 'alpha' && overlayOpts.length > 1 && (
+            <div className="inline-flex rounded-lg border border-line bg-surface2 p-0.5" title="Choose what to compare this fund against">
+              {overlayOpts.map((o) => (
+                <button
+                  key={o.key}
+                  onClick={() => setOverlay(o.key)}
+                  className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${overlay === o.key ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
         {chartMode !== 'alpha' && (
-          <p className="mb-2 text-xs text-faint">
-            Live, selected range{benchmarkPeer && peerSlice.length > 1 ? ` · dashed line = ${benchmarkPeer.name}` : ''}
+          <p className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
+            </span>
+            {peerSlice.length > 1 && overlayName && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
+                {overlayName}
+              </span>
+            )}
+            <span>· Live, selected range</span>
+            {overlay === 'median' && <span>· typical fund in this category (median daily return, chained)</span>}
+            {overlay === 'index' && benchmark?.note && <span>· {benchmark.note}</span>}
           </p>
         )}
         {chartMode === 'alpha' ? (
           <RollingAlpha fund={fund} />
         ) : (
-          <RangeChart points={slice} peer={peerSlice} peerName={benchmarkPeer?.name} mode={chartMode} loading={loading} error={error} />
+          <RangeChart points={slice} peer={peerSlice} peerName={overlayName} mode={chartMode} loading={loading} error={error} />
         )}
       </div>
 
