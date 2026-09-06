@@ -73,7 +73,7 @@ export interface DebtVerdict {
   tier: DebtTier | 'arbitrage'
   scored: boolean
   score?: number // 0..100
-  label?: 'Standout' | 'Strong' | 'Solid' | 'Average' | 'Below par'
+  label?: string // positioning (debt) or evaluative (arb) label
   tone: 'good' | 'warn' | 'bad' | 'neutral'
   rankLabel?: string // "Ranked #3 of 39 Liquid funds"
   peerSet: string
@@ -189,10 +189,14 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     if (pos >= 0) rankLabel = `Ranked #${pos + 1} of ${scored.length} ${peerSet} funds`
   }
 
-  const label: DebtVerdict['label'] =
-    score == null ? undefined : score >= 80 ? 'Standout' : score >= 66 ? 'Strong' : score >= 50 ? 'Solid' : score >= 34 ? 'Average' : 'Below par'
+  // Tier-1 / Tier-2 debt: positioning labels (cost-efficiency framing), never alarming tone.
+  // Arbitrage: evaluative labels; still no 'bad' tone — lowest is 'neutral'.
+  const label: DebtVerdict['label'] = score == null ? undefined
+    : isArb
+    ? (score >= 80 ? 'Standout' : score >= 66 ? 'Strong' : score >= 50 ? 'Solid' : score >= 34 ? 'Average' : 'Below par')
+    : (score >= 80 ? 'Top value' : score >= 66 ? 'Strong value' : score >= 50 ? 'Solid' : score >= 34 ? 'Mid-pack' : 'Costlier option')
   const tone: DebtVerdict['tone'] =
-    score == null ? 'neutral' : score >= 66 ? 'good' : score >= 50 ? 'warn' : 'bad'
+    score == null ? 'neutral' : score >= 66 ? 'good' : isArb && score >= 50 ? 'warn' : 'neutral'
 
   const caveat = tier === 2
     ? 'Duration and yield-to-maturity are not in our data. This score reflects cost, return-vs-peers and size only. Check the AMC factsheet for rate sensitivity.'
@@ -201,7 +205,26 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
   const lead = pillars.find((p) => p.tone === 'good')?.label ?? pillars[0]?.label ?? ''
   const oneLiner = isArb
     ? `Judge this arbitrage fund on cost, steadiness and size, not equity conviction. ${lead ? lead + ' stands out.' : ''}`
-    : `A ${label?.toLowerCase() ?? 'category'} ${peerSet.toLowerCase()} option on cost, return-vs-peers and size. ${lead ? lead + ' is the standout.' : ''}`
+    : `${label ?? 'Mid-pack'} among ${peerSet.toLowerCase()} funds on cost, return-vs-peers and size. ${lead ? lead + ' is the key driver.' : ''}`
 
   return { tier: tier as DebtTier | 'arbitrage', scored: true, score: score ?? undefined, label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
+}
+
+/**
+ * Rank every fund in `peers` by composite debt score. Returns a map from fund
+ * code to { rank (1 = best), count, score }. Used by Explore to drive the
+ * rank badge and sort order for debt/arbitrage categories.
+ */
+export function computeDebtRanks(
+  peers: Fund[],
+  isArb: boolean,
+): Map<number, { rank: number; count: number; score: number | null }> {
+  // Only rank funds that produced a non-null composite score (same logic as buildDebtVerdict).
+  // Funds with no TER / return / AUM data are excluded so counts match the verdict card.
+  const all = peers.map((f) => ({ code: f.code, s: compositeScore(f, peers, isArb) }))
+  const scored = all.filter((x): x is { code: number; s: number } => x.s != null)
+  scored.sort((a, b) => b.s - a.s)
+  const result = new Map<number, { rank: number; count: number; score: number | null }>()
+  scored.forEach(({ code, s }, idx) => result.set(code, { rank: idx + 1, count: scored.length, score: s }))
+  return result
 }
