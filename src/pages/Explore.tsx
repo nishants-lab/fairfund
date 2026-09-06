@@ -9,6 +9,7 @@ import FundLandscape from '../components/FundLandscape'
 import WishlistButton from '../components/WishlistButton'
 import ShareButton from '../components/ShareButton'
 import type { Horizon, Fund } from '../types'
+import { computeDebtRanks } from '../lib/debtVerdict'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
 type SortDir = 'asc' | 'desc'
@@ -115,6 +116,10 @@ export default function Explore() {
 
   const baseFunds = fundsByCategory(cat)
   const summary = data.categories[cat]
+  const debtRanks = useMemo(
+    () => isDebtCat ? computeDebtRanks(baseFunds, cat === 'Arbitrage') : new Map<number, { rank: number; count: number; score: number | null }>(),
+    [baseFunds, isDebtCat, cat],
+  )
 
   function clickHeader(key: SortKey, defaultDir: SortDir) {
     if (sortKey === key) {
@@ -131,6 +136,7 @@ export default function Explore() {
       const m = f.metrics[horizon]
       switch (sortKey) {
         case 'rank':
+          if (isDebtCat) return debtRanks.get(f.code)?.rank ?? 9999
           return m?.catRank ?? 9999
         case 'name':
           return f.name.toLowerCase()
@@ -157,12 +163,15 @@ export default function Explore() {
       }
     }
     arr.sort((a, b) => {
-      // Funds with no data for this horizon always sink to the bottom
+      // Funds with no data for this horizon always sink to the bottom, EXCEPT
+      // when sorting debt by our composite rank (debtRanks is independent of horizon catRank).
       const ma = a.metrics[horizon]
       const mb = b.metrics[horizon]
-      if (!ma && !mb) return 0
-      if (!ma) return 1
-      if (!mb) return -1
+      if (!(isDebtCat && sortKey === 'rank')) {
+        if (!ma && !mb) return 0
+        if (!ma) return 1
+        if (!mb) return -1
+      }
       const va = getVal(a)
       const vb = getVal(b)
       let cmp: number
@@ -339,11 +348,16 @@ export default function Explore() {
                     className="cursor-pointer border-b border-line transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
                   >
                     <td className="px-4 py-3">
-                      <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                        m.catRank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : m.catRank <= 5 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-surface2 text-muted'
-                      }`}>
-                        {m.catRank}
-                      </span>
+                      {(() => {
+                        const rank = isDebtCat ? (debtRanks.get(f.code)?.rank ?? m.catRank) : m.catRank
+                        return (
+                          <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                            rank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : rank <= 5 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-surface2 text-muted'
+                          }`}>
+                            {rank}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

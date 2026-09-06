@@ -12,7 +12,7 @@ import ShareButton from '../components/ShareButton'
 // columns over 1M / 3M / 6M (6M appears once history is deep enough), switchable
 // between rupee and percent terms. Every numeric column header is sortable.
 
-type Metric = 'aum' | 'rank' | 'momentum'
+type Metric = 'aum' | 'rank' | 'momentum' | 'debtView'
 type Dir = 'all' | 'up' | 'down'
 type MomPair = '1Y-3Y' | '1Y-5Y'
 type AumMode = 'abs' | 'pct'
@@ -50,6 +50,7 @@ const METRICS: { key: Metric; label: string; blurb: string }[] = [
   { key: 'aum', label: 'Fund size', blurb: 'Latest assets under management and how the book has grown or shrunk over 1, 3 and 6 months.' },
   { key: 'rank', label: 'Category rank', blurb: 'Funds climbing or slipping in their category ranking.' },
   { key: 'momentum', label: 'Return momentum', blurb: 'Funds whose recent return is running ahead of (or behind) their longer-term track record.' },
+  { key: 'debtView', label: 'Debt / Cash', blurb: 'Liquid, money market and arbitrage funds compared by AUM and expense ratio — the two levers that matter most for these categories.' },
 ]
 
 // AUM change windows shown as parallel columns.
@@ -125,6 +126,26 @@ export default function Movers() {
             { label: 'Move', text: `${up ? '▲ +' : '▼ −'}${Math.abs(move)}`, tone: up ? 'pos' : 'neg', sortVal: move },
           ],
         })
+      } else if (metric === 'debtView') {
+        if (!f.isDebt && !f.isArbitrage) continue
+        const aum = f.aum?.current ?? null
+        const ter = typeof f.expenseRatio === 'number' ? f.expenseRatio : typeof f.expenseRatio === 'string' ? parseFloat(f.expenseRatio) : null
+        if (aum == null && ter == null) continue
+        const cells: Cell[] = [
+          {
+            label: 'AUM',
+            text: aum != null ? fmtCrore(aum) : '—',
+            sortVal: aum ?? -Infinity,
+            tone: aum != null ? (aum >= 1000 ? 'pos' : aum < 100 ? 'neg' : undefined) : undefined,
+          },
+          {
+            label: 'Expense',
+            text: ter != null && !isNaN(ter) ? `${ter.toFixed(2)}%` : '—',
+            sortVal: ter != null && !isNaN(ter) ? ter : Infinity,
+            tone: ter != null && !isNaN(ter) ? (ter <= 0.15 ? 'pos' : ter >= 0.3 ? 'neg' : undefined) : undefined,
+          },
+        ]
+        out.push({ fund: f, value: aum ?? 0, up: true, cells })
       } else {
         const m = f.metrics
         const short = m?.['1Y']?.cagr
@@ -177,6 +198,7 @@ export default function Movers() {
     aum: ['Inflows', 'Outflows'],
     rank: ['Climbers', 'Fallers'],
     momentum: ['Heating up', 'Cooling'],
+    debtView: ['Larger', 'Smaller'],
   }
   const active = METRICS.find((m) => m.key === metric)!
   const headerCells = filtered[0]?.cells ?? rows[0]?.cells ?? []
@@ -240,8 +262,12 @@ export default function Movers() {
           </>
         )}
         <Pill active={dir === 'all'} onClick={() => setDir('all')}>All</Pill>
-        <Pill active={dir === 'up'} onClick={() => setDir('up')}>{dirLabels[metric][0]}</Pill>
-        <Pill active={dir === 'down'} onClick={() => setDir('down')}>{dirLabels[metric][1]}</Pill>
+        {metric !== 'debtView' && (
+          <>
+            <Pill active={dir === 'up'} onClick={() => setDir('up')}>{dirLabels[metric][0]}</Pill>
+            <Pill active={dir === 'down'} onClick={() => setDir('down')}>{dirLabels[metric][1]}</Pill>
+          </>
+        )}
         <span className="mx-1 h-5 w-px bg-line" />
         <select value={category} onChange={(e) => setCategory(e.target.value)}
           className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg">
@@ -253,7 +279,7 @@ export default function Movers() {
 
       <p className="mt-3 text-xs text-faint">
         {filtered.length} funds
-        {sort.col == null ? (metric === 'aum' ? ' · sorted by latest AUM' : ' · sorted by biggest move') : ' · tap a column to re-sort'}
+        {sort.col == null ? (metric === 'aum' ? ' · sorted by latest AUM' : metric === 'debtView' ? ' · sorted by AUM' : ' · sorted by biggest move') : ' · tap a column to re-sort'}
         {metric === 'aum' && maxSteps < 6 && <> · 6M change fills in as history builds</>}
       </p>
 
@@ -333,6 +359,14 @@ export default function Movers() {
           Momentum compares a fund's recent (1Y) annualised return with its longer-term ({momPair === '1Y-3Y' ? '3Y' : '5Y'}) return.
           A positive gap means it is running hotter than its own track record; negative means it is cooling. This is a
           return signal, not a buy call - a hot short-term number can mean rich valuations as easily as durable improvement.
+        </p>
+      )}
+      {metric === 'debtView' && (
+        <p className="mt-3 text-xs text-faint">
+          Liquid, money market and arbitrage funds sorted by AUM (largest first by default). For these categories, gross returns
+          are near-identical because SEBI caps what they can hold. The expense ratio is the single biggest driver of what you keep,
+          and AUM is a proxy for stability and redemption liquidity. Green AUM = Rs 1,000 Cr or more; green expense = 0.15% or
+          below. Click any column header to re-sort. Use the category filter to isolate Liquid, Money Market or Arbitrage.
         </p>
       )}
     </div>

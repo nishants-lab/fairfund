@@ -76,12 +76,13 @@ export default function Methodology() {
           plan, it is in. No silent misses.
         </p>
         <p className="mt-2">
-          <strong>Debt funds (liquid, money market)</strong> are shown for NAV-based returns, category ranking
-          and NAV variability only. Equity-specific signals (Sharpe, Sortino, Calmar, drawdown, alpha,
-          holdings analysis, management attribution, and forward analytics) are hidden because they are
-          not meaningful for cash-equivalent portfolios. Since gross returns across these funds are
-          near-identical, the expense ratio is the biggest differentiator of net return, so we surface
-          the TER, exit load and AUM and rank debt funds on cost rather than on risk-adjusted metrics.
+          <strong>Liquid, money market and arbitrage funds</strong> are scored using a separate,
+          category-appropriate model. Equity signals (Sharpe, alpha, drawdown, forward analytics) are
+          hidden because they are not meaningful for cash-equivalent or fully-hedged portfolios. Instead,
+          we rank within the SEBI sub-category peer set on three factors: expense ratio (45%),
+          return-vs-peers (35%), and AUM as a stability proxy (20%). Arbitrage uses equal 40/40/20
+          weights. The rank label always names the peer set so nothing looks cross-comparable (a liquid
+          fund is never ranked against a gilt fund).
         </p>
       </Section>
 
@@ -93,10 +94,13 @@ export default function Methodology() {
           are <strong>no arbitrary weights</strong>: every metric contributes equally through its rank.
         </p>
         <p className="mt-2">
-          For <strong>debt funds (liquid, money market)</strong>, where returns are near-identical, that composite
-          would be noise. Instead we rank on a cost-anchored score: <strong>expense ratio (70%)</strong> since it
-          drives net return, <strong>AUM (20%)</strong> as a liquidity and stability guard, and <strong>return (10%)</strong>
-          as a tie-breaker. Exit load is shown as a fact but not scored.
+          For <strong>Tier 1 debt and arbitrage funds</strong> (liquid, overnight, money market, ultra-short
+          duration), the equity composite would be noise. A separate cost-and-return model ranks each fund
+          within its own SEBI sub-category: <strong>expense ratio (45%)</strong>,{' '}
+          <strong>return-vs-category-median (35%)</strong>, and <strong>AUM (20%)</strong>. Rate-sensitive
+          and credit-sensitive categories (gilt, credit risk, long/medium duration, dynamic bond) are not
+          scored at all. Duration and YTM drive their returns and we do not have that data; we surface what
+          we have and point to the AMC factsheet.
         </p>
       </Section>
 

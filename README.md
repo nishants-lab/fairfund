@@ -2,7 +2,7 @@
 
 Live site: [nishants-lab.github.io/fairfund](https://nishants-lab.github.io/fairfund/)
 
-A data-driven mutual fund research tool that compares **756 active Indian equity funds** across fixed time windows, within their own category, using metrics that actually matter. No ads, no affiliate links, no sponsored rankings.
+A data-driven mutual fund research tool that compares **989 active Indian mutual funds** (equity, liquid, money market and arbitrage) across fixed time windows, within their own category, using metrics that actually matter. No ads, no affiliate links, no sponsored rankings.
 
 ## What it does
 
@@ -12,6 +12,7 @@ A data-driven mutual fund research tool that compares **756 active Indian equity
 - **Custom time-period analysis** — analyze any fund over ANY date range with live-computed CAGR, Sharpe, Sortino, max drawdown, and more
 - **Fund comparison** — side-by-side metrics over a shared custom period + normalized growth chart + green-highlight on winner per metric
 - **Verdict system** — automated plain-English assessment per fund (green/amber/red) based on quantitative signals, not opinion
+- **Liquid / money market / arbitrage coverage** — cost-anchored scoring (expense ratio 45%, return-vs-peers 35%, AUM 20%) within SEBI sub-category peer sets; tiered model never ranks a liquid fund against a gilt fund
 - **Smart search** — autocomplete across all funds by name, AMC, or category
 - **Dark/light mode** — remembers your choice
 - **Mobile-first responsive** — works cleanly on all screen sizes
@@ -35,7 +36,7 @@ All analytics are pre-computed offline and shipped as static JSON:
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_analytics.py` | Main pipeline: computes regime returns, skill metrics, capture ratios, drawdown analysis for all 824 qualifying funds |
+| `scripts/build_analytics.py` | Main pipeline: computes regime returns, skill metrics, capture ratios, drawdown analysis for all qualifying equity funds |
 | `pipeline/detect_regimes.py` | Defines market regimes (known + auto-detected) |
 | `pipeline/compute_metrics.py` | Fixed-window metric computation (CAGR, alpha, ranks) |
 | `pipeline/compute_rankings.py` | Within-category percentile rankings |
@@ -88,7 +89,7 @@ src/
   lib/            # Data loading, metrics engine, formatting, verdict logic
   data/           # Static JSON datasets (funds.json, fund_analytics.json, regimes.json)
 public/
-  nav/            # Per-fund NAV history files (756 funds)
+  nav/            # Per-fund NAV history files (989 funds, equity + liquid + MM + arbitrage)
 scripts/          # Python pipeline scripts
 pipeline/         # Core pipeline modules
 ```

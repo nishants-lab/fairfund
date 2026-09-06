@@ -78,7 +78,8 @@ export default function FundDetail() {
         if (pts.length > 0) {
           const earliest = pts[0].date
           const latest = pts[pts.length - 1].date
-          const defPreset: Preset = fund.isYoung ? 'MAX' : '3Y'
+          const isDebtOrArb = fund.isDebt || fund.isArbitrage
+        const defPreset: Preset = isDebtOrArb ? '1Y' : fund.isYoung ? 'MAX' : '3Y'
           const [s, e] = presetRange(defPreset, earliest, latest)
           setStart(s)
           setEnd(e)
@@ -278,7 +279,7 @@ export default function FundDetail() {
                 Rank #{fund.metrics['3Y'].catRank} of {fund.metrics['3Y'].catSize ?? fund.categorySize} (3Y)
               </span>
             )}
-            {fund.isYoung && fund.inceptionDate && (
+            {fund.isYoung && fund.inceptionDate && !fund.isDebt && !fund.isArbitrage && (
               <span
                 className="pill bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
                 title={`Launched ${fmtDate(fund.inceptionDate)} · ${fund.navPoints ?? 0} trading days of history. Long-window metrics (3Y/5Y) and category rank are not yet available; judged on since-inception performance.`}
