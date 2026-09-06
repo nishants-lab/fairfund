@@ -19,7 +19,7 @@
  * is never scored against a Gilt fund), and the rank label always names the peer
  * set so nothing looks cross-comparable.
  */
-import type { Fund } from '../types'
+import type { Fund, Horizon } from '../types'
 
 export type DebtTier = 1 | 2 | 3
 
@@ -108,10 +108,15 @@ function percentile(val: number, vals: number[], dir: 'low' | 'high'): number {
  * Composite debt score for one fund within its sub-category peer set.
  * Weights: cost 45%, return-vs-peers 35%, size/stability 20% (arbitrage: 40/40/20).
  */
-function compositeScore(f: Fund, peers: Fund[], isArb: boolean): number | null {
-  const ter = terOf(f), ret = cagrOf(f), aum = aumOf(f)
+function compositeScore(f: Fund, peers: Fund[], isArb: boolean, horizon?: Horizon): number | null {
+  const retOf = (x: Fund) => (horizon ? (x.metrics?.[horizon]?.cagr ?? null) : cagrOf(x))
+  const ter = terOf(f), ret = retOf(f), aum = aumOf(f)
+  // In horizon mode a fund with no return for the selected window is not rankable
+  // at that horizon - keeps the rank consistent with the "too new for a {horizon}
+  // rank" row shown for young funds.
+  if (horizon && ret == null) return null
   const ters = peers.map(terOf).filter((v): v is number => v != null)
-  const rets = peers.map(cagrOf).filter((v): v is number => v != null)
+  const rets = peers.map(retOf).filter((v): v is number => v != null)
   const aums = peers.map(aumOf).filter((v): v is number => v != null)
   let wSum = 0, s = 0
   const wCost = isArb ? 0.4 : 0.45, wRet = isArb ? 0.4 : 0.35, wSize = 0.2
@@ -218,10 +223,13 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
 export function computeDebtRanks(
   peers: Fund[],
   isArb: boolean,
+  horizon?: Horizon,
 ): Map<number, { rank: number; count: number; score: number | null }> {
   // Only rank funds that produced a non-null composite score (same logic as buildDebtVerdict).
   // Funds with no TER / return / AUM data are excluded so counts match the verdict card.
-  const all = peers.map((f) => ({ code: f.code, s: compositeScore(f, peers, isArb) }))
+  // When a horizon is passed, ranking uses that window's return and a fund lacking
+  // data for it is left unranked (sinks to the bottom of the table).
+  const all = peers.map((f) => ({ code: f.code, s: compositeScore(f, peers, isArb, horizon) }))
   const scored = all.filter((x): x is { code: number; s: number } => x.s != null)
   scored.sort((a, b) => b.s - a.s)
   const result = new Map<number, { rank: number; count: number; score: number | null }>()

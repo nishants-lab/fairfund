@@ -117,8 +117,8 @@ export default function Explore() {
   const baseFunds = fundsByCategory(cat)
   const summary = data.categories[cat]
   const debtRanks = useMemo(
-    () => isDebtCat ? computeDebtRanks(baseFunds, cat === 'Arbitrage') : new Map<number, { rank: number; count: number; score: number | null }>(),
-    [baseFunds, isDebtCat, cat],
+    () => isDebtCat ? computeDebtRanks(baseFunds, cat === 'Arbitrage', horizon) : new Map<number, { rank: number; count: number; score: number | null }>(),
+    [baseFunds, isDebtCat, cat, horizon],
   )
 
   function clickHeader(key: SortKey, defaultDir: SortDir) {
@@ -163,15 +163,14 @@ export default function Explore() {
       }
     }
     arr.sort((a, b) => {
-      // Funds with no data for this horizon always sink to the bottom, EXCEPT
-      // when sorting debt by our composite rank (debtRanks is independent of horizon catRank).
+      // Funds with no data for the selected horizon always sink to the bottom.
+      // Debt composite ranks are horizon-aware too, so a young fund shown as
+      // "too new for a {horizon} rank" is never sorted above ranked peers.
       const ma = a.metrics[horizon]
       const mb = b.metrics[horizon]
-      if (!(isDebtCat && sortKey === 'rank')) {
-        if (!ma && !mb) return 0
-        if (!ma) return 1
-        if (!mb) return -1
-      }
+      if (!ma && !mb) return 0
+      if (!ma) return 1
+      if (!mb) return -1
       const va = getVal(a)
       const vb = getVal(b)
       let cmp: number
@@ -183,7 +182,7 @@ export default function Explore() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return arr
-  }, [baseFunds, horizon, sortKey, sortDir])
+  }, [baseFunds, horizon, sortKey, sortDir, debtRanks])
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -262,8 +261,17 @@ export default function Explore() {
         </div>
       )}
 
-      {/* Category risk-vs-return map */}
-      <FundLandscape category={cat} horizon={horizon} />
+      {/* Category risk-vs-return map. Hidden for cash-like categories (Liquid,
+          Money Market, Arbitrage): returns cluster and volatility is near zero,
+          so a risk/return scatter is uninformative. The horizon toggle re-ranks
+          the table instead. */}
+      {isDebtCat ? (
+        <div className="mt-5 rounded-xl border border-line bg-surface2/40 px-4 py-3 text-xs text-faint">
+          Risk-vs-return positioning is not meaningful for {data.categories[cat]?.display ?? cat} funds: returns cluster and volatility is near zero. Use the horizon toggle to rank the table below on {horizon} return alongside cost and size.
+        </div>
+      ) : (
+        <FundLandscape category={cat} horizon={horizon} />
+      )}
 
       {/* Fund table */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
