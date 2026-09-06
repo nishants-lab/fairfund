@@ -15,7 +15,9 @@ const DIR_STYLE: Record<string, { txt: string; tone: string }> = {
   climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400' },
   fading: { txt: 'Fading', tone: 'text-rose-600 dark:text-rose-400' },
   steady: { txt: 'Steady', tone: 'text-muted' },
+  new: { txt: 'New', tone: 'text-violet-600 dark:text-violet-400' },
 }
+const DIR_FALLBACK = DIR_STYLE.steady
 
 
 
@@ -148,8 +150,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   <br /><span className="text-muted">Steady</span>: roughly holding position.
                 </InfoTip>
               </h4>
-              <span className={`text-sm font-bold ${DIR_STYLE[a.rankTrajectory.direction].tone}`}>
-                {DIR_STYLE[a.rankTrajectory.direction].txt}
+              <span className={`text-sm font-bold ${(DIR_STYLE[a.rankTrajectory.direction] ?? DIR_FALLBACK).tone}`}>
+                {(DIR_STYLE[a.rankTrajectory.direction] ?? DIR_FALLBACK).txt}
               </span>
             </div>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-faint">
