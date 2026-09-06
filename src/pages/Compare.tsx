@@ -5,6 +5,7 @@ import { getFund, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '.
 import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
+import ShareButton from '../components/ShareButton'
 import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
@@ -271,7 +272,10 @@ export default function Compare() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-fg">Compare Funds</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-3xl font-bold text-fg">Compare Funds</h1>
+        <ShareButton title="Fund comparison" text="Compare funds side by side on FairFund" className="mt-1 shrink-0" />
+      </div>
       <p className="mt-1 text-sm text-muted">
         Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
         recompute live. Same category gives the cleanest comparison; mixing categories is allowed and

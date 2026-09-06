@@ -58,7 +58,7 @@ export interface Fund {
   management?: Management
   analytics?: Analytics
   stockMoves?: StockMoves | null
-  aum?: { current: number; asOf: string | null; previous?: number; prevDate?: string; changePct?: number } | null
+  aum?: { current: number; asOf: string | null; previous?: number; prevDate?: string; changePct?: number; series?: [string, number][] } | null
   expenseRatio?: number | null
   investInfo?: {
     exit_load?: string
