@@ -8,14 +8,14 @@ import ShareButton from '../components/ShareButton'
 
 // "Movers" — one holistic board for every time-shift signal we can measure
 // cleanly from the index: fund size (AUM), category rank, and return momentum.
-// AUM reads the FULL monthly series (aum.series), so the change window is
-// user-selectable and the option list auto-extends as history deepens (1M, 3M
-// today; 6M / 1Y appear automatically once enough months exist). Every numeric
-// column header is clickable to sort.
+// For fund size we show the LATEST AUM as an anchor column plus parallel change
+// columns over 1M / 3M / 6M (6M appears once history is deep enough), switchable
+// between rupee and percent terms. Every numeric column header is sortable.
 
 type Metric = 'aum' | 'rank' | 'momentum'
 type Dir = 'all' | 'up' | 'down'
 type MomPair = '1Y-3Y' | '1Y-5Y'
+type AumMode = 'abs' | 'pct'
 type Tone = 'pos' | 'neg' | 'mute'
 
 function fmtCrore(cr: number): string {
@@ -37,6 +37,7 @@ interface Cell {
   tone?: Tone
   sortVal?: number       // present => column is sortable
   spark?: number[]       // present => render a trend sparkline instead of text
+  muted?: boolean        // dim "no data yet" cells
 }
 interface Row {
   fund: Fund
@@ -46,15 +47,22 @@ interface Row {
 }
 
 const METRICS: { key: Metric; label: string; blurb: string }[] = [
-  { key: 'aum', label: 'Fund size', blurb: 'Biggest change in assets under management.' },
+  { key: 'aum', label: 'Fund size', blurb: 'Latest assets under management and how the book has grown or shrunk over 1, 3 and 6 months.' },
   { key: 'rank', label: 'Category rank', blurb: 'Funds climbing or slipping in their category ranking.' },
   { key: 'momentum', label: 'Return momentum', blurb: 'Funds whose recent return is running ahead of (or behind) their longer-term track record.' },
+]
+
+// AUM change windows shown as parallel columns.
+const AUM_WINDOWS: { steps: number; label: string }[] = [
+  { steps: 1, label: '1M' },
+  { steps: 3, label: '3M' },
+  { steps: 6, label: '6M' },
 ]
 
 export default function Movers() {
   usePageMeta('Movers', 'Funds ranked by the biggest recent shifts in size, rank and return momentum.')
   const [metric, setMetric] = useState<Metric>('aum')
-  const [aumWin, setAumWin] = useState('1m')
+  const [aumMode, setAumMode] = useState<AumMode>('abs')
   const [momPair, setMomPair] = useState<MomPair>('1Y-3Y')
   const [dir, setDir] = useState<Dir>('all')
   const [category, setCategory] = useState('all')
@@ -62,32 +70,11 @@ export default function Movers() {
   // sortCol = null => default (by primary signal magnitude, desc)
   const [sort, setSort] = useState<{ col: number | null; dir: 'asc' | 'desc' }>({ col: null, dir: 'desc' })
 
-  // AUM window options — derived from the deepest series available, so 6M / 1Y
-  // surface on their own once the history is long enough.
-  const maxLen = useMemo(
-    () => funds.reduce((m, f) => Math.max(m, (f.aum && f.aum.series ? f.aum.series.length : 0)), 0),
+  // Deepest series available, so the 6M column only turns "live" once >=6 months exist.
+  const maxSteps = useMemo(
+    () => funds.reduce((m, f) => Math.max(m, (f.aum && f.aum.series ? f.aum.series.length - 1 : 0)), 0),
     []
   )
-  const aumWindows = useMemo(() => {
-    const opts: { key: string; steps: number; label: string }[] = [{ key: '1m', steps: 1, label: '1M' }]
-    const maxSteps = maxLen - 1
-    if (maxSteps >= 3) opts.push({ key: '3m', steps: 3, label: '3M' })
-    if (maxSteps >= 6) opts.push({ key: '6m', steps: 6, label: '6M' })
-    if (maxSteps >= 12) opts.push({ key: '12m', steps: 12, label: '1Y' })
-    if (maxSteps >= 2 && !opts.some((o) => o.steps >= maxSteps)) opts.push({ key: 'max', steps: maxSteps, label: 'Max' })
-    return opts
-  }, [maxLen])
-  const winSteps = (aumWindows.find((o) => o.key === aumWin) ?? aumWindows[0]).steps
-
-  // Global earliest month across all series (for the "Max" window caption).
-  const earliestMonth = useMemo(() => {
-    let e = ''
-    for (const f of funds) {
-      const s = f.aum?.series
-      if (s && s.length && (!e || s[0][0] < e)) e = s[0][0]
-    }
-    return e
-  }, [])
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = []
@@ -96,24 +83,34 @@ export default function Movers() {
         const s = f.aum?.series
         if (!s || s.length < 2) continue
         const n = s.length
-        const startIdx = Math.max(0, n - 1 - winSteps)
-        if (startIdx >= n - 1) continue
-        const [startDate, startVal] = s[startIdx]
         const [endDate, endVal] = s[n - 1]
-        if (!(startVal > 0)) continue
-        const abs = endVal - startVal
-        const pct = (abs / startVal) * 100
-        const up = abs >= 0
-        out.push({
-          fund: f, up, value: pct,
-          cells: [
-            { label: 'From', text: fmtCrore(startVal), sub: monthLabel(startDate), tone: 'mute', sortVal: startVal },
-            { label: 'Now', text: fmtCrore(endVal), sub: monthLabel(endDate), sortVal: endVal },
-            { label: 'Trend', spark: s.map((p) => p[1]) },
-            { label: 'Δ ₹', text: `${up ? '+' : '−'}${fmtCrore(Math.abs(abs))}`, tone: up ? 'pos' : 'neg', sortVal: abs },
-            { label: 'Δ %', text: `${up ? '+' : ''}${pct.toFixed(1)}%`, tone: up ? 'pos' : 'neg', sortVal: pct },
-          ],
-        })
+        if (!(endVal > 0)) continue
+
+        // Latest AUM anchor column.
+        const cells: Cell[] = [
+          { label: 'Latest AUM', text: fmtCrore(endVal), sub: monthLabel(endDate), sortVal: endVal },
+        ]
+        // Parallel change columns over each window.
+        let biggest1m = 0
+        for (const w of AUM_WINDOWS) {
+          const startIdx = n - 1 - w.steps
+          if (startIdx < 0) {
+            cells.push({ label: w.label, text: '—', tone: 'mute', muted: true })
+            continue
+          }
+          const startVal = s[startIdx][1]
+          if (!(startVal > 0)) { cells.push({ label: w.label, text: '—', tone: 'mute', muted: true }); continue }
+          const abs = endVal - startVal
+          const pct = (abs / startVal) * 100
+          const up = abs >= 0
+          const text = aumMode === 'abs'
+            ? `${up ? '+' : '−'}${fmtCrore(Math.abs(abs))}`
+            : `${up ? '+' : ''}${pct.toFixed(1)}%`
+          cells.push({ label: w.label, text, tone: abs === 0 ? 'mute' : up ? 'pos' : 'neg', sortVal: aumMode === 'abs' ? abs : pct })
+          if (w.steps === 1) biggest1m = aumMode === 'abs' ? abs : pct
+        }
+        cells.push({ label: 'Trend', spark: s.map((p) => p[1]) })
+        out.push({ fund: f, up: biggest1m >= 0, value: endVal, cells })
       } else if (metric === 'rank') {
         const rt = f.analytics?.rankTrajectory
         if (!rt || rt.currentRank == null || rt.priorRank == null) continue
@@ -146,7 +143,7 @@ export default function Movers() {
       }
     }
     return out
-  }, [metric, winSteps, momPair])
+  }, [metric, aumMode, momPair])
 
   const categories = useMemo(() => {
     const s = new Set<string>()
@@ -195,24 +192,13 @@ export default function Movers() {
     setMetric(k); setDir('all'); setSort({ col: null, dir: 'desc' })
   }
 
-  const winCaption =
-    metric !== 'aum' ? '' :
-    aumWin === '1m' ? 'month over month' :
-    aumWin === 'max' ? (earliestMonth ? `since ${monthLabel(earliestMonth)}` : 'full history') :
-    `over ${winSteps} months`
-
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-2xl font-bold text-fg">Movers</h1>
         <ShareButton title="Movers" text="Fund size, category rank and return momentum movers on FairFund" className="mt-0.5 shrink-0" />
       </div>
-      <p className="mt-1 text-sm text-muted">
-        {active.blurb}
-        {metric === 'aum' && winCaption && (
-          <> {' · '}<span className="font-medium text-fg">{winCaption}</span></>
-        )}
-      </p>
+      <p className="mt-1 text-sm text-muted">{active.blurb}</p>
 
       {/* Metric selector */}
       <div className="mt-5 flex flex-wrap gap-2">
@@ -231,11 +217,18 @@ export default function Movers() {
 
       {/* Sub-controls */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {metric === 'aum' && aumWindows.length > 1 && (
+        {metric === 'aum' && (
           <>
-            {aumWindows.map((w) => (
-              <Pill key={w.key} active={aumWin === w.key} onClick={() => setAumWin(w.key)}>{w.label}</Pill>
-            ))}
+            <div className="inline-flex overflow-hidden rounded-full border border-line">
+              <button
+                onClick={() => setAumMode('abs')}
+                className={`px-3 py-1.5 text-sm font-medium transition ${aumMode === 'abs' ? 'bg-brand-600 text-white' : 'bg-surface text-muted hover:text-fg'}`}
+              >₹</button>
+              <button
+                onClick={() => setAumMode('pct')}
+                className={`px-3 py-1.5 text-sm font-medium transition ${aumMode === 'pct' ? 'bg-brand-600 text-white' : 'bg-surface text-muted hover:text-fg'}`}
+              >%</button>
+            </div>
             <span className="mx-1 h-5 w-px bg-line" />
           </>
         )}
@@ -259,7 +252,9 @@ export default function Movers() {
       </div>
 
       <p className="mt-3 text-xs text-faint">
-        {filtered.length} funds{sort.col == null ? ' · sorted by biggest move' : ' · tap a column to re-sort'}
+        {filtered.length} funds
+        {sort.col == null ? (metric === 'aum' ? ' · sorted by latest AUM' : ' · sorted by biggest move') : ' · tap a column to re-sort'}
+        {metric === 'aum' && maxSteps < 6 && <> · 6M change fills in as history builds</>}
       </p>
 
       <div className="mt-2 overflow-x-auto rounded-xl border border-line">
@@ -302,7 +297,8 @@ export default function Movers() {
                 </td>
                 {r.cells.map((c, j) => (
                   <td key={j} className={`px-4 py-2.5 text-right tabular-nums ${
-                    c.tone === 'pos' ? 'font-semibold text-emerald-600 dark:text-emerald-400'
+                    c.muted ? 'text-faint'
+                    : c.tone === 'pos' ? 'font-semibold text-emerald-600 dark:text-emerald-400'
                     : c.tone === 'neg' ? 'font-semibold text-red-500 dark:text-red-400'
                     : c.tone === 'mute' ? 'text-muted' : 'text-fg'
                   }`}>
@@ -325,6 +321,13 @@ export default function Movers() {
         </table>
       </div>
 
+      {metric === 'aum' && (
+        <p className="mt-3 text-xs text-faint">
+          AUM is month-end assets under management. The 1M / 3M / 6M columns show the change over that
+          many months, in rupees (₹) or percent (%). Toggle above. Debt and liquid funds appear here once
+          they have at least two months of AUM history.
+        </p>
+      )}
       {metric === 'momentum' && (
         <p className="mt-3 text-xs text-faint">
           Momentum compares a fund's recent (1Y) annualised return with its longer-term ({momPair === '1Y-3Y' ? '3Y' : '5Y'}) return.

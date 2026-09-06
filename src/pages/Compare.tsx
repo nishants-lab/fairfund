@@ -11,6 +11,8 @@ import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
 import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { buildVerdict } from '../lib/verdict'
+import { buildDebtVerdict } from '../lib/debtVerdict'
+import { funds as ALL_FUNDS } from '../lib/data'
 import type { Fund, NavPoint } from '../types'
 
 // Up to 5 funds - 5 distinct, theme-safe series colors.
@@ -551,11 +553,22 @@ export default function Compare() {
                     Overall verdict <span className="text-xs font-normal text-faint">(all signals)</span>
                   </td>
                   {funds.map((f, i) => {
-                    if (usesReducedSurface(f)) return (
-                      <td key={f.code} className="px-4 py-3 text-right align-top">
-                        <span className="text-sm text-faint">{f.isArbitrage ? 'Arbitrage fund' : 'Debt fund'}</span>
-                      </td>
-                    )
+                    if (usesReducedSurface(f)) {
+                      const dv = buildDebtVerdict(f, ALL_FUNDS)
+                      const dtone = dv.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : dv.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : dv.tone === 'bad' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
+                      return (
+                        <td key={f.code} className="px-4 py-3 text-right align-top">
+                          {dv.scored && dv.score != null ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span className={`font-bold ${dtone}`}>{dv.label}</span>
+                              <span className="text-xs text-faint">{dv.score}/100 · {dv.peerSet}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-faint">No score<span className="block text-xs">rate/credit fund</span></span>
+                          )}
+                        </td>
+                      )
+                    }
                     const v = verdicts[i]
                     const isWin = i === verdictWinner && funds.length > 1
                     const tone = v.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : v.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
