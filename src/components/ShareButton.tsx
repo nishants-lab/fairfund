@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import type { Fund } from '../types'
 import { fundSlug } from '../lib/format'
 import ShareCard from './ShareCard'
@@ -29,8 +30,18 @@ function isTouchDevice() {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.onerror = () => reject(r.error)
+    r.readAsDataURL(blob)
+  })
+}
+
 export default function ShareButton({ fund, title, text, shareUrl, label = 'Share', className = '' }: Props) {
   const [copied, setCopied] = useState(false)
+  const [qr, setQr] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
 
   let url: string
@@ -54,6 +65,18 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
     shareTitle = title ?? 'FairFund'
     shareText = text ? `${text} | via FairFund` : `${shareTitle} | via FairFund`
   }
+
+  // Pre-generate a QR of the fund deep link so the captured card is always
+  // actionable (scan to land on this exact fund), even where a pasted image
+  // cannot carry a clickable link (Slack, chat windows).
+  useEffect(() => {
+    if (!fund) { setQr(null); return }
+    let live = true
+    QRCode.toDataURL(url, { margin: 1, width: 144, color: { dark: '#0f172a', light: '#ffffff' } })
+      .then((d) => { if (live) setQr(d) })
+      .catch(() => { if (live) setQr(null) })
+    return () => { live = false }
+  }, [fund, url])
 
   function flashCopied() {
     setCopied(true)
@@ -100,7 +123,8 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
       const file = png ? new File([png], `${fundSlug(fund.name)}-fairfund.png`, { type: 'image/png' }) : null
       try {
         if (file && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ title: shareTitle, text: shareText, files: [file] })
+          // Include url in the text so the recipient always has the link too.
+          await navigator.share({ title: shareTitle, text: `${shareText}\n${url}`, files: [file] })
         } else {
           await navigator.share({ title: shareTitle, text: shareText, url })
         }
@@ -110,15 +134,24 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
       }
     }
 
-    // ---- Desktop (or non-fund): copy the card image + link to the clipboard,
-    // as a multi-type ClipboardItem so a paste yields the picture where images
-    // are supported and the URL where only text is. ----
+    // ---- Desktop (or non-fund): copy the card image + a clickable HTML
+    // wrapper + the plain link as a multi-type ClipboardItem. Rich editors
+    // (mail, docs) paste the image as a link; image-only targets (Slack) paste
+    // the picture, whose embedded QR carries the destination; text targets get
+    // the URL. ----
     if (fund && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
       const png = await renderPng()
       if (png) {
         try {
+          const dataUrl = await blobToDataUrl(png)
+          const html =
+            `<a href="${url}"><img src="${dataUrl}" alt="${shareTitle} on FairFund" style="max-width:100%"/></a>`
           await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': png, 'text/plain': new Blob([url], { type: 'text/plain' }) }),
+            new ClipboardItem({
+              'image/png': png,
+              'text/html': new Blob([html], { type: 'text/html' }),
+              'text/plain': new Blob([url], { type: 'text/plain' }),
+            }),
           ])
           flashCopied()
           return
@@ -170,7 +203,7 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
           display:none) so html-to-image can measure and capture it. */}
       {fund && (
         <div aria-hidden="true" style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none', opacity: 0 }}>
-          <ShareCard ref={cardRef} fund={fund} />
+          <ShareCard ref={cardRef} fund={fund} qr={qr} />
         </div>
       )}
     </>
