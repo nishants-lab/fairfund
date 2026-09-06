@@ -121,6 +121,19 @@ export default function Explore() {
     [baseFunds, isDebtCat, cat, horizon],
   )
 
+  // Category median/best CAGR for the SELECTED horizon, so the summary bar labels
+  // and values follow the toggle and never disagree with it.
+  const horizonStats = useMemo(() => {
+    const cagrs = baseFunds
+      .map((f) => f.metrics[horizon]?.cagr)
+      .filter((v): v is number => v != null)
+      .sort((a, b) => a - b)
+    if (!cagrs.length) return { median: null as number | null, top: null as number | null }
+    const mid = Math.floor(cagrs.length / 2)
+    const median = cagrs.length % 2 ? cagrs[mid] : (cagrs[mid - 1] + cagrs[mid]) / 2
+    return { median, top: cagrs[cagrs.length - 1] }
+  }, [baseFunds, horizon])
+
   function clickHeader(key: SortKey, defaultDir: SortDir) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -242,13 +255,13 @@ export default function Explore() {
           </div>
           <div className="h-8 w-px bg-line" />
           <div>
-            <div className="text-xs text-faint">Median 5Y CAGR</div>
-            <div className="font-bold text-fg">{pct(summary.medianCagr5Y)}</div>
+            <div className="text-xs text-faint">Median {horizon} CAGR</div>
+            <div className="font-bold text-fg">{pct(horizonStats.median)}</div>
           </div>
           <div className="h-8 w-px bg-line" />
           <div>
-            <div className="text-xs text-faint">Best 5Y CAGR</div>
-            <div className="font-bold text-emerald-600 dark:text-emerald-400">{pct(summary.topCagr5Y)}</div>
+            <div className="text-xs text-faint">Best {horizon} CAGR</div>
+            <div className="font-bold text-emerald-600 dark:text-emerald-400">{pct(horizonStats.top)}</div>
           </div>
           <div className="h-8 w-px bg-line" />
           <div>
