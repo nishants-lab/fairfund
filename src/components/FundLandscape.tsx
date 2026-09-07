@@ -103,7 +103,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
         <span className="text-xs text-faint">{n} {catDisplay} funds</span>
       </div>
       <p className="mb-3 text-xs text-muted">
-        Risk vs return over {horizon}. Up and to the left is better: more return for less risk. Bubble size = AUM.
+        Risk vs return over {horizon}. Each bubble is a fund; size = AUM. X-axis is volatility (annualised), Y-axis is CAGR. The shaded quadrant is lower risk and higher return than the category median.
         Hover any fund for detail; click to open it.
       </p>
       {fundMissing && (
@@ -153,7 +153,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
       <div className="mt-2 flex items-center justify-center gap-5 text-xs text-faint">
         {fund ? <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: '#059669' }} />This fund</span> : null}
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: dim, opacity: 0.5 }} />{fund ? 'Category peers' : 'Funds'}</span>
-        <span>Green zone = efficient (more return, less risk)</span>
+        <span>Shaded = below median risk, above median return</span>
       </div>
     </div>
   )

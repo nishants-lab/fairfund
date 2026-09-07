@@ -18,9 +18,9 @@ export interface VerdictPillar {
   tone: 'good' | 'bad' | 'neutral'
 }
 export interface Verdict {
-  score: number // 0..100 conviction
-  label: 'Standout' | 'Strong' | 'Solid' | 'Average' | 'Below par' | 'Weak'
-  tone: 'good' | 'warn' | 'bad'
+  score: number // 0..100 composite data score (past risk-adjusted + consistency metrics)
+  label: string // neutral caption, never a qualitative rating
+  tone: 'good' | 'warn' | 'bad' | 'neutral'
   positives: VerdictPillar[]
   negatives: VerdictPillar[]
   oneLiner: string
@@ -39,7 +39,7 @@ export function buildVerdict(fund: Fund): Verdict {
   // This guard should never be reached in production; it is a safety net only.
   if (fund.isArbitrage || fund.isDebt) {
     console.warn('[buildVerdict] debt/arb fund reached equity verdict — use buildDebtVerdict instead', fund.code)
-    return { score: 0, label: 'Average' as const, tone: 'warn' as const, positives: [], negatives: [], oneLiner: 'Use buildDebtVerdict for this fund type.' }
+    return { score: 0, label: 'Composite score', tone: 'neutral' as const, positives: [], negatives: [], oneLiner: 'Use buildDebtVerdict for this fund type.' }
   }
 
   const base = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
@@ -78,44 +78,44 @@ export function buildVerdict(fund: Fund): Verdict {
   let sharpePts = 50
   if (base?.sharpe != null) {
     sharpePts = clamp(base.sharpe * 50, 0, 100) // 2.0 -> 100, 1.0 -> 50
-    if (base.sharpe >= 1) positives.push({ label: `Sharpe ${base.sharpe.toFixed(2)}`, detail: 'strong return per unit of risk', tone: 'good' })
-    else if (base.sharpe < 0) negatives.push({ label: `Sharpe ${base.sharpe.toFixed(2)}`, detail: 'underperformed cash on a risk-adjusted basis', tone: 'bad' })
+    if (base.sharpe >= 1) positives.push({ label: `Sharpe ${base.sharpe.toFixed(2)}`, detail: 'return per unit of total risk is above 1.0', tone: 'good' })
+    else if (base.sharpe < 0) negatives.push({ label: `Sharpe ${base.sharpe.toFixed(2)}`, detail: 'returned less than cash on a risk-adjusted basis', tone: 'bad' })
   }
 
   // ---- Pillar 4: consistency / batting average (forward) ----
   let consistencyPts = 50
   if (a?.battingAverage && !a.battingAverage.limited) {
     consistencyPts = a.battingAverage.pct
-    if (a.battingAverage.pct >= 65) positives.push({ label: `Consistent (${a.battingAverage.pct}%)`, detail: 'beat peers in most rolling 3Y windows', tone: 'good' })
-    else if (a.battingAverage.pct < 45) negatives.push({ label: `Inconsistent (${a.battingAverage.pct}%)`, detail: 'beat peers in a minority of 3Y windows', tone: 'bad' })
+    if (a.battingAverage.pct >= 65) positives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'rolling 3-year windows finishing above the category median', tone: 'good' })
+    else if (a.battingAverage.pct < 45) negatives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'rolling 3-year windows finishing above the category median', tone: 'bad' })
   }
 
   // ---- Pillar 5: skill vs luck (forward) ----
   let skillPts = 50
   if (a?.alpha?.confidence != null && !a.alpha.insufficient) {
     skillPts = a.alpha.confidence
-    if (a.alpha.confidence >= 90) positives.push({ label: `Skill ${Math.round(a.alpha.confidence)}% conf.`, detail: 'edge over peers looks statistically real', tone: 'good' })
-    else if (a.alpha.confidence < 50) negatives.push({ label: `Edge unproven (${Math.round(a.alpha.confidence)}%)`, detail: 'recent outperformance could be luck', tone: 'bad' })
+    if (a.alpha.confidence >= 90) positives.push({ label: `Alpha confidence ${Math.round(a.alpha.confidence)}%`, detail: 'statistical confidence the peer-relative alpha is not noise', tone: 'good' })
+    else if (a.alpha.confidence < 50) negatives.push({ label: `Alpha confidence ${Math.round(a.alpha.confidence)}%`, detail: 'statistical confidence the peer-relative alpha is not noise', tone: 'bad' })
   }
 
   // ---- Pillar 6: downside capture (forward, risk character) ----
   let capturePts = 50
   if (a?.capture?.down != null) {
     capturePts = clamp(150 - a.capture.down, 0, 100) // 100 down-cap -> 50, 50 -> 100
-    if (a.capture.down < 90) positives.push({ label: `Cushions falls (${a.capture.down}% down-capture)`, detail: 'drops less than its category in down months', tone: 'good' })
-    else if (a.capture.down > 110) negatives.push({ label: `Falls hard (${a.capture.down}% down-capture)`, detail: 'drops more than its category in down months', tone: 'bad' })
+    if (a.capture.down < 90) positives.push({ label: `Down-capture ${a.capture.down}%`, detail: 'moved down less than the category median in down months', tone: 'good' })
+    else if (a.capture.down > 110) negatives.push({ label: `Down-capture ${a.capture.down}%`, detail: 'moved down more than the category median in down months', tone: 'bad' })
   }
 
   // ---- Pillar 7: management quality (forward) ----
   let mgmtPts = 50
   const sig = fund.management?.signal
-  if (sig === 'Strong') { mgmtPts = 90; positives.push({ label: 'Strong management', detail: 'managers beat peers across their other funds', tone: 'good' }) }
+  if (sig === 'Strong') { mgmtPts = 90; positives.push({ label: 'Manager track record', detail: 'managers’ other funds rank above their category median across most periods', tone: 'neutral' }) }
   else if (sig === 'Solid') mgmtPts = 70
-  else if (sig === 'Mixed') { mgmtPts = 40; negatives.push({ label: 'Mixed management record', detail: 'managers’ other funds are inconsistent vs peers', tone: 'bad' }) }
+  else if (sig === 'Mixed') { mgmtPts = 40; negatives.push({ label: 'Manager track record', detail: 'managers’ other funds rank across a wide range vs their category median', tone: 'neutral' }) }
 
   // ---- Momentum caution (not scored, but surfaced) ----
   if (a?.meanReversion?.state === 'hot') {
-    negatives.push({ label: 'Running hot', detail: 'recent 1Y well above its own norm - may cool off', tone: 'bad' })
+    negatives.push({ label: 'Recent 1Y above own norm', detail: 'latest 1Y is well above this fund’s own 3-year average', tone: 'neutral' })
   }
 
   // Weighted blend. Backward pillars (rank/alpha/sharpe) and forward pillars
@@ -131,23 +131,28 @@ export function buildVerdict(fund: Fund): Verdict {
       mgmtPts * 0.1,
   )
 
-  const label: Verdict['label'] =
-    score >= 80 ? 'Standout' : score >= 68 ? 'Strong' : score >= 56 ? 'Solid' : score >= 44 ? 'Average' : score >= 32 ? 'Below par' : 'Weak'
-  const tone: Verdict['tone'] = score >= 56 ? 'good' : score >= 44 ? 'warn' : 'bad'
+  // No qualitative rating: the label is a fixed, neutral caption for the number,
+  // and the score itself is shown in a neutral colour (see cards). tone is kept
+  // internal-only for ordering/where still needed, defaulted neutral.
+  const label = 'Composite score'
+  const tone: Verdict['tone'] = 'neutral'
 
   const oneLiner = buildOneLiner(fund, score, label, positives, negatives)
 
   return { score, label, tone, positives, negatives, oneLiner }
 }
 
-function buildOneLiner(fund: Fund, _score: number, label: string, pos: VerdictPillar[], neg: VerdictPillar[]): string {
+// Factual, non-advisory summary: only statistics (rank, alpha, Sharpe) and the
+// composite number. No qualitative labels ('pick', 'option', 'lags') and no
+// recommendation ('weigh it against...', 'look stronger').
+function buildOneLiner(fund: Fund, score: number, _label: string, _pos: VerdictPillar[], _neg: VerdictPillar[]): string {
+  const base = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
   const cat = fund.categoryDisplay
-  const lead = pos[0]?.label ?? neg[0]?.label ?? 'a mixed record'
-  if (label === 'Standout' || label === 'Strong') {
-    return `A ${label.toLowerCase()} ${cat} pick on the data - ${lead.toLowerCase()}${pos[1] ? `, ${pos[1].label.toLowerCase()}` : ''}. ${neg[0] ? `Watch: ${neg[0].label.toLowerCase()}.` : 'Few red flags in the data.'}`
-  }
-  if (label === 'Solid' || label === 'Average') {
-    return `A ${label.toLowerCase()} ${cat} option - ${pos[0] ? pos[0].label.toLowerCase() : 'no standout strengths'}${neg[0] ? `, but ${neg[0].label.toLowerCase()}` : ''}. Weigh it against higher-ranked peers.`
-  }
-  return `Lags its ${cat} peers on the data - ${neg[0] ? neg[0].label.toLowerCase() : 'weak across the board'}. Higher-ranked funds in the category look stronger.`
+  const parts: string[] = []
+  if (base?.catRank != null && base?.catSize != null) parts.push(`ranks #${base.catRank} of ${base.catSize} in ${cat} on 3Y risk-adjusted return`)
+  if (base?.alpha != null) parts.push(`${base.alpha >= 0 ? '+' : ''}${base.alpha.toFixed(1)}%/yr vs the category median`)
+  if (base?.sharpe != null) parts.push(`Sharpe ${base.sharpe.toFixed(2)}`)
+  const head = parts.length ? parts.join(', ') : 'limited comparable history so far'
+  const sentence = head.charAt(0).toUpperCase() + head.slice(1)
+  return `${sentence}. Composite score ${score}/100 across past risk-adjusted and consistency metrics, not a rating or recommendation.`
 }
