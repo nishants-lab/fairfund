@@ -3,20 +3,25 @@ import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
 
+// Neutral by design: the composite score is a data point, not a rating, so it
+// is never coloured good/bad.
 const TONE_RING: Record<string, string> = {
-  good: 'border-l-emerald-500',
-  warn: 'border-l-amber-500',
-  bad: 'border-l-rose-500',
+  good: 'border-l-slate-400',
+  warn: 'border-l-slate-400',
+  bad: 'border-l-slate-400',
+  neutral: 'border-l-slate-400',
 }
 const TONE_TEXT: Record<string, string> = {
-  good: 'text-emerald-700 dark:text-emerald-300',
-  warn: 'text-amber-600 dark:text-amber-400',
-  bad: 'text-rose-600 dark:text-rose-400',
+  good: 'text-fg',
+  warn: 'text-fg',
+  bad: 'text-fg',
+  neutral: 'text-fg',
 }
 const TONE_BAR: Record<string, string> = {
-  good: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  bad: 'bg-rose-500',
+  good: 'bg-slate-400',
+  warn: 'bg-slate-400',
+  bad: 'bg-slate-400',
+  neutral: 'bg-slate-400',
 }
 
 /**
@@ -46,13 +51,13 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       : null
     return (
       <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
-        <h3 className="font-bold text-fg">Too new for a full verdict</h3>
+        <h3 className="font-bold text-fg">Too new for a composite score</h3>
         <p className="mt-2 text-sm text-muted">
           This fund launched {sinceTxt ? `on ${sinceTxt}` : 'recently'} and has only{' '}
           {fund.navPoints ? `${fund.navPoints} trading days` : 'a limited history'}, less than the
-          ~1 year we need to judge peer rank, risk-adjusted return and consistency. We are not
+          ~1 year we need to compute peer rank, risk-adjusted return and consistency. We are not
           hiding it, but we will not
-          fabricate a conviction score from too little data. Here is the honest read so far:
+          compute a composite score from too little data. Here is the read so far:
         </p>
         {si && (
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -87,9 +92,9 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
   return (
     <div className={`mt-6 card border-l-4 ${TONE_RING[v.tone]} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-bold text-fg">Our overall verdict</h3>
+        <h3 className="font-bold text-fg">Composite data score</h3>
         <span className={`text-sm font-bold ${TONE_TEXT[v.tone]}`}>
-          {v.label} · {v.score}/100 conviction
+          {v.score}/100
         </span>
       </div>
 
@@ -102,8 +107,8 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-            What works for it
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Metrics that lifted the score
           </div>
           {v.positives.length ? (
             <ul className="mt-1.5 space-y-1.5">
@@ -114,12 +119,12 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-1.5 text-sm text-faint">No standout strengths in the data.</p>
+            <p className="mt-1.5 text-sm text-faint">No metrics materially lifted the score.</p>
           )}
         </div>
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
-            What to watch
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Metrics that lowered the score
           </div>
           {v.negatives.length ? (
             <ul className="mt-1.5 space-y-1.5">
@@ -130,15 +135,16 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-1.5 text-sm text-faint">No notable red flags in the data.</p>
+            <p className="mt-1.5 text-sm text-faint">No metrics materially lowered the score.</p>
           )}
         </div>
       </div>
 
       <p className="mt-4 text-xs text-faint">
-        Conviction blends backward-tested rank, peer-relative alpha and risk-adjusted ratios with
-        forward-looking consistency, skill confidence, downside capture and management quality. A
-        reading of the data, not a recommendation.
+        The composite score blends backward-tested rank, peer-relative alpha and risk-adjusted
+        ratios with forward-looking consistency, alpha confidence, downside capture and manager
+        track record. A weighted reading of past data, not a rating or recommendation. Past
+        performance does not indicate future returns.
       </p>
     </div>
   )
@@ -195,9 +201,9 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
   return (
     <div className={`mt-6 card border-l-4 ${DTONE_RING[v.tone]} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-bold text-fg">{isArb ? 'How this arbitrage fund stacks up' : 'How this fund stacks up'}</h3>
-        {v.score != null && v.label && (
-          <span className={`text-sm font-bold ${DTONE_TEXT[v.tone]}`}>{v.label} · {v.score}/100</span>
+        <h3 className="font-bold text-fg">{isArb ? 'Composite score (arbitrage peer set)' : 'Composite score (peer set)'}</h3>
+        {v.score != null && (
+          <span className={`text-sm font-bold ${DTONE_TEXT[v.tone]}`}>{v.score}/100</span>
         )}
       </div>
 

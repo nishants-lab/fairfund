@@ -19,13 +19,6 @@ const MUTE = '#64748b'
 const FAINT = '#94a3b8'
 const LINE = '#e2e8f0'
 
-const TONE_COLOR: Record<string, string> = {
-  good: GREEN,
-  warn: '#d97706',
-  bad: '#e11d48',
-  neutral: MUTE,
-}
-
 interface ShareCardData {
   score: number | null
   label: string
@@ -103,7 +96,6 @@ const stat = (value: string | null, label: string) =>
 
 const ShareCard = forwardRef<HTMLDivElement, { fund: Fund; qr?: string | null }>(function ShareCard({ fund, qr }, ref) {
   const d = cardData(fund)
-  const toneColor = TONE_COLOR[d.tone] ?? MUTE
   const stats = [stat(d.rank, 'Category rank'), stat(d.cagr, d.cagrLabel), stat(d.extra, d.extraLabel)].filter(Boolean)
 
   return (
@@ -115,7 +107,7 @@ const ShareCard = forwardRef<HTMLDivElement, { fund: Fund; qr?: string | null }>
         background: '#ffffff',
         fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
         color: INK,
-        borderTop: `6px solid ${toneColor}`,
+        borderTop: `6px solid ${BRAND}`,
         padding: '32px 36px 28px',
       }}
     >
@@ -150,14 +142,16 @@ const ShareCard = forwardRef<HTMLDivElement, { fund: Fund; qr?: string | null }>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           {d.score != null ? (
             <>
-              <div style={{ fontSize: 46, fontWeight: 800, color: toneColor, lineHeight: 1 }}>
+              <div style={{ fontSize: 46, fontWeight: 800, color: INK, lineHeight: 1 }}>
                 {d.score}
                 <span style={{ fontSize: 18, color: FAINT, fontWeight: 700 }}>/100</span>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: toneColor, marginTop: 2 }}>{d.label}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: FAINT, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Composite score
+              </div>
             </>
           ) : (
-            <div style={{ fontSize: 15, fontWeight: 800, color: toneColor, maxWidth: 150, lineHeight: 1.3 }}>{d.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: MUTE, maxWidth: 150, lineHeight: 1.3 }}>{d.label}</div>
           )}
         </div>
       </div>
@@ -183,7 +177,7 @@ const ShareCard = forwardRef<HTMLDivElement, { fund: Fund; qr?: string | null }>
         )}
         <div style={{ fontSize: 11, color: FAINT, fontWeight: 600, lineHeight: 1.5 }}>
           See the full analysis on FairFund &middot; forward-looking mutual-fund research.
-          <br />A weighted reading of the data, not investment advice.
+          <br />Data for research only &middot; not investment advice &middot; past performance does not indicate future returns.
         </div>
       </div>
     </div>

@@ -145,17 +145,17 @@ function categoryGloss(
   const atMedian = Math.abs(value - median) <= eps
   const beatsMedian = higherBetter ? value > median : value < median
   if (higherBetter) {
-    if (isTop) return { gloss: `Above the category median (${med}).`, verdict: 'Best in category', tone: 'good' }
-    if (isBottom) return { gloss: `Below the category median (${med}).`, verdict: 'Lowest in category', tone: 'bad' }
-    if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'In line with peers', tone: 'neutral' }
-    if (beatsMedian) return { gloss: `Above the category median (${med}).`, verdict: 'Better than most peers', tone: 'good' }
-    return { gloss: `Below the category median (${med}).`, verdict: 'Trails most peers', tone: 'warn' }
+    if (isTop) return { gloss: `Above the category median (${med}).`, verdict: 'Highest in category', tone: 'neutral' }
+    if (isBottom) return { gloss: `Below the category median (${med}).`, verdict: 'Lowest in category', tone: 'neutral' }
+    if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'At category median', tone: 'neutral' }
+    if (beatsMedian) return { gloss: `Above the category median (${med}).`, verdict: 'Above category median', tone: 'neutral' }
+    return { gloss: `Below the category median (${med}).`, verdict: 'Below category median', tone: 'neutral' }
   }
-  if (isTop) return { gloss: `Below the category median (${med}).`, verdict: 'Steadiest in category', tone: 'good' }
-  if (isBottom) return { gloss: `Above the category median (${med}).`, verdict: 'Swingiest in category', tone: 'bad' }
-  if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'In line with peers', tone: 'neutral' }
-  if (beatsMedian) return { gloss: `Below the category median (${med}).`, verdict: 'Steadier than most peers', tone: 'good' }
-  return { gloss: `Above the category median (${med}).`, verdict: 'Swingier than most peers', tone: 'warn' }
+  if (isTop) return { gloss: `Below the category median (${med}).`, verdict: 'Lowest in category', tone: 'neutral' }
+  if (isBottom) return { gloss: `Above the category median (${med}).`, verdict: 'Highest in category', tone: 'neutral' }
+  if (atMedian) return { gloss: `At the category median (${med}).`, verdict: 'At category median', tone: 'neutral' }
+  if (beatsMedian) return { gloss: `Below the category median (${med}).`, verdict: 'Below category median', tone: 'neutral' }
+  return { gloss: `Above the category median (${med}).`, verdict: 'Above category median', tone: 'neutral' }
 }
 
 /**

@@ -307,9 +307,9 @@ export default function Compare() {
           <span className="text-fg">⚠️</span>
           <div>
             <strong>You’re comparing different categories.</strong> These funds carry different risk
-            levels, so raw returns aren’t apples-to-apples. A small-cap "winning" on CAGR is expected;
-            it takes more risk. Weigh the risk metrics (drawdown, volatility) alongside returns. The
-            per-row green highlight still marks the higher number, not necessarily the better fit.
+            levels, so raw returns aren’t apples-to-apples: a small-cap showing a higher CAGR also
+            carries more risk. The per-row highlight marks the higher number on that metric only, not
+            a better or recommended fund.
           </div>
         </div>
       )}
@@ -476,14 +476,14 @@ export default function Compare() {
                   </td>
                   {funds.map((f) => {
                     const sig = f.management?.signal
-                    const tone =
-                      sig === 'Strong' ? 'text-emerald-700 dark:text-emerald-300'
-                      : sig === 'Solid' ? 'text-emerald-600 dark:text-emerald-400'
-                      : sig === 'Mixed' ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-faint'
+                    const disp =
+                      sig === 'Strong' ? 'Above category'
+                      : sig === 'Solid' ? 'In line'
+                      : sig === 'Mixed' ? 'Mixed record'
+                      : sig
                     return (
-                      <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>
-                        {f.management?.available ? sig : '—'}
+                      <td key={f.code} className="px-4 py-3 text-right font-semibold text-fg">
+                        {f.management?.available ? disp : '—'}
                       </td>
                     )
                   })}
@@ -550,18 +550,17 @@ export default function Compare() {
                 {/* FINAL VERDICT (#18) - overall conviction fusing backward + forward */}
                 <tr className="border-t-2 border-line bg-surface2/40">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface2 px-4 py-3 font-bold text-fg">
-                    Overall verdict <span className="text-xs font-normal text-faint">(all signals)</span>
+                    Composite score <span className="text-xs font-normal text-faint">(all signals)</span>
                   </td>
                   {funds.map((f, i) => {
                     if (usesReducedSurface(f)) {
                       const dv = buildDebtVerdict(f, ALL_FUNDS)
-                      const dtone = dv.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : dv.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : dv.tone === 'bad' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
                       return (
                         <td key={f.code} className="px-4 py-3 text-right align-top">
                           {dv.scored && dv.score != null ? (
                             <div className="inline-flex flex-col items-end">
-                              <span className={`font-bold ${dtone}`}>{dv.label}</span>
-                              <span className="text-xs text-faint">{dv.score}/100 · {dv.peerSet}</span>
+                              <span className="font-bold text-fg">{dv.score}/100</span>
+                              <span className="text-xs text-faint">{dv.peerSet}</span>
                             </div>
                           ) : (
                             <span className="text-sm text-faint">No score<span className="block text-xs">rate/credit fund</span></span>
@@ -571,12 +570,11 @@ export default function Compare() {
                     }
                     const v = verdicts[i]
                     const isWin = i === verdictWinner && funds.length > 1
-                    const tone = v.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : v.tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
                     return (
                       <td key={f.code} className="px-4 py-3 text-right align-top">
                         <div className={`inline-flex flex-col items-end ${isWin ? winClass : ''}`}>
-                          <span className={`font-bold ${tone}`}>{v.label}</span>
-                          <span className="text-xs text-faint">{v.score}/100{isWin ? ' · best' : ''}</span>
+                          <span className="font-bold text-fg">{v.score}/100</span>
+                          <span className="text-xs text-faint">composite score</span>
                         </div>
                       </td>
                     )
