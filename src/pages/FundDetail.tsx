@@ -408,7 +408,7 @@ export default function FundDetail() {
               value={num(live.sharpe)}
               tone={ratioTone(live.sharpe)}
               spectrum={ratioSpec(live.sharpe, catStats.sharpe)}
-              hint="Return per unit of total risk in this exact period. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis. The bar spans this fund's category range, with the real worst and best peer values printed at each end; the coloured caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marked '≥1.00' is the 'good' level (shown only when it falls in range)."
+              hint="Return per unit of total risk in this exact period. A negative value means it returned less than cash on a risk-adjusted basis. The bar spans this fund's category range, with the lowest and highest peer values printed at each end; the caret (with its value above it) is this fund, the tick marked 'med' is the category median, and a dashed line marks the 1.00 reference level (shown only when it falls in range)."
             />
             )}
             {!usesReducedSurface(fund) && (
@@ -418,7 +418,7 @@ export default function FundDetail() {
               sub={`${fmtDate(live.maxDrawdownStart)} – ${fmtDate(live.maxDrawdownEnd)}`}
               tone={drawdownTone(live.maxDrawdown)}
               note={fallReason(live.maxDrawdownStart, live.maxDrawdownEnd) ?? undefined}
-              hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is always a loss; shallower is better."
+              hint="Worst peak-to-trough fall within the selected period. The dates are the prior peak month and the trough month. A drawdown is a decline from a prior high; a smaller number is a shallower fall."
             />
             )}
             <MetricCard
@@ -434,7 +434,7 @@ export default function FundDetail() {
               value={num(live.sortino)}
               tone={ratioTone(live.sortino)}
               spectrum={ratioSpec(live.sortino, catStats.sortino)}
-              hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
+              hint="Like Sharpe, but only penalizes downside moves. A negative value means downside risk exceeded return in the period. The bar spans the category range, with the lowest and highest peer values at each end; the caret (value above) is this fund, the 'med' tick is the category median, and a dashed line marks the 1.00 reference level when it falls in range."
             />
             )}
             {!usesReducedSurface(fund) && (
@@ -443,7 +443,7 @@ export default function FundDetail() {
               value={num(live.calmar)}
               tone={ratioTone(live.calmar)}
               spectrum={ratioSpec(live.calmar, catStats.calmar)}
-              hint="Return relative to the worst drawdown. Higher is better (above 1 strong, above 3 excellent); below 0 means it lost money. The bar spans the category range, with the real worst and best peer values at each end; the coloured caret (value above) is this fund, the 'med' tick is the category median, and a dashed '≥1.00' line marks the 'good' level when it falls in range."
+              hint="Return relative to the worst drawdown. A negative value means it lost money over the period. The bar spans the category range, with the lowest and highest peer values at each end; the caret (value above) is this fund, the 'med' tick is the category median, and a dashed line marks the 1.00 reference level when it falls in range."
             />
             )}
             <MetricCard
@@ -478,13 +478,13 @@ export default function FundDetail() {
             <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
             )}
             {!usesReducedSurface(fund) && (
-            <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={ratioTone(baseline.sharpe)} hint="Return per unit of total risk. Above 1 is excellent; below 0 means it underperformed cash on a risk-adjusted basis." />
+            <MetricCard label="Sharpe Ratio" value={num(baseline.sharpe)} tone={ratioTone(baseline.sharpe)} hint="Return per unit of total risk. A negative value means it returned less than cash on a risk-adjusted basis." />
             )}
             {!usesReducedSurface(fund) && (
-            <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is always a loss - shallower is better." />
+            <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is a decline from a prior high; a smaller number is a shallower fall." />
             )}
             {!usesReducedSurface(fund) && (
-            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. Above 1 is strong; below 0 is poor." />
+            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. A negative value means downside risk exceeded return in the period." />
             )}
             {!usesReducedSurface(fund) && (
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />

@@ -158,7 +158,7 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     const cheapPct = ters.length ? cheaperThan / ters.length : 0.5
     pillars.push({
       label: `Expense ${ter.toFixed(2)}%`,
-      detail: cheapPct >= 0.6 ? 'cheaper than most peers, the biggest edge in this category' : cheapPct <= 0.35 ? 'pricier than most peers; cost drags returns here' : 'around the category average on cost',
+      detail: cheapPct >= 0.6 ? 'cheaper than most peers on expense ratio' : cheapPct <= 0.35 ? 'pricier than most peers on expense ratio' : 'around the category median on expense ratio',
       tone: cheapPct >= 0.6 ? 'good' : cheapPct <= 0.35 ? 'bad' : 'neutral',
     })
   }
@@ -177,7 +177,7 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
   if (aum != null) {
     pillars.push({
       label: `${aum >= 1000 ? '₹' + (aum / 1000).toFixed(1) + 'k Cr' : '₹' + Math.round(aum) + ' Cr'} AUM`,
-      detail: aum >= 1000 ? 'large, stable book' : aum < 100 ? 'small book; watch for concentration' : 'moderate size',
+      detail: aum >= 1000 ? 'assets above ₹1,000 Cr' : aum < 100 ? 'assets below ₹100 Cr' : 'assets between ₹100 Cr and ₹1,000 Cr',
       tone: aum >= 1000 ? 'good' : aum < 100 ? 'bad' : 'neutral',
     })
   }
@@ -194,23 +194,20 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     if (pos >= 0) rankLabel = `Ranked #${pos + 1} of ${scored.length} ${peerSet} funds`
   }
 
-  // Tier-1 / Tier-2 debt: positioning labels (cost-efficiency framing), never alarming tone.
-  // Arbitrage: evaluative labels; still no 'bad' tone — lowest is 'neutral'.
-  const label: DebtVerdict['label'] = score == null ? undefined
-    : isArb
-    ? (score >= 80 ? 'Standout' : score >= 66 ? 'Strong' : score >= 50 ? 'Solid' : score >= 34 ? 'Average' : 'Below par')
-    : (score >= 80 ? 'Top value' : score >= 66 ? 'Strong value' : score >= 50 ? 'Solid' : score >= 34 ? 'Mid-pack' : 'Costlier option')
-  const tone: DebtVerdict['tone'] =
-    score == null ? 'neutral' : score >= 66 ? 'good' : isArb && score >= 50 ? 'warn' : 'neutral'
+  // No qualitative rating: neutral caption for the number; the score itself is
+  // shown in a neutral colour. tone kept neutral (no good/bad characterisation).
+  const label: DebtVerdict['label'] = score == null ? undefined : 'Composite score'
+  const tone: DebtVerdict['tone'] = 'neutral'
 
   const caveat = tier === 2
     ? 'Duration and yield-to-maturity are not in our data. This score reflects cost, return-vs-peers and size only. Check the AMC factsheet for rate sensitivity.'
     : undefined
 
-  const lead = pillars.find((p) => p.tone === 'good')?.label ?? pillars[0]?.label ?? ''
+  const rankTxt = rankLabel ? rankLabel.replace(/^Ranked /, 'ranks ') : ''
+  const scoreTxt = score != null ? `Composite score ${score}/100` : ''
   const oneLiner = isArb
-    ? `Judge this arbitrage fund on cost, steadiness and size, not equity conviction. ${lead ? lead + ' stands out.' : ''}`
-    : `${label ?? 'Mid-pack'} among ${peerSet.toLowerCase()} funds on cost, return-vs-peers and size. ${lead ? lead + ' is the key driver.' : ''}`
+    ? `${peerSet} fund scored on cost, return-vs-peers and size (not equity metrics)${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
+    : `Scored within ${peerSet.toLowerCase()} funds on cost, return-vs-peers and size${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
 
   return { tier: tier as DebtTier | 'arbitrage', scored: true, score: score ?? undefined, label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
 }
