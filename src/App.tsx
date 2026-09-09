@@ -5,6 +5,7 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
+import InstallBanner from './components/InstallBanner'
 
 import NotFound from './pages/NotFound'
 
@@ -55,7 +56,7 @@ export default function App() {
       </main>
       <Footer />
       <Onboarding />
-
+      <InstallBanner />
     </div>
   )
 }
