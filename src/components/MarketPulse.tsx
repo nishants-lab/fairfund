@@ -27,7 +27,6 @@ function pctChange(now: number, then: number): number {
 }
 
 function findNavAtOrBefore(pts: NavPoint[], targetDate: string): NavPoint | null {
-  // Binary search for the nearest point at or before targetDate
   let lo = 0, hi = pts.length - 1, best: NavPoint | null = null
   while (lo <= hi) {
     const mid = (lo + hi) >> 1
@@ -43,7 +42,6 @@ function computeIndex(pts: NavPoint[], label: string, sub: string): IndexData | 
   const prev = pts[pts.length - 2]
 
   const now = new Date()
-  // 1 week ago, 1 month ago, Jan 1 of this year
   const d1w = new Date(now); d1w.setDate(d1w.getDate() - 7)
   const d1m = new Date(now); d1m.setMonth(d1m.getMonth() - 1)
   const dYtd = `${now.getFullYear()}-01-01`
@@ -65,9 +63,9 @@ function computeIndex(pts: NavPoint[], label: string, sub: string): IndexData | 
 }
 
 /** Tiny SVG sparkline, green if up, red if down. */
-function MiniSpark({ data }: { data: number[] }) {
+function MiniSpark({ data, className }: { data: number[]; className?: string }) {
   if (data.length < 2) return null
-  const w = 80, h = 28, pad = 2
+  const w = 56, h = 24, pad = 2
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
   const pts = data.map((v, i) => {
@@ -77,7 +75,7 @@ function MiniSpark({ data }: { data: number[] }) {
   }).join(' ')
   const up = data[data.length - 1] >= data[0]
   return (
-    <svg width={w} height={h} className="shrink-0">
+    <svg viewBox={`0 0 ${w} ${h}`} className={`shrink-0 ${className ?? ''}`} preserveAspectRatio="none">
       <polyline points={pts} fill="none" stroke={up ? '#10b981' : '#ef4444'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -119,9 +117,9 @@ export default function MarketPulse() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[0,1,2,3].map(i => (
-          <div key={i} className="animate-pulse rounded-xl bg-surface2/60 h-24" />
+          <div key={i} className="animate-pulse rounded-xl bg-surface2/60 h-20" />
         ))}
       </div>
     )
@@ -130,23 +128,26 @@ export default function MarketPulse() {
   if (indices.length === 0) return null
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
       {indices.map((idx) => (
-        <div key={idx.label} className="rounded-xl border border-line bg-surface px-4 py-3">
-          <div className="flex items-start justify-between gap-2">
+        <div key={idx.label} className="overflow-hidden rounded-xl border border-line bg-surface px-3 py-2.5">
+          {/* Row 1: label + sparkline */}
+          <div className="flex items-center justify-between gap-1">
             <div className="min-w-0">
-              <div className="text-xs font-semibold text-fg truncate">{idx.label}</div>
-              <div className="text-[10px] text-faint">{idx.sub}</div>
+              <div className="text-[11px] font-semibold leading-tight text-fg">{idx.label}</div>
+              <div className="text-[9px] leading-tight text-faint">{idx.sub}</div>
             </div>
-            <MiniSpark data={idx.spark} />
+            <MiniSpark data={idx.spark} className="h-5 w-10" />
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className={`text-lg font-bold tabular-nums ${chgColor(idx.chg1D)}`}>
+          {/* Row 2: 1D change prominent */}
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className={`text-base font-bold tabular-nums leading-none ${chgColor(idx.chg1D)}`}>
               {fmtPct(idx.chg1D)}
             </span>
-            <span className="text-[10px] text-faint">1D</span>
+            <span className="text-[9px] text-faint">1D</span>
           </div>
-          <div className="mt-1 flex gap-3 text-[10px] tabular-nums text-muted">
+          {/* Row 3: secondary returns */}
+          <div className="mt-1 flex gap-2 text-[9px] tabular-nums text-muted">
             <span>1W <span className={chgColor(idx.chg1W)}>{fmtPct(idx.chg1W)}</span></span>
             <span>1M <span className={chgColor(idx.chg1M)}>{fmtPct(idx.chg1M)}</span></span>
             <span>YTD <span className={chgColor(idx.chgYTD)}>{fmtPct(idx.chgYTD)}</span></span>
