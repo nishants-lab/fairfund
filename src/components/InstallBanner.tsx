@@ -1,12 +1,27 @@
 import { useState } from 'react'
 import { useInstallPrompt } from '../lib/usePWA'
 
+const DISMISS_KEY = 'ff-install-dismissed'
+const DISMISS_DAYS = 30
+
+function wasDismissed(): boolean {
+  const ts = localStorage.getItem(DISMISS_KEY)
+  if (!ts) return false
+  const elapsed = Date.now() - Number(ts)
+  return elapsed < DISMISS_DAYS * 86400_000
+}
+
+function persistDismiss() {
+  localStorage.setItem(DISMISS_KEY, String(Date.now()))
+}
+
 /** Slim banner at the bottom of the screen prompting PWA install. */
 export default function InstallBanner() {
-  const { canInstall, install } = useInstallPrompt()
-  const [dismissed, setDismissed] = useState(false)
+  const { canInstall, isInstalled, install } = useInstallPrompt()
+  const [dismissed, setDismissed] = useState(wasDismissed)
 
-  if (!canInstall || dismissed) return null
+  // Never show if already installed, previously dismissed, or browser has no prompt
+  if (isInstalled || dismissed || !canInstall) return null
 
   return (
     <div className="fixed bottom-0 inset-x-0 z-50 border-t border-line bg-surface/95 backdrop-blur-sm safe-bottom">
@@ -17,7 +32,7 @@ export default function InstallBanner() {
         </p>
         <div className="flex shrink-0 gap-2">
           <button
-            onClick={() => setDismissed(true)}
+            onClick={() => { persistDismiss(); setDismissed(true) }}
             className="rounded-lg px-3 py-1.5 text-sm text-muted hover:text-fg transition-colors"
           >
             Later
