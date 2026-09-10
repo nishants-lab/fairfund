@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import SearchBox from '../components/SearchBox'
+import MarketPulse from '../components/MarketPulse'
 import { data, funds, topFundsForCategory, categoryOrder } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
 import { signedPct, pct, alphaColor, fundSlug } from '../lib/format'
@@ -232,6 +233,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Market pulse: live index returns */}
+      <section className="border-b border-line bg-canvas">
+        <div className="mx-auto max-w-6xl px-4 py-5">
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-sm font-semibold text-fg">Market pulse</h2>
+            <span className="text-[10px] text-faint">Index benchmark returns (TRI, via proxy fund NAV)</span>
+          </div>
+          <MarketPulse />
+        </div>
+      </section>
+
       {/* Stats band */}
       <section className="border-b border-line bg-surface">
         <div className="mx-auto grid max-w-6xl grid-cols-2 px-4 md:grid-cols-4 md:divide-x md:divide-line">
@@ -394,7 +406,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-sm ${tierCagrColor[tier]}`}>{c.medianCagr5Y?.toFixed(1) ?? '—'}%</div>
+                  <div className={`text-sm ${tierCagrColor[tier]}`}>{c.medianCagr5Y?.toFixed(1) ?? 'â€”'}%</div>
                   <div className="text-xs text-faint">median 5Y</div>
                 </div>
               </Link>
