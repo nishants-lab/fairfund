@@ -37,6 +37,23 @@ SCRIPTS_DIR = ROOT / "scripts"
 PIPELINE_DIR = ROOT / "pipeline"
 
 
+def _latest_nav_date():
+    """Scan self-hosted NAV files and return the actual latest date string."""
+    latest = None
+    for p in NAV_DIR.glob("*.json"):
+        if "_manifest" in p.name:
+            continue
+        try:
+            d = json.load(open(p))
+            if "d" in d and d["d"]:
+                last = d["d"][-1]
+                if latest is None or last > latest:
+                    latest = last
+        except Exception:
+            continue
+    return latest
+
+
 def run_script(script_path, args=None, description=None):
     """Run a Python script as a subprocess, printing output."""
     cmd = [sys.executable, str(script_path)] + (args or [])
@@ -64,8 +81,8 @@ def daily_refresh(data):
     # Step 3: Recompute rankings
     run_script(PIPELINE_DIR / "compute_rankings.py", description="Recompute rankings")
 
-    # Update timestamp
-    data["anchor"] = date.today().isoformat()
+    # Anchor = actual latest NAV date, not the run date
+    data["anchor"] = _latest_nav_date() or date.today().isoformat()
     data["generatedAt"] = date.today().isoformat()
 
 
