@@ -214,15 +214,13 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-12 pt-10 md:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pb-16">
           <div className="min-w-0">
             <h1 className="rise text-[clamp(2.4rem,5.2vw+0.8rem,4rem)] font-semibold leading-[1.04] tracking-tight text-fg">
-              The only{' '}
-              <em className="text-brand-700 dark:text-brand-300">fair</em>{' '}
-              way to
+              A <em className="text-brand-700 dark:text-brand-300">fair</em> way to
               <br />
-              compare funds.
+              compare mutual funds.
             </h1>
             <p className="rise rise-1 mt-5 max-w-lg text-lg leading-relaxed text-muted">
-              <strong className="font-semibold text-fg">{data.totalFunds}</strong> Indian mutual
-              funds, ranked over any time period you pick.
+              <strong className="font-semibold text-fg">{data.totalFunds}</strong> funds. Any time
+              period you pick. Risk, consistency, skill and cost, all in one score.
             </p>
             <div className="rise rise-2 relative z-30 mt-7 max-w-xl">
               <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
