@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <div className="font-display text-2xl font-bold tracking-tight text-fg">
-              Fair<span className="text-brand-600 dark:text-brand-400">Fund</span>
+              <span className="text-brand-600 dark:text-brand-400">Fair</span>Fund
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
               Independent mutual fund research for India. Every score is tested
