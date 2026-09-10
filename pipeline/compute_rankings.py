@@ -25,6 +25,26 @@ from datetime import date
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
+NAV_DIR = os.path.join(ROOT, "public", "nav")
+
+
+def _latest_nav_date(nav_dir):
+    """Scan self-hosted NAV JSON files and return the actual latest date string."""
+    import glob
+    latest = None
+    for path in glob.glob(os.path.join(nav_dir, "*.json")):
+        if "_manifest" in os.path.basename(path):
+            continue
+        try:
+            with open(path) as f:
+                d = json.load(f)
+            if "d" in d and d["d"]:
+                last = d["d"][-1]
+                if latest is None or last > latest:
+                    latest = last
+        except Exception:
+            continue
+    return latest
 
 # The 6 metrics used in the composite score (all higher = better).
 # maxDrawdown is negative, so higher (less negative) = less loss = better.
@@ -241,8 +261,9 @@ def main():
         print("\n--dry-run: no file written.")
         return
 
-    # Update anchor and generation date
-    data["anchor"] = date.today().isoformat()
+    # Anchor = actual latest NAV date, not the run date
+    actual_nav_date = _latest_nav_date(NAV_DIR)
+    data["anchor"] = actual_nav_date or date.today().isoformat()
     data["generatedAt"] = date.today().isoformat()
 
     with open(FUNDS_JSON, "w", encoding="utf-8") as f:
