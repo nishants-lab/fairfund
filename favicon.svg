@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs>
-  <rect width="32" height="32" rx="7" fill="url(#g)"/>
-  <rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff"/>
-  <rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff"/>
-  <rect x="21" y="7" width="5" height="19" rx="1.5" fill="#10b981"/>
-  <rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><rect x="120" y="270" width="70" height="120" rx="14" fill="#fff"/><rect x="221" y="200" width="70" height="190" rx="14" fill="#fff"/><rect x="322" y="130" width="70" height="260" rx="14" fill="#10b981"/><rect x="100" y="400" width="312" height="14" rx="7" fill="rgba(255,255,255,0.6)"/></svg>
