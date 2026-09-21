@@ -42,8 +42,6 @@ function sample<T>(rnd: () => number, arr: T[], n: number): T[] {
 export interface EditionTheme {
   hero: string
   em: string
-  emDark: string
-  orb: string
 }
 
 export interface EditionHeadline {
@@ -96,16 +94,12 @@ export interface EditionMovers {
 
 export type ModuleKind = 'spotlight' | 'duel' | 'movers'
 
-export type LayoutKind = 'editorial' | 'monolith' | 'terminal' | 'cover' | 'duel' | 'zen'
-
 export interface EditionStat {
   n: string
   l: string
 }
 
 export interface Edition {
-  layout: LayoutKind
-  issue: number
   theme: EditionTheme
   headline: EditionHeadline
   strip: { eyebrow: string; h: string }
@@ -129,16 +123,16 @@ export type SectionKey = 'pulse' | 'stats' | 'why' | 'leaders' | 'index'
 /* ----------------------------- themes ---------------------------------- */
 // All class strings are literal so Tailwind's scanner picks them up.
 const THEMES: EditionTheme[] = [
-  { hero: 'bg-gradient-to-b from-brand-50/70 to-canvas dark:from-brand-900/20 dark:to-canvas', em: 'text-brand-700 dark:text-brand-300', emDark: 'text-brand-300', orb: 'bg-brand-500/30' },
-  { hero: 'bg-gradient-to-br from-emerald-50/70 to-canvas dark:from-emerald-900/20 dark:to-canvas', em: 'text-emerald-700 dark:text-emerald-300', emDark: 'text-emerald-300', orb: 'bg-emerald-500/30' },
-  { hero: 'bg-gradient-to-b from-violet-50/70 to-canvas dark:from-violet-900/20 dark:to-canvas', em: 'text-violet-700 dark:text-violet-300', emDark: 'text-violet-300', orb: 'bg-violet-500/30' },
-  { hero: 'bg-gradient-to-br from-amber-50/70 to-canvas dark:from-amber-900/20 dark:to-canvas', em: 'text-amber-700 dark:text-amber-300', emDark: 'text-amber-300', orb: 'bg-amber-500/30' },
-  { hero: 'bg-gradient-to-b from-rose-50/70 to-canvas dark:from-rose-900/20 dark:to-canvas', em: 'text-rose-700 dark:text-rose-300', emDark: 'text-rose-300', orb: 'bg-rose-500/30' },
-  { hero: 'bg-gradient-to-br from-cyan-50/70 to-canvas dark:from-cyan-900/20 dark:to-canvas', em: 'text-cyan-700 dark:text-cyan-300', emDark: 'text-cyan-300', orb: 'bg-cyan-500/30' },
-  { hero: 'bg-gradient-to-b from-indigo-50/70 to-canvas dark:from-indigo-900/20 dark:to-canvas', em: 'text-indigo-700 dark:text-indigo-300', emDark: 'text-indigo-300', orb: 'bg-indigo-500/30' },
-  { hero: 'bg-gradient-to-br from-teal-50/70 to-canvas dark:from-teal-900/20 dark:to-canvas', em: 'text-teal-700 dark:text-teal-300', emDark: 'text-teal-300', orb: 'bg-teal-500/30' },
-  { hero: 'bg-gradient-to-b from-fuchsia-50/70 to-canvas dark:from-fuchsia-900/20 dark:to-canvas', em: 'text-fuchsia-700 dark:text-fuchsia-300', emDark: 'text-fuchsia-300', orb: 'bg-fuchsia-500/30' },
-  { hero: 'bg-gradient-to-br from-sky-50/70 to-canvas dark:from-sky-900/20 dark:to-canvas', em: 'text-sky-700 dark:text-sky-300', emDark: 'text-sky-300', orb: 'bg-sky-500/30' },
+  { hero: 'bg-gradient-to-b from-brand-50/70 to-canvas dark:from-brand-900/20 dark:to-canvas', em: 'text-brand-700 dark:text-brand-300' },
+  { hero: 'bg-gradient-to-br from-emerald-50/70 to-canvas dark:from-emerald-900/20 dark:to-canvas', em: 'text-emerald-700 dark:text-emerald-300' },
+  { hero: 'bg-gradient-to-b from-violet-50/70 to-canvas dark:from-violet-900/20 dark:to-canvas', em: 'text-violet-700 dark:text-violet-300' },
+  { hero: 'bg-gradient-to-br from-amber-50/70 to-canvas dark:from-amber-900/20 dark:to-canvas', em: 'text-amber-700 dark:text-amber-300' },
+  { hero: 'bg-gradient-to-b from-rose-50/70 to-canvas dark:from-rose-900/20 dark:to-canvas', em: 'text-rose-700 dark:text-rose-300' },
+  { hero: 'bg-gradient-to-br from-cyan-50/70 to-canvas dark:from-cyan-900/20 dark:to-canvas', em: 'text-cyan-700 dark:text-cyan-300' },
+  { hero: 'bg-gradient-to-b from-indigo-50/70 to-canvas dark:from-indigo-900/20 dark:to-canvas', em: 'text-indigo-700 dark:text-indigo-300' },
+  { hero: 'bg-gradient-to-br from-teal-50/70 to-canvas dark:from-teal-900/20 dark:to-canvas', em: 'text-teal-700 dark:text-teal-300' },
+  { hero: 'bg-gradient-to-b from-fuchsia-50/70 to-canvas dark:from-fuchsia-900/20 dark:to-canvas', em: 'text-fuchsia-700 dark:text-fuchsia-300' },
+  { hero: 'bg-gradient-to-br from-sky-50/70 to-canvas dark:from-sky-900/20 dark:to-canvas', em: 'text-sky-700 dark:text-sky-300' },
 ]
 
 /* ---------------------------- headlines --------------------------------- */
@@ -594,29 +588,19 @@ export function makeEdition(seed: number): Edition {
   const theme = pick(rnd, THEMES)
   const headline = pick(rnd, headlines())
   const strip = pick(rnd, STRIP_TITLES)
-  let layout = pick(rnd, ['editorial', 'monolith', 'terminal', 'cover', 'duel', 'zen'] as LayoutKind[])
-  const issue = (Math.abs(seed) % 9899) + 100
 
   // Modules: 1 or 2 feature cards, facts fill the rest of the grid.
-  // If the hero itself is a cover (spotlight) or duel, keep that module out of the strip.
   const moduleCount = rnd() < 0.45 ? 1 : 2
-  const modulePool = (['spotlight', 'duel', 'movers'] as ModuleKind[]).filter((m) =>
-    layout === 'cover' ? m !== 'spotlight' : layout === 'duel' ? m !== 'duel' : true,
-  )
-  let modules = sample(rnd, modulePool, Math.min(moduleCount, modulePool.length))
+  let modules = sample(rnd, ['spotlight', 'duel', 'movers'] as ModuleKind[], moduleCount)
 
   const pool = spotlightPool()
   const sf = pool.length ? pick(rnd, pool) : null
   const spotlight: EditionSpotlight | null =
-    sf && (modules.includes('spotlight') || layout === 'cover')
+    sf && modules.includes('spotlight')
       ? { fund: sf, thesis: buildThesis(sf), spark: sf.analytics?.rankTrajectory?.spark ?? null }
       : null
-  const duel = modules.includes('duel') || layout === 'duel' ? buildDuel(rnd) : null
+  const duel = modules.includes('duel') ? buildDuel(rnd) : null
   const movers = modules.includes('movers') ? buildMovers(rnd) : null
-
-  // If the hero's data failed to build, fall back to the editorial layout.
-  if (layout === 'cover' && !spotlight) layout = 'editorial'
-  if (layout === 'duel' && !duel) layout = 'editorial'
 
   // Drop any module whose data failed to build; guarantee at least one.
   modules = modules.filter((m) => (m === 'spotlight' ? !!spotlight : m === 'duel' ? !!duel : !!movers))
@@ -662,8 +646,6 @@ export function makeEdition(seed: number): Edition {
   const sectionOrder = sample(rnd, SECTIONS, SECTIONS.length)
 
   return {
-    layout,
-    issue,
     theme,
     headline,
     strip,
