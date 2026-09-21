@@ -16,11 +16,12 @@ interface Props {
   className?: string
 }
 
-// import.meta.env.BASE_URL is '/fairfund/' in prod and './' under local
-// preview. Normalise so the hash link is well-formed in both.
-function appBase() {
-  const b = import.meta.env.BASE_URL
-  return b === './' || b === '' ? '/' : b
+// vite base is './' so import.meta.env.BASE_URL collapses to '/', which drops
+// the real deploy path (/fairfund/) and makes shared links resolve to the root
+// domain (404, no OG tags). Derive the origin+path from the live location
+// instead - with HashRouter everything before '#' is the true app base.
+function appOrigin() {
+  return window.location.href.split('#')[0]
 }
 
 // Touch-first devices (phones/tablets) get the native share sheet; pointer
@@ -39,7 +40,7 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
 
   if (fund) {
     // HashRouter link: bare deep links (no #) break routing and asset paths.
-    url = `${window.location.origin}${appBase()}#/fund/${fund.code}/${fundSlug(fund.name)}`
+    url = `${appOrigin()}#/fund/${fund.code}/${fundSlug(fund.name)}`
     const rank = fund.metrics['3Y']?.catRank
     shareTitle = fund.name
     shareText = [
