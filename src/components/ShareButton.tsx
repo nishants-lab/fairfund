@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { Fund } from '../types'
-import { fundSlug } from '../lib/format'
 import { useToast } from './Toast'
 
 interface Props {
@@ -39,8 +38,9 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
   let shareText: string
 
   if (fund) {
-    // HashRouter link: bare deep links (no #) break routing and asset paths.
-    url = `${appOrigin()}#/fund/${fund.code}/${fundSlug(fund.name)}`
+    // Point to the prerendered unfurl shell (/f/<code>/) so crawlers read a
+    // fund-specific OG card. The shell redirects humans into the hash route.
+    url = `${appOrigin()}f/${fund.code}/`
     const rank = fund.metrics['3Y']?.catRank
     shareTitle = fund.name
     shareText = [
@@ -51,7 +51,18 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
     ].filter(Boolean).join(' | ')
   } else {
     // Current URL is already a hash route (e.g. .../#/compare?codes=...).
-    url = shareUrl ?? window.location.href
+    const raw = shareUrl ?? window.location.href
+    const hash = raw.includes('#') ? raw.slice(raw.indexOf('#') + 1) : ''
+    const [routePath, query] = hash.split('?')
+    const PAGE_SHELLS: Record<string, string> = {
+      '/explore': 'explore',
+      '/movers': 'movers',
+      '/compare': 'compare',
+      '/methodology': 'methodology',
+    }
+    // Only use the shell for a bare static route with no query state, so links
+    // like compare?codes=... keep their selection.
+    url = !query && PAGE_SHELLS[routePath] ? `${appOrigin()}s/${PAGE_SHELLS[routePath]}/` : raw
     shareTitle = title ?? 'FairFund'
     shareText = text ? `${text} | via FairFund` : `${shareTitle} | via FairFund`
   }
