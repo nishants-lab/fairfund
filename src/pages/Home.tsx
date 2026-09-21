@@ -16,7 +16,6 @@ import {
   type EditionMovers,
   type MoverItem,
   type SectionKey,
-  type LayoutKind,
   BOARD_CATS,
 } from '../lib/edition'
 import type { Fund } from '../types'
@@ -272,7 +271,7 @@ function DuelCard({ d, em }: { d: EditionDuel; em: string }) {
         onClick={goCompare}
         className="mt-4 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-brand-700 transition-colors hover:border-brand-300 hover:bg-surface2 dark:text-brand-300 dark:hover:border-brand-500"
       >
-        Compare in full
+        Compare in full \u2192
       </button>
     </div>
   )
@@ -291,7 +290,7 @@ function MoverRow({ m, dir, em }: { m: MoverItem; dir: 'up' | 'down'; em: string
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-fg">{m.fund.name}</div>
         <div className="text-[11px] text-faint">
-          #{m.prior} {'\u2192'} #{m.current} of {m.peers} in {m.fund.categoryDisplay}
+          #{m.prior} \u2192 #{m.current} of {m.peers} in {m.fund.categoryDisplay}
         </div>
       </div>
       {m.spark && m.spark.length >= 2 && (
@@ -342,7 +341,7 @@ function MoversCard({ m, em }: { m: EditionMovers; em: string }) {
         </>
       )}
       <Link to="/movers" className="mt-4 text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300">
-        See all movers
+        See all movers \u2192
       </Link>
     </div>
   )
@@ -555,300 +554,14 @@ function IndexSection() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Hero archetypes                                                     */
-/* ------------------------------------------------------------------ */
-
-function HeroEditorial({ ed, seed }: { ed: Edition; seed: number }) {
-  return (
-    <section className={`relative border-b border-line ${ed.theme.hero}`}>
-      <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 pb-10 pt-8 md:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pb-16">
-        <div className="min-w-0">
-          <h1 className="rise max-w-xl text-[clamp(2.1rem,4.6vw+0.8rem,3.6rem)] font-semibold leading-[1.06] tracking-tight text-fg">
-            {ed.headline.pre}
-            <em className={ed.theme.em}>{ed.headline.em}</em>
-            {ed.headline.post}
-          </h1>
-          <p className="rise rise-1 mt-5 max-w-lg text-base leading-relaxed text-muted md:text-lg">{ed.headline.sub}</p>
-          <div className="rise rise-2 relative z-30 mt-6 max-w-xl">
-            <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
-          </div>
-        </div>
-        <div className="rise rise-2 min-w-0">
-          <ReshuffleBoard key={`b-${seed}`} initialCat={ed.boardCat} initialWin={ed.boardWin} />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroMonolith({ ed }: { ed: Edition }) {
-  return (
-    <section className="relative overflow-hidden border-b border-line bg-slate-950">
-      <div className={`absolute -left-32 -top-32 h-96 w-96 rounded-full opacity-40 blur-3xl ${ed.theme.orb}`} />
-      <div className={`absolute -bottom-24 -right-24 h-80 w-80 rounded-full opacity-30 blur-3xl ${ed.theme.orb}`} />
-      <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-14 pt-14 text-center md:pb-20 md:pt-20">
-        <div className="eyebrow text-xs font-bold uppercase tracking-widest text-slate-400">
-          {data.totalFunds} funds tracked daily
-        </div>
-        <h1 className="rise mt-4 max-w-3xl text-[clamp(2.4rem,5vw+1rem,4.5rem)] font-semibold leading-[1.04] tracking-tight text-white">
-          {ed.headline.pre}
-          <em className={ed.theme.emDark}>{ed.headline.em}</em>
-          {ed.headline.post}
-        </h1>
-        <p className="rise rise-1 mt-5 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">{ed.headline.sub}</p>
-        <div className="rise rise-2 relative z-30 mt-8 w-full max-w-2xl">
-          <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
-        </div>
-        <div className="rise rise-3 mt-8 flex flex-wrap justify-center gap-4">
-          {ed.stats.slice(0, 3).map((s) => (
-            <div key={s.l} className="rounded-xl border border-slate-700/60 bg-slate-900/60 px-5 py-3 backdrop-blur">
-              <div className={`font-display text-2xl font-semibold ${ed.theme.emDark}`}>{s.n}</div>
-              <div className="mt-0.5 text-xs text-slate-400">{s.l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroTerminal({ ed }: { ed: Edition }) {
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  return (
-    <section
-      className="relative overflow-hidden border-b border-line"
-      style={{
-        backgroundColor: '#0a0f1c',
-        backgroundImage:
-          'linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)',
-        backgroundSize: '40px 40px',
-      }}
-    >
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-12 pt-10 md:grid-cols-[1.1fr_0.9fr] md:gap-12 md:pb-16 md:pt-16">
-        <div className="min-w-0">
-          <div className="font-mono text-xs tracking-wide text-slate-500">
-            FAIRFUND://DATA-DESK {'\u00B7'} {dateStr} {'\u00B7'} {data.totalFunds} funds loaded
-          </div>
-          <h1 className="rise mt-4 max-w-xl text-[clamp(2.2rem,4.8vw+0.8rem,3.8rem)] font-semibold leading-[1.06] tracking-tight text-white">
-            {ed.headline.pre}
-            <em className={ed.theme.emDark}>{ed.headline.em}</em>
-            {ed.headline.post}
-          </h1>
-          <p className="rise rise-1 mt-5 max-w-lg text-base leading-relaxed text-slate-300 md:text-lg">{ed.headline.sub}</p>
-          <div className="rise rise-2 relative z-30 mt-6 max-w-xl">
-            <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
-          </div>
-        </div>
-        <div className="rise rise-2 grid grid-cols-2 gap-3 self-center">
-          {ed.stats.slice(0, 3).map((s) => (
-            <div key={s.l} className="rounded-lg border border-emerald-800/30 bg-emerald-950/40 px-4 py-3.5">
-              <div className="font-mono text-2xl font-bold text-emerald-400">{s.n}</div>
-              <div className="mt-0.5 text-xs text-slate-400">{s.l}</div>
-            </div>
-          ))}
-          {ed.facts[0] && (
-            <Link
-              to={ed.facts[0].to}
-              className="rounded-lg border border-slate-700/40 bg-slate-800/40 px-4 py-3.5 transition hover:border-emerald-700/40"
-            >
-              <div className="font-mono text-xl font-bold text-white">{ed.facts[0].stat}</div>
-              <div className="mt-0.5 line-clamp-2 text-xs text-slate-400">{ed.facts[0].text}</div>
-            </Link>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroCover({ ed }: { ed: Edition }) {
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-  const sf = ed.spotlight
-  return (
-    <section className="relative border-b border-line bg-gradient-to-b from-amber-50/80 via-stone-50 to-canvas dark:from-stone-900/30 dark:to-canvas">
-      <div className="mx-auto max-w-5xl px-4 pb-12 pt-10 md:pb-16 md:pt-14">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-500">
-          <span>FairFund</span>
-          <span className="hidden sm:inline">{'\u2014'}</span>
-          <span>Edition #{ed.issue}</span>
-          <span className="hidden sm:inline">{'\u2014'}</span>
-          <span>{dateStr}</span>
-        </div>
-        <h1 className="rise mt-5 max-w-4xl font-display text-[clamp(2.6rem,5.5vw+1rem,5rem)] font-semibold leading-[1.02] tracking-tight text-fg">
-          {ed.headline.pre}
-          <em className={ed.theme.em}>{ed.headline.em}</em>
-          {ed.headline.post}
-        </h1>
-        <p className="rise rise-1 mt-4 max-w-xl text-lg leading-relaxed text-muted">{ed.headline.sub}</p>
-        {sf && (
-          <div className="rise rise-2 mt-8 grid items-center gap-6 rounded-2xl border border-stone-200 bg-white/80 p-5 backdrop-blur dark:border-stone-700/40 dark:bg-surface/80 sm:grid-cols-[1fr_auto] sm:gap-10 sm:p-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className={`pill text-xs ${getCategoryColor(sf.fund.category).bg} ${getCategoryColor(sf.fund.category).text}`}>
-                  {sf.fund.categoryDisplay}
-                </span>
-                <span className="eyebrow text-[10px] font-bold uppercase text-stone-400">Cover story</span>
-              </div>
-              <div className="mt-2 text-xl font-semibold text-fg sm:text-2xl">{sf.fund.name}</div>
-              <ul className="mt-2 space-y-1">
-                {sf.thesis.slice(0, 2).map((t) => (
-                  <li key={t} className="text-sm leading-snug text-muted">{t}</li>
-                ))}
-              </ul>
-              <Link
-                to={`/fund/${sf.fund.code}/${fundSlug(sf.fund.name)}`}
-                className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300"
-              >
-                Read the full report
-              </Link>
-            </div>
-            <div className="flex gap-3 sm:flex-col">
-              {[
-                { l: '3Y CAGR', v: pct(sf.fund.metrics['3Y']?.cagr) },
-                { l: 'Alpha', v: signedPct(sf.fund.metrics['3Y']?.alpha) },
-              ].map((c) => (
-                <div key={c.l} className="rounded-lg bg-stone-100/70 px-4 py-2.5 dark:bg-surface2">
-                  <div className="text-[10px] uppercase tracking-wide text-faint">{c.l}</div>
-                  <div className="font-display text-xl font-semibold text-fg">{c.v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="rise rise-3 relative z-30 mt-8 max-w-2xl">
-          <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroDuel({ ed }: { ed: Edition }) {
-  const d = ed.duel!
-  const navigate = useNavigate()
-  const fmt = (v: number, f: 'pct' | 'num') => (f === 'pct' ? pct(v) : num(v))
-  return (
-    <section className={`relative border-b border-line ${ed.theme.hero}`}>
-      <div className="mx-auto max-w-5xl px-4 pb-12 pt-10 md:pb-16 md:pt-14">
-        <div className="text-center">
-          <div className="eyebrow text-xs font-bold uppercase text-faint">Head to head</div>
-          <h1 className="rise mt-3 text-[clamp(2rem,4vw+0.8rem,3.2rem)] font-semibold leading-[1.08] tracking-tight text-fg">
-            {ed.headline.pre}
-            <em className={ed.theme.em}>{ed.headline.em}</em>
-            {ed.headline.post}
-          </h1>
-          <p className="rise rise-1 mx-auto mt-3 max-w-lg text-base text-muted">{ed.headline.sub}</p>
-        </div>
-        <div className="rise rise-2 mx-auto mt-8 grid max-w-3xl items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
-          <button
-            onClick={() => navigate(`/fund/${d.a.code}/${fundSlug(d.a.name)}`)}
-            className="card group p-5 text-center transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-600"
-          >
-            <span className={`pill text-xs ${getCategoryColor(d.a.category).bg} ${getCategoryColor(d.a.category).text}`}>
-              {d.a.categoryDisplay}
-            </span>
-            <div className="mt-2 text-lg font-semibold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300">
-              {d.a.name}
-            </div>
-            <div className="mt-1 text-xs text-faint">{d.a.amc}</div>
-            <div className="mt-3 space-y-1.5">
-              {d.rows.map((r) => (
-                <div key={r.label} className="flex items-center justify-between text-sm">
-                  <span className="text-faint">{r.label}</span>
-                  <span className={r.aBetter ? `font-bold ${ed.theme.em}` : 'text-muted'}>{fmt(r.a, r.fmt)}</span>
-                </div>
-              ))}
-            </div>
-          </button>
-          <div className="flex items-center justify-center">
-            <span className="font-display text-3xl italic text-faint sm:text-4xl">VS</span>
-          </div>
-          <button
-            onClick={() => navigate(`/fund/${d.b.code}/${fundSlug(d.b.name)}`)}
-            className="card group p-5 text-center transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-600"
-          >
-            <span className={`pill text-xs ${getCategoryColor(d.b.category).bg} ${getCategoryColor(d.b.category).text}`}>
-              {d.b.categoryDisplay}
-            </span>
-            <div className="mt-2 text-lg font-semibold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300">
-              {d.b.name}
-            </div>
-            <div className="mt-1 text-xs text-faint">{d.b.amc}</div>
-            <div className="mt-3 space-y-1.5">
-              {d.rows.map((r) => (
-                <div key={r.label} className="flex items-center justify-between text-sm">
-                  <span className="text-faint">{r.label}</span>
-                  <span className={!r.aBetter ? `font-bold ${ed.theme.em}` : 'text-muted'}>{fmt(r.b, r.fmt)}</span>
-                </div>
-              ))}
-            </div>
-          </button>
-        </div>
-        <div className="rise rise-3 mt-6 flex flex-col items-center gap-4">
-          <button
-            onClick={() => navigate(`/compare?codes=${d.a.code},${d.b.code}`)}
-            className="rounded-xl bg-fg px-6 py-3 font-semibold text-canvas transition hover:opacity-90"
-          >
-            Compare in full
-          </button>
-          <div className="relative z-30 w-full max-w-xl">
-            <SearchBox large placeholder="Or search any fund" />
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroZen({ ed }: { ed: Edition }) {
-  return (
-    <section className="relative border-b border-line bg-canvas">
-      <div className="mx-auto flex min-h-[55vh] max-w-3xl flex-col items-center justify-center px-4 py-14 text-center md:py-20">
-        <div className="eyebrow text-xs font-bold uppercase tracking-widest text-faint">FairFund</div>
-        <h1 className="rise mt-4 text-[clamp(2.2rem,4.8vw+1rem,3.8rem)] font-semibold leading-[1.06] tracking-tight text-fg">
-          {ed.headline.pre}
-          <em className={ed.theme.em}>{ed.headline.em}</em>
-          {ed.headline.post}
-        </h1>
-        <p className="rise rise-1 mt-5 max-w-lg text-base leading-relaxed text-muted md:text-lg">{ed.headline.sub}</p>
-        <div className="rise rise-2 relative z-30 mt-8 w-full max-w-xl">
-          <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
-        </div>
-        <div className="rise rise-3 mt-6 text-sm text-faint">
-          {data.totalFunds} funds {'\u00B7'} {categoryOrder.length} categories {'\u00B7'} daily NAV
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HeroSwitch({ ed, seed }: { ed: Edition; seed: number }) {
-  switch (ed.layout) {
-    case 'monolith': return <HeroMonolith ed={ed} />
-    case 'terminal': return <HeroTerminal ed={ed} />
-    case 'cover':    return <HeroCover ed={ed} />
-    case 'duel':     return <HeroDuel ed={ed} />
-    case 'zen':      return <HeroZen ed={ed} />
-    default:         return <HeroEditorial ed={ed} seed={seed} />
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Home                                                                */
-/* ------------------------------------------------------------------ */
 
 export default function Home() {
   usePageMeta(undefined, 'Forward-looking mutual fund research for India. Compare funds fairly over any time period with scientific, probability-based signals.')
   const navDate = useNavFreshness()
-  const [seed, setSeed] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    const s = params.get('seed')
-    return s ? parseInt(s, 10) : Math.floor(Math.random() * 2 ** 31)
-  })
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31))
   const ed = useMemo(() => makeEdition(seed), [seed])
 
+  // Ticker items from a rotated category list
   const tickerItems = useMemo(() => {
     const items: { label: string; value: string; tone: string; to: string }[] = []
     for (const c of ed.tickerCats) {
@@ -884,8 +597,6 @@ export default function Home() {
     }
   }
 
-  const showBoardInHero = ed.layout === 'editorial'
-
   return (
     <div className="overflow-x-hidden">
       {/* Live ticker */}
@@ -912,17 +623,25 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero (switches on layout archetype) */}
-      <HeroSwitch ed={ed} seed={seed} />
-
-      {/* Board section for non-editorial layouts */}
-      {!showBoardInHero && (
-        <section className="border-b border-line bg-canvas">
-          <div className="mx-auto max-w-3xl px-4 py-10">
-            <ReshuffleBoard key={`b-${seed}`} initialCat={ed.boardCat} initialWin={ed.boardWin} />
+      {/* Hero */}
+      <section className={`relative border-b border-line ${ed.theme.hero}`}>
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 pb-10 pt-8 md:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pb-16">
+          <div className="min-w-0">
+            <h1 className="rise max-w-xl text-[clamp(2.1rem,4.6vw+0.8rem,3.6rem)] font-semibold leading-[1.06] tracking-tight text-fg">
+              {ed.headline.pre}
+              <em className={ed.theme.em}>{ed.headline.em}</em>
+              {ed.headline.post}
+            </h1>
+            <p className="rise rise-1 mt-5 max-w-lg text-base leading-relaxed text-muted md:text-lg">{ed.headline.sub}</p>
+            <div className="rise rise-2 relative z-30 mt-6 max-w-xl">
+              <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
+            </div>
           </div>
-        </section>
-      )}
+          <div className="rise rise-2 min-w-0">
+            <ReshuffleBoard key={seed} initialCat={ed.boardCat} initialWin={ed.boardWin} />
+          </div>
+        </div>
+      </section>
 
       {/* Today's edition */}
       <section className="border-b border-line bg-canvas">
