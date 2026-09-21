@@ -100,7 +100,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
         {meta?.count ? ` ${meta.count} holdings disclosed in total.` : ''}
       </p>
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-line">
+      <div className="mt-3 overflow-x-auto rounded-xl border border-line">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line bg-surface2 text-xs uppercase tracking-wide text-faint">
