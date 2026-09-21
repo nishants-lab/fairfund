@@ -528,7 +528,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-sm ${tierCagrColor[tier]}`}>{c.medianCagr5Y?.toFixed(1) ?? 'â€”'}%</div>
+                  <div className={`text-sm ${tierCagrColor[tier]}`}>{c.medianCagr5Y?.toFixed(1) ?? '\u2014'}%</div>
                   <div className="text-xs text-faint">median 5Y</div>
                 </div>
               </Link>
