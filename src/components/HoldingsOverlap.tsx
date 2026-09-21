@@ -72,7 +72,7 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
     const G = Math.round(255 * (1 - a) + g * a)
     const B = Math.round(255 * (1 - a) + b * a)
     const txt = a >= 0.52 ? '#ffffff' : '#0f172a'
-    const val = w < 0.05 ? '<0.1' : w.toFixed(1)
+    const val = w < 0.05 ? '<0.1' : w.toFixed(2)
     return (
       <div
         key={key}
@@ -105,8 +105,9 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
         ))}
         {shown.map((s) => (
           <FragmentRow key={s.name}>
-            <div className="flex items-center truncate pr-2 text-[12.5px] text-fg" title={s.name}>
-              {s.name}
+            <div className="flex flex-col justify-center truncate pr-2" title={s.name}>
+              <span className="truncate text-[12.5px] leading-tight text-fg">{s.name}</span>
+              {s.sector && <span className="truncate text-[10px] leading-tight text-faint">{s.sector}</span>}
             </div>
             {idx.map((i) => chip(s.weights[i], COLORS[i], `${s.name}-${i}`))}
           </FragmentRow>
@@ -331,55 +332,11 @@ export default function HoldingsOverlap({ funds, loading, loadTick }: { funds: F
             )}
           </div>
 
-          {/* Shared holdings table */}
-          {overlap.shared.length > 0 ? (
-            <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-              <table className="w-full text-sm" style={{ minWidth: 320 + funds.length * 90 }}>
-                <thead>
-                  <tr className="border-b border-line bg-surface2 text-xs uppercase tracking-wide text-faint">
-                    <th className="px-3 py-2 text-left">Shared holding</th>
-                    {funds.map((f, i) =>
-                      overlap.hasData[i] ? (
-                        <th key={f.code} className="px-3 py-2 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                            <span className="max-w-[80px] truncate">{shortName(f)}</span>
-                          </div>
-                        </th>
-                      ) : null,
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {overlap.shared.slice(0, 20).map((s) => (
-                    <tr key={s.name} className="border-b border-line last:border-0">
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-fg">{s.name}</div>
-                        {s.sector && <div className="text-xs text-faint">{s.sector}</div>}
-                      </td>
-                      {funds.map((f, i) =>
-                        overlap.hasData[i] ? (
-                          <td key={f.code} className="px-3 py-2 text-right tabular-nums">
-                            {s.weights[i] !== null ? (
-                              <span className="font-semibold text-fg">{(s.weights[i] as number).toFixed(2)}%</span>
-                            ) : (
-                              <span className="text-faint">—</span>
-                            )}
-                          </td>
-                        ) : null,
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
+          {/* No-overlap empty state */}
+          {overlap.shared.length === 0 && (
             <div className="mt-4 rounded-xl bg-surface2 p-4 text-center text-sm text-muted">
               These funds share no common holdings in their latest disclosures - fully complementary.
             </div>
-          )}
-          {overlap.shared.length > 20 && (
-            <p className="mt-2 text-xs text-faint">Showing the 20 largest shared positions of {overlap.shared.length}.</p>
           )}
         </>
       )}
