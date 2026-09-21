@@ -127,11 +127,46 @@ h1.uppercase, h2.uppercase, h3.uppercase {
       animation: none;
     }
   }
+
+  /* Toast — transient bottom-centre confirmations (link copied, errors). */
+  .toast-stack {
+    @apply fixed inset-x-0 bottom-5 z-[100] flex flex-col items-center gap-2 px-4;
+    pointer-events: none;
+  }
+  .toast {
+    @apply pointer-events-auto inline-flex max-w-[90vw] items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg shadow-lg;
+    animation: ff-toast-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .toast--success svg {
+    @apply text-emerald-500;
+  }
+  .toast--error svg {
+    @apply text-red-500;
+  }
+  .toast--info svg {
+    @apply text-brand-600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      animation: none;
+    }
+  }
 }
 
 @keyframes ff-shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes ff-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
