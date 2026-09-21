@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
 import InstallBanner from './components/InstallBanner'
+import { ToastProvider } from './components/Toast'
 
 import NotFound from './pages/NotFound'
 
@@ -34,6 +35,7 @@ function PageLoader() {
 
 export default function App() {
   return (
+    <ToastProvider>
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
       <Navbar />
@@ -58,5 +60,6 @@ export default function App() {
       <Onboarding />
       <InstallBanner />
     </div>
+    </ToastProvider>
   )
 }

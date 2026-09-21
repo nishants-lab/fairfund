@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Fund } from '../types'
 import { fundSlug } from '../lib/format'
+import { useToast } from './Toast'
 
 interface Props {
   /** When given, shares a canonical link to this fund's detail page. */
@@ -30,6 +31,7 @@ function isTouchDevice() {
 
 export default function ShareButton({ fund, title, text, shareUrl, label = 'Share', className = '' }: Props) {
   const [copied, setCopied] = useState(false)
+  const { toast } = useToast()
 
   let url: string
   let shareTitle: string
@@ -61,7 +63,6 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
   async function copyUrl() {
     try {
       await navigator.clipboard.writeText(url)
-      flashCopied()
     } catch {
       const input = document.createElement('input')
       input.value = url
@@ -69,8 +70,9 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
       input.select()
       document.execCommand('copy')
       document.body.removeChild(input)
-      flashCopied()
     }
+    flashCopied()
+    toast('Link copied to clipboard')
   }
 
   async function handleShare() {
