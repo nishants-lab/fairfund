@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import QRCode from 'qrcode'
+import { useState } from 'react'
 import type { Fund } from '../types'
 import { fundSlug } from '../lib/format'
-import ShareCard from './ShareCard'
 
 interface Props {
   /** When given, shares a canonical link to this fund's detail page. */
@@ -25,24 +23,13 @@ function appBase() {
 }
 
 // Touch-first devices (phones/tablets) get the native share sheet; pointer
-// devices (desktop) get the richer image-to-clipboard path.
+// devices (desktop) copy the link to the clipboard.
 function isTouchDevice() {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 }
 
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result as string)
-    r.onerror = () => reject(r.error)
-    r.readAsDataURL(blob)
-  })
-}
-
 export default function ShareButton({ fund, title, text, shareUrl, label = 'Share', className = '' }: Props) {
   const [copied, setCopied] = useState(false)
-  const [qr, setQr] = useState<string | null>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
 
   let url: string
   let shareTitle: string
@@ -66,41 +53,12 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
     shareText = text ? `${text} | via FairFund` : `${shareTitle} | via FairFund`
   }
 
-  // Pre-generate a QR of the fund deep link so the captured card is always
-  // actionable (scan to land on this exact fund), even where a pasted image
-  // cannot carry a clickable link (Slack, chat windows).
-  useEffect(() => {
-    if (!fund) { setQr(null); return }
-    let live = true
-    QRCode.toDataURL(url, { margin: 1, width: 144, color: { dark: '#0f172a', light: '#ffffff' } })
-      .then((d) => { if (live) setQr(d) })
-      .catch(() => { if (live) setQr(null) })
-    return () => { live = false }
-  }, [fund, url])
-
   function flashCopied() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Rasterise the off-screen ShareCard to a PNG blob. Returns null on any error
-  // or when there is no card mounted (non-fund share).
-  async function renderPng(): Promise<Blob | null> {
-    const node = cardRef.current
-    if (!node) return null
-    try {
-      const { toBlob } = await import('html-to-image')
-      // skipFonts: the card uses a system font stack, so embedding web fonts is
-      // pointless and can hang on cross-origin font CSS in some browsers.
-      return await toBlob(node, { pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: true })
-    } catch {
-      return null
-    }
-  }
-
-  // Text-only clipboard fallback (used when there is no card to snapshot, or
-  // when image-to-clipboard is unsupported / fails).
-  async function copyTextFallback() {
+  async function copyUrl() {
     try {
       await navigator.clipboard.writeText(url)
       flashCopied()
@@ -116,96 +74,43 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
   }
 
   async function handleShare() {
-    // ---- Touch devices: native share sheet, with the card image as a file
-    // when the platform supports file sharing, else the deep link. ----
-    if (fund && isTouchDevice() && navigator.share) {
-      const png = await renderPng()
-      const file = png ? new File([png], `${fundSlug(fund.name)}-fairfund.png`, { type: 'image/png' }) : null
-      try {
-        if (file && navigator.canShare?.({ files: [file] })) {
-          // Include url in the text so the recipient always has the link too.
-          await navigator.share({ title: shareTitle, text: `${shareText}\n${url}`, files: [file] })
-        } else {
-          await navigator.share({ title: shareTitle, text: shareText, url })
-        }
-        return
-      } catch {
-        // user cancelled or failed - fall through to clipboard
-      }
-    }
-
-    // ---- Desktop (or non-fund): copy the card image + a clickable HTML
-    // wrapper + the plain link as a multi-type ClipboardItem. Rich editors
-    // (mail, docs) paste the image as a link; image-only targets (Slack) paste
-    // the picture, whose embedded QR carries the destination; text targets get
-    // the URL. ----
-    if (fund && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-      const png = await renderPng()
-      if (png) {
-        try {
-          const dataUrl = await blobToDataUrl(png)
-          const html =
-            `<a href="${url}"><img src="${dataUrl}" alt="${shareTitle} on FairFund" style="max-width:100%"/></a>`
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              'image/png': png,
-              'text/html': new Blob([html], { type: 'text/html' }),
-              'text/plain': new Blob([url], { type: 'text/plain' }),
-            }),
-          ])
-          flashCopied()
-          return
-        } catch {
-          // image-clipboard blocked (permissions/browser) - fall through to text
-        }
-      }
-    }
-
-    // Non-fund share on a touch device: try the native sheet for the link.
-    if (!fund && isTouchDevice() && navigator.share) {
+    // Share the LINK, not a rasterised image, so the destination platform
+    // (Twitter, WhatsApp, Slack, LinkedIn, iMessage) unfurls FairFund's Open
+    // Graph card from the URL itself. Touch devices hand the link to the native
+    // share sheet; desktop copies it to the clipboard.
+    if (isTouchDevice() && navigator.share) {
       try {
         await navigator.share({ title: shareTitle, text: shareText, url })
         return
       } catch {
-        // fall through
+        // user cancelled or share failed - fall through to clipboard copy
       }
     }
-
-    await copyTextFallback()
+    await copyUrl()
   }
 
   return (
-    <>
-      <button
-        onClick={handleShare}
-        className={`btn-ghost inline-flex items-center gap-1.5 ${className}`}
-        title={fund ? 'Share this fund' : 'Share this view'}
-        aria-label={fund ? 'Share this fund' : 'Share this view'}
-      >
-        {copied ? (
-          <>
-            <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            {label !== '' && <span className="text-sm text-emerald-600">Copied!</span>}
-          </>
-        ) : (
-          <>
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            {label !== '' && <span className="text-sm">{label}</span>}
-          </>
-        )}
-      </button>
-
-      {/* Off-screen share card, rasterised on demand. Kept mounted (not
-          display:none) so html-to-image can measure and capture it. */}
-      {fund && (
-        <div aria-hidden="true" style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none', opacity: 0 }}>
-          <ShareCard ref={cardRef} fund={fund} qr={qr} />
-        </div>
+    <button
+      onClick={handleShare}
+      className={`btn-ghost inline-flex items-center gap-1.5 ${className}`}
+      title={fund ? 'Share this fund' : 'Share this view'}
+      aria-label={fund ? 'Share this fund' : 'Share this view'}
+    >
+      {copied ? (
+        <>
+          <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {label !== '' && <span className="text-sm text-emerald-600">Copied!</span>}
+        </>
+      ) : (
+        <>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          {label !== '' && <span className="text-sm">{label}</span>}
+        </>
       )}
-    </>
+    </button>
   )
 }
