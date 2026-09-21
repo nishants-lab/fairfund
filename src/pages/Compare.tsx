@@ -201,16 +201,16 @@ export default function Compare() {
   // True only once every fund has live metrics for the chosen custom range.
   const allLive = funds.length > 0 && funds.every((f) => liveMetrics[f.code])
 
-  const rows: { label: string; key: keyof ComputedMetrics; fmt: (v: number) => string; better: 'high' | 'low'; sub?: 'maxDrawdown' | 'best1M' | 'worst1M' }[] = [
-    { label: 'CAGR', key: 'cagr', fmt: (v) => pct(v), better: 'high' },
-    { label: 'Total Return', key: 'totalReturn', fmt: (v) => pct(v), better: 'high' },
-    { label: 'Sharpe Ratio', key: 'sharpe', fmt: (v) => num(v), better: 'high' },
-    { label: 'Sortino Ratio', key: 'sortino', fmt: (v) => num(v), better: 'high' },
-    { label: 'Max Drawdown', key: 'maxDrawdown', fmt: (v) => pct(v), better: 'high', sub: 'maxDrawdown' },
-    { label: 'Calmar Ratio', key: 'calmar', fmt: (v) => num(v), better: 'high' },
-    { label: hasDebt ? 'NAV Variability' : 'Volatility', key: 'volatility', fmt: (v) => pct(v), better: 'low' },
-    { label: 'Best Month', key: 'best1M', fmt: (v) => signedPct(v), better: 'high', sub: 'best1M' },
-    { label: 'Worst Month', key: 'worst1M', fmt: (v) => signedPct(v), better: 'high', sub: 'worst1M' },
+  const rows: { label: string; key: keyof ComputedMetrics; fmt: (v: number) => string; better: 'high' | 'low'; unit: 'pct' | 'ratio'; sub?: 'maxDrawdown' | 'best1M' | 'worst1M' }[] = [
+    { label: 'CAGR', key: 'cagr', fmt: (v) => pct(v), better: 'high', unit: 'pct' },
+    { label: 'Total Return', key: 'totalReturn', fmt: (v) => pct(v), better: 'high', unit: 'pct' },
+    { label: 'Sharpe Ratio', key: 'sharpe', fmt: (v) => num(v), better: 'high', unit: 'ratio' },
+    { label: 'Sortino Ratio', key: 'sortino', fmt: (v) => num(v), better: 'high', unit: 'ratio' },
+    { label: 'Max Drawdown', key: 'maxDrawdown', fmt: (v) => pct(v), better: 'high', unit: 'pct', sub: 'maxDrawdown' },
+    { label: 'Calmar Ratio', key: 'calmar', fmt: (v) => num(v), better: 'high', unit: 'ratio' },
+    { label: hasDebt ? 'NAV Variability' : 'Volatility', key: 'volatility', fmt: (v) => pct(v), better: 'low', unit: 'pct' },
+    { label: 'Best Month', key: 'best1M', fmt: (v) => signedPct(v), better: 'high', unit: 'pct', sub: 'best1M' },
+    { label: 'Worst Month', key: 'worst1M', fmt: (v) => signedPct(v), better: 'high', unit: 'pct', sub: 'worst1M' },
   ]
 
   // Semantic tone for a metric value (consistent with FundDetail):
@@ -220,6 +220,19 @@ export default function Compare() {
     if (key === 'sharpe' || key === 'sortino' || key === 'calmar') return v < 0 ? 'text-rose-600 dark:text-rose-400' : v >= 1 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
     if (key === 'cagr' || key === 'totalReturn' || key === 'best1M' || key === 'worst1M') return v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-fg'
     return 'text-fg'
+  }
+
+  // Gap to the leading fund on a metric row, shown under each non-winning cell.
+  // Percentage metrics report the shortfall in basis points; ratios in absolute
+  // points. `d` is <= 0 for a non-leader (leader is the best on that metric), so
+  // the sign reads as a disadvantage; an exact tie shows "even".
+  function fmtDelta(d: number, unit: 'pct' | 'ratio'): string {
+    if (unit === 'pct') {
+      const bps = Math.round(d * 100)
+      return bps === 0 ? 'even' : `${bps > 0 ? '+' : ''}${bps} bps`
+    }
+    const r = Number(d.toFixed(2))
+    return r === 0 ? 'even' : `${r > 0 ? '+' : ''}${r.toFixed(2)}`
   }
 
   function bestIdx(key: keyof ComputedMetrics, better: 'high' | 'low'): number {
@@ -281,7 +294,7 @@ export default function Compare() {
       <p className="mt-1 text-sm text-muted">
         Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
         recompute live. Same category gives the cleanest comparison; mixing categories is allowed and
-        we'll flag it. Green highlights the best fund on each row.
+        we'll flag it. Green highlights the best fund on each row; the small figure below each value is its gap to that leader.
       </p>
 
       {funds.length < MAX_FUNDS && (
@@ -406,6 +419,8 @@ export default function Compare() {
               <tbody>
                 {rows.map((row) => {
                   const winner = bestIdx(row.key, row.better)
+                  const leaderV =
+                    winner >= 0 ? (effective(funds[winner]).m?.[row.key] as number | undefined) : undefined
                   return (
                     <tr key={row.label} className="border-b border-line">
                       <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">{row.label}</td>
@@ -430,6 +445,19 @@ export default function Compare() {
                                 >
                                   {row.fmt(v as number)}
                                 </span>
+                                {!isWinner &&
+                                  funds.length > 1 &&
+                                  leaderV !== undefined &&
+                                  !isNaN(leaderV as number) && (
+                                    <div className="mt-0.5 text-xs leading-tight text-faint">
+                                      {fmtDelta(
+                                        row.better === 'high'
+                                          ? (v as number) - (leaderV as number)
+                                          : (leaderV as number) - (v as number),
+                                        row.unit,
+                                      )}
+                                    </div>
+                                  )}
                                 {period && <div className="mt-0.5 text-xs leading-tight text-faint">{period}</div>}
                               </>
                             )}
