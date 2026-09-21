@@ -7,6 +7,7 @@ import { data, funds, topFundsForCategory, categoryOrder } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
 import { signedPct, pct, alphaColor, fundSlug } from '../lib/format'
 import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
+import { makeEdition, type EditionFact, type EditionSpotlight } from '../lib/edition'
 import type { Fund } from '../types'
 
 /** Performance tier classification for category cards */
@@ -32,10 +33,16 @@ const DEMO_WINDOWS = ['1Y', '3Y', '5Y'] as const
 type DemoWindow = (typeof DEMO_WINDOWS)[number]
 const ROW_H = 58
 
-function ReshuffleBoard() {
+function ReshuffleBoard({
+  initialCat = DEMO_CATS[0],
+  initialWin = '1Y',
+}: {
+  initialCat?: string
+  initialWin?: DemoWindow
+}) {
   const navigate = useNavigate()
-  const [cat, setCat] = useState<string>(DEMO_CATS[0])
-  const [win, setWin] = useState<DemoWindow>('1Y')
+  const [cat, setCat] = useState<string>(initialCat)
+  const [win, setWin] = useState<DemoWindow>(initialWin)
 
   const demo = useMemo(() => {
     const catFunds = funds.filter((f) => f.category === cat)
@@ -140,11 +147,101 @@ function ReshuffleBoard() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Today's edition: spotlight fund + insight facts, rotated per visit  */
+/* ------------------------------------------------------------------ */
+
+function Spark({ v }: { v: number[] }) {
+  const w = 220
+  const h = 36
+  const min = Math.min(...v)
+  const max = Math.max(...v)
+  const range = max - min || 1
+  const pts = v
+    .map((x, i) => `${((i / (v.length - 1)) * w).toFixed(1)},${(h - 3 - ((x - min) / range) * (h - 6)).toFixed(1)}`)
+    .join(' ')
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SpotlightCard({ s, em }: { s: EditionSpotlight; em: string }) {
+  const navigate = useNavigate()
+  const f = s.fund
+  const m = f.metrics['3Y']
+  const chips: { l: string; v: string }[] = [
+    { l: '3Y CAGR', v: pct(m?.cagr) },
+    { l: 'Alpha / yr', v: signedPct(m?.alpha) },
+    f.expenseRatio != null
+      ? { l: 'Expense', v: `${f.expenseRatio.toFixed(2)}%` }
+      : { l: 'Sharpe', v: m?.sharpe != null ? m.sharpe.toFixed(2) : '\u2014' },
+  ]
+  return (
+    <button
+      onClick={() => navigate(`/fund/${f.code}/${fundSlug(f.name)}`)}
+      className="card group flex flex-col p-5 text-left transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-600"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className={`pill text-xs ${getCategoryColor(f.category).bg} ${getCategoryColor(f.category).text}`}>
+          {f.categoryDisplay}
+        </span>
+        <span className="eyebrow text-[10px] font-bold uppercase text-faint">Spotlight</span>
+      </div>
+      <div className="mt-2.5 text-xl font-semibold leading-snug text-fg transition-colors group-hover:text-brand-700 dark:group-hover:text-brand-300">
+        {f.name}
+      </div>
+      <div className="mt-0.5 text-xs text-faint">{f.amc}</div>
+      <ul className="mt-3 space-y-1.5">
+        {s.thesis.map((t) => (
+          <li key={t} className="flex gap-2 text-sm leading-snug text-muted">
+            <span className={`mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-current ${em}`} />
+            {t}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {chips.map((c) => (
+          <div key={c.l} className="rounded-lg bg-surface2/70 px-2.5 py-2">
+            <div className="text-[10px] uppercase tracking-wide text-faint">{c.l}</div>
+            <div className="text-base font-bold text-fg">{c.v}</div>
+          </div>
+        ))}
+      </div>
+      {s.spark && s.spark.length >= 2 && (
+        <div className="mt-4">
+          <div className={em}>
+            <Spark v={s.spark} />
+          </div>
+          <div className="mt-1 text-[10px] uppercase tracking-wide text-faint">Category rank percentile, monthly</div>
+        </div>
+      )}
+      <div className="mt-auto pt-4 text-sm font-semibold text-brand-700 dark:text-brand-300">Read the full report</div>
+    </button>
+  )
+}
+
+function FactCard({ f }: { f: EditionFact }) {
+  return (
+    <Link
+      to={f.to}
+      className="card group flex flex-col justify-between p-4 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-600"
+    >
+      <div className="eyebrow text-[10px] font-bold uppercase text-faint">{f.eyebrow}</div>
+      <div className="mt-1.5 font-display text-2xl font-semibold text-fg md:text-3xl">{f.stat}</div>
+      <p className="mt-1.5 text-sm leading-snug text-muted">{f.text}</p>
+    </Link>
+  )
+}
+
+/* ------------------------------------------------------------------ */
 
 export default function Home() {
   usePageMeta(undefined, 'Forward-looking mutual fund research for India. Compare funds fairly over any time period with scientific, probability-based signals.')
   const navDate = useNavFreshness()
   const navigate = useNavigate()
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31))
+  const ed = useMemo(() => makeEdition(seed), [seed])
 
   // Ticker: real category leaders from the bundle
   const tickerItems = useMemo(() => {
@@ -178,7 +275,7 @@ export default function Home() {
     .sort((a, b) => (b.medianCagr5Y ?? 0) - (a.medianCagr5Y ?? 0))
   const top3Keys = new Set(sortedByMedian.slice(0, 3).map((c) => c.key))
 
-  const highlights = ['Flexi Cap', 'Large Cap', 'Mid Cap', 'Small Cap', 'ELSS', 'Sectoral/Thematic']
+  const highlights = ed.leaderCats
     .map((c) => topFundsForCategory(c, 1)[0])
     .filter(Boolean)
     .slice(0, 6)
@@ -210,24 +307,50 @@ export default function Home() {
       </div>
 
       {/* Hero: editorial, asymmetric */}
-      <section className="relative border-b border-line bg-gradient-to-b from-brand-50/70 to-canvas dark:from-brand-900/20 dark:to-canvas">
+      <section className={`relative border-b border-line bg-gradient-to-b ${ed.theme.hero}`}>
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-12 pt-10 md:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pb-16">
           <div className="min-w-0">
-            <h1 className="rise text-[clamp(2.4rem,5.2vw+0.8rem,4rem)] font-semibold leading-[1.04] tracking-tight text-fg">
-              A <em className="text-brand-700 dark:text-brand-300">fair</em> way to
-              <br />
-              compare mutual funds.
+            <h1 className="rise max-w-xl text-[clamp(2.2rem,4.6vw+0.8rem,3.6rem)] font-semibold leading-[1.06] tracking-tight text-fg">
+              {ed.headline.pre}
+              <em className={ed.theme.em}>{ed.headline.em}</em>
+              {ed.headline.post}
             </h1>
-            <p className="rise rise-1 mt-5 max-w-lg text-lg leading-relaxed text-muted">
-              <strong className="font-semibold text-fg">{data.totalFunds}</strong> funds. Any time
-              period you pick. Risk, consistency, skill and cost, all in one score.
-            </p>
+            <p className="rise rise-1 mt-5 max-w-lg text-lg leading-relaxed text-muted">{ed.headline.sub}</p>
             <div className="rise rise-2 relative z-30 mt-7 max-w-xl">
               <SearchBox large autoFocus placeholder="Search any fund, AMC or category" />
             </div>
           </div>
           <div className="rise rise-2 min-w-0">
-            <ReshuffleBoard />
+            <ReshuffleBoard key={seed} initialCat={ed.boardCat} initialWin={ed.boardWin} />
+          </div>
+        </div>
+      </section>
+
+      {/* Today's edition: rotates on every visit */}
+      <section className="border-b border-line bg-canvas">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="eyebrow text-xs font-bold uppercase text-faint">Today's edition</div>
+              <h2 className="mt-1 text-xl font-semibold text-fg md:text-2xl">A different cut of the data, every visit</h2>
+            </div>
+            <button
+              onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-brand-300 hover:text-fg dark:hover:border-brand-500"
+            >
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 1.5v3h-3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Shuffle
+            </button>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
+            {ed.spotlight && <SpotlightCard s={ed.spotlight} em={ed.theme.em} />}
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {ed.facts.map((f) => (
+                <FactCard key={f.eyebrow + f.stat} f={f} />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -314,8 +437,8 @@ export default function Home() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="eyebrow text-xs font-bold uppercase text-faint">Category leaders</div>
-              <h2 className="mt-2 text-2xl font-semibold text-fg">The current No. 1 in each major category</h2>
-              <p className="mt-1 text-sm text-muted">By risk-adjusted composite score over a fixed 3-year window</p>
+              <h2 className="mt-2 text-2xl font-semibold text-fg">The current No. 1 in six categories</h2>
+              <p className="mt-1 text-sm text-muted">By risk-adjusted composite score over a fixed 3-year window. A different six every visit.</p>
             </div>
             <Link
               to="/explore"
