@@ -45,7 +45,7 @@ function fmtPct(n) {
 // One shell. `hash` is the SPA route (e.g. "/fund/123/name"); `dir` is the
 // dist subpath (e.g. "f/123"). Both f/* and s/* live two levels below the app
 // root, so "../../" reliably returns to /fairfund/.
-function writeShell(dir, hash, title, desc, canonicalPath) {
+function writeShell(dir, hash, title, desc, canonicalPath, image = IMAGE) {
   const outDir = join(DIST, dir)
   mkdirSync(outDir, { recursive: true })
   const url = `${SITE}/${canonicalPath}`
@@ -61,14 +61,14 @@ function writeShell(dir, hash, title, desc, canonicalPath) {
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>
 <meta property="og:url" content="${esc(url)}"/>
-<meta property="og:image" content="${IMAGE}"/>
+<meta property="og:image" content="${image}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta property="og:image:alt" content="FairFund - forward-looking mutual fund research for India"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
-<meta name="twitter:image" content="${IMAGE}"/>
+<meta name="twitter:image" content="${image}"/>
 <link rel="canonical" href="${esc(url)}"/>
 <script>
   // Send humans into the SPA hash route; crawlers ignore this and read the
@@ -100,7 +100,8 @@ for (const f of funds) {
   if (m?.alpha != null && win) bits.push(`alpha ${m.alpha >= 0 ? '+' : ''}${m.alpha.toFixed(1)}%`)
   const desc = `${bits.join(' \u00b7 ')}. Forward-looking analysis, evidence not advice, on FairFund.`
   const title = `${f.name} - FairFund`
-  writeShell(`f/${f.code}`, `/fund/${f.code}/${slug}`, title, desc, `f/${f.code}/`)
+  const ogImg = existsSync(join(DIST, 'og', `${f.code}.png`)) ? `${SITE}/og/${f.code}.png` : IMAGE
+  writeShell(`f/${f.code}`, `/fund/${f.code}/${slug}`, title, desc, `f/${f.code}/`, ogImg)
   n++
 }
 

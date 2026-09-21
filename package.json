@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/gen-unfurls.mjs",
+    "build": "tsc -b && vite build && node scripts/gen-og-images.mjs && node scripts/gen-unfurls.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
@@ -26,6 +27,7 @@
     "autoprefixer": "^10.4.20",
     "playwright": "^1.60.0",
     "postcss": "^8.4.47",
+    "satori": "^0.33.4",
     "sharp": "^0.35.4",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.5.4",
