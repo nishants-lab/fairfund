@@ -99,9 +99,14 @@ jobs:
           git commit -m "discovery: new funds $(date +%Y-%m-%d)"
           git push -f origin "$BRANCH"
 
-          # Close existing discovery PR for this month if any
-          gh pr list --head "$BRANCH" --state open --json number -q '.[].number' | \
-            xargs -I{} gh pr close {} --comment "Superseded by new run" 2>/dev/null || true
+          # Close ALL stale discovery PRs, not just this month's. The monthly
+          # branch name changes each run, so a --head $BRANCH filter only ever
+          # matched the current month and let prior-month discovery PRs pile up
+          # unclosed. Close every open PR whose head is a discovery/* branch
+          # before opening this run's PR.
+          gh pr list --state open --json number,headRefName \
+            -q '.[] | select(.headRefName | startswith("discovery/")) | .number' | \
+            xargs -r -I{} gh pr close {} --comment "Superseded by new discovery run" 2>/dev/null || true
 
           # Build PR body: concise summary first, raw logs collapsed below.
           REPORT=""
