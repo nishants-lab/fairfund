@@ -75,10 +75,10 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
         </p>
       )}
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 overflow-hidden">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Stocks ADDED */}
         {moves.added.length > 0 && (
-          <div>
+          <div className="min-w-0">
             <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
               Added ({moves.added.length})
             </div>
@@ -105,7 +105,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
 
         {/* Stocks EXITED */}
         {moves.exited.length > 0 && (
-          <div>
+          <div className="min-w-0">
             <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
               Exited ({moves.exited.length})
             </div>
