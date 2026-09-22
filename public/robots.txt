@@ -24,5 +24,4 @@ Disallow: /
 User-agent: Google-Extended
 Disallow: /
 
-# Sitemap (add once you have a custom domain)
-# Sitemap: https://fairfund.in/sitemap.xml
+Sitemap: https://nishants-lab.github.io/fairfund/sitemap.xml
