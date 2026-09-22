@@ -280,7 +280,7 @@ export default function HoldingsOverlap({ funds, loading, loadTick }: { funds: F
       </div>
       <p className="mb-3 text-xs text-muted">
         Overlap = sum of the smaller weight on each shared holding. 0% means no common stocks; high
-        overlap means you’re buying similar exposure twice (less diversification than it looks).
+        overlap means you're buying similar exposure twice (less diversification than it looks).
       </p>
 
       {!loading && noData.length > 0 && (

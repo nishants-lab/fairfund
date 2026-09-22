@@ -319,8 +319,8 @@ export default function Compare() {
         <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
           <span className="text-fg">⚠️</span>
           <div>
-            <strong>You’re comparing different categories.</strong> These funds carry different risk
-            levels, so raw returns aren’t apples-to-apples: a small-cap showing a higher CAGR also
+            <strong>You're comparing different categories.</strong> These funds carry different risk
+            levels, so raw returns aren't apples-to-apples: a small-cap showing a higher CAGR also
             carries more risk. The per-row highlight marks the higher number on that metric only, not
             a better or recommended fund.
           </div>
@@ -376,7 +376,7 @@ export default function Compare() {
           ) : (
             <div className="mt-5 rounded-xl border border-line bg-surface2/50 p-3 text-xs text-muted">
               Showing our <strong>{storedHorizon} fixed-window</strong> metrics. Live NAV (for a custom
-              date range) is loading - if it doesn’t appear, the NAV source is temporarily unavailable
+              date range) is loading - if it doesn't appear, the NAV source is temporarily unavailable
               and these baseline numbers still stand.
             </div>
           )}

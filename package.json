@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/gen-og-images.mjs && node scripts/gen-unfurls.mjs",
+    "build": "tsc -b && vite build && node scripts/gen-og-images.mjs && node scripts/gen-unfurls.mjs && node scripts/gen-sitemap.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

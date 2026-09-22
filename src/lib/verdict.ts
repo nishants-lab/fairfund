@@ -109,13 +109,13 @@ export function buildVerdict(fund: Fund): Verdict {
   // ---- Pillar 7: management quality (forward) ----
   let mgmtPts = 50
   const sig = fund.management?.signal
-  if (sig === 'Strong') { mgmtPts = 90; positives.push({ label: 'Manager track record', detail: 'managers’ other funds rank above their category median across most periods', tone: 'neutral' }) }
+  if (sig === 'Strong') { mgmtPts = 90; positives.push({ label: 'Manager track record', detail: `managers' other funds rank above their category median across most periods`, tone: 'neutral' }) }
   else if (sig === 'Solid') mgmtPts = 70
-  else if (sig === 'Mixed') { mgmtPts = 40; negatives.push({ label: 'Manager track record', detail: 'managers’ other funds rank across a wide range vs their category median', tone: 'neutral' }) }
+  else if (sig === 'Mixed') { mgmtPts = 40; negatives.push({ label: 'Manager track record', detail: `managers' other funds rank across a wide range vs their category median`, tone: 'neutral' }) }
 
   // ---- Momentum caution (not scored, but surfaced) ----
   if (a?.meanReversion?.state === 'hot') {
-    negatives.push({ label: 'Recent 1Y above own norm', detail: 'latest 1Y is well above this fund’s own 3-year average', tone: 'neutral' })
+    negatives.push({ label: 'Recent 1Y above own norm', detail: `latest 1Y is well above this fund's own 3-year average`, tone: 'neutral' })
   }
 
   // Weighted blend. Backward pillars (rank/alpha/sharpe) and forward pillars

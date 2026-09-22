@@ -6,16 +6,23 @@ A data-driven mutual fund research tool that compares **989 active Indian mutual
 
 ## What it does
 
-- **Fair rankings** — every fund scored within its own category over the same time windows (1Y/3Y/5Y), so a small-cap isn'"'"'t penalized for being riskier than a large-cap
-- **Forward-looking signals** — skill consistency (rolling alpha), capture ratios, regime stress-test performance, worst-case drawdown analysis
-- **10 market regimes** — how each fund performed during COVID crash, 2022-24 bull run, H2 2025 rally, US-Iran war, post-war recovery, etc. with a "+ Compare" picker to benchmark against any other fund
+- **Fair rankings** — every fund scored within its own category over the same time windows (1Y/3Y/5Y), so a small-cap is not penalized for being riskier than a large-cap
 - **Custom time-period analysis** — analyze any fund over ANY date range with live-computed CAGR, Sharpe, Sortino, max drawdown, and more
 - **Fund comparison** — side-by-side metrics over a shared custom period + normalized growth chart + green-highlight on winner per metric
+- **Forward-looking signals** — skill consistency (rolling alpha), capture ratios, regime stress-test performance, worst-case drawdown analysis
+- **10 market regimes** — how each fund performed during COVID crash, 2022-24 bull run, H2 2025 rally, US-Iran war, post-war recovery, etc. with a "+ Compare" picker to benchmark against any other fund
 - **Verdict system** — automated plain-English assessment per fund (green/amber/red) based on quantitative signals, not opinion
-- **Liquid / money market / arbitrage coverage** — cost-anchored scoring (expense ratio 45%, return-vs-peers 35%, AUM 20%) within SEBI sub-category peer sets; tiered model never ranks a liquid fund against a gilt fund
-- **Smart search** — autocomplete across all funds by name, AMC, or category
+- **Portfolio moves scoring** — tracks what each fund added and exited, then scores how those moves performed post-change (smart moves vs questionable moves)
+- **Management quality** — manager track record across all their funds, median alpha, and category beat rate
+- **Holdings analysis** — stock-level disclosure with sector breakdown, MoM weight changes, and holdings overlap between any two funds
+- **Liquid / money market / arbitrage coverage** — cost-anchored scoring (expense ratio 45%, return-vs-peers 35%, AUM 20%) within SEBI sub-category peer sets
+- **Portfolio import** — upload a CAMS statement (PDF) to see your real portfolio analyzed with live NAV, day change, XIRR, and gain/loss per holding
+- **Smart search** — autocomplete across all funds by name, AMC, or category with natural-language intent parsing
+- **Per-fund social cards** — every fund has a unique 1200x630 OG image for rich unfurling on WhatsApp, Twitter, Slack, etc.
+- **SEO-friendly fund shells** — 989 crawlable HTML pages with per-fund meta tags and sitemap.xml for Google indexing
 - **Dark/light mode** — remembers your choice
 - **Mobile-first responsive** — works cleanly on all screen sizes
+- **PWA** — installable as a home-screen app with offline support
 
 ## Tech Stack
 
@@ -27,6 +34,7 @@ A data-driven mutual fund research tool that compares **989 active Indian mutual
 | Routing | React Router (HashRouter, works on any static host) |
 | Data | Static JSON (funds.json + fund_analytics.json) |
 | NAV history | Self-hosted cache (public/nav/*.json) + live mfapi.in fallback |
+| OG images | satori + @resvg/resvg-js (build-time PNG generation) |
 | Hosting | GitHub Pages (free) via GitHub Actions |
 | Pipeline | Python (pandas, numpy) — offline batch compute |
 
@@ -45,15 +53,28 @@ All analytics are pre-computed offline and shipped as static JSON:
 ### Market Regimes (10 total)
 COVID crash, post-COVID rally, 2021 consolidation, 2022 correction, 2022-24 bull run, mid-cap correction (Oct 2024), H2 2025 rally, US-Iran war, post-war recovery, plus auto-detected recent regimes.
 
+## Build Pipeline
+
+The production build runs five stages:
+
+```
+tsc -b                          # type-check
+vite build                      # bundle app into dist/
+node scripts/gen-og-images.mjs  # render 989 per-fund OG PNGs (satori + resvg)
+node scripts/gen-unfurls.mjs    # emit 989 fund + 4 section crawlable HTML shells
+node scripts/gen-sitemap.mjs    # generate sitemap.xml from the shells
+```
+
 ## Forward Analytics (per fund)
 
 Each fund page includes a "Forward-looking Signals" section with:
 
-1. **Rank trajectory** — is the fund'"'"'s category rank improving or declining?
-2. **Skill & consistency** — rolling 12-month alpha hit-rate (batting average)
+1. **Rank trajectory** — is the fund's category rank improving or declining?
+2. **Skill and consistency** — rolling 12-month alpha hit-rate (batting average)
 3. **Capture ratios** — up-capture vs down-capture (does it capture gains but limit losses?)
 4. **Regime stress test** — performance during each market regime with comparison capability
-5. **Worst historical fall & recovery** — deepest drawdown, recovery time, comparison vs category median (tiered severity: green/amber/red)
+5. **Worst historical fall and recovery** — deepest drawdown, recovery time, comparison vs category median (tiered severity: green/amber/red)
+6. **Modeled return distribution** — histogram of all rolling N-year returns with percentile range
 
 ## Getting Started
 
@@ -84,16 +105,20 @@ npm run build
 
 ```
 src/
-  components/     # Reusable UI (ForwardAnalytics, VerdictCard, InfoTip, etc.)
-  pages/          # Route pages (Home, FundDetail, Compare, Explore, Methodology)
+  components/     # Reusable UI (ForwardAnalytics, VerdictCard, PortfolioMoves, etc.)
+  pages/          # Route pages (Home, FundDetail, Compare, Explore, Movers, Portfolio, etc.)
   lib/            # Data loading, metrics engine, formatting, verdict logic
   data/           # Static JSON datasets (funds.json, fund_analytics.json, regimes.json)
 public/
-  nav/            # Per-fund NAV history files (989 funds, equity + liquid + MM + arbitrage)
-scripts/          # Python pipeline scripts
-pipeline/         # Core pipeline modules
+  nav/            # Per-fund NAV history files (989 funds)
+scripts/
+  gen-og-images.mjs   # Per-fund social card image generator
+  gen-unfurls.mjs     # Crawlable HTML shell generator for OG tags
+  gen-sitemap.mjs     # Sitemap generator
+  build_analytics.py  # Python analytics pipeline
+pipeline/             # Core pipeline modules
 ```
 
 ## Disclaimer
 
-FairFund is an educational research tool, **not investment advice**. Past performance does not guarantee future returns. Always consult a qualified financial advisor before investing.
+FairFund is an educational research tool, **not investment advice**. We are not a SEBI-registered investment adviser. Past performance does not guarantee future returns. Always consult a qualified financial advisor before investing.
