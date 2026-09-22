@@ -25,7 +25,7 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
       <div className="mt-6 card p-5">
         <h3 className="font-bold text-fg">Management</h3>
         <p className="mt-2 text-sm text-muted">
-          Fund manager information isn’t available for this fund from public sources.
+          Fund manager information isn't available for this fund from public sources.
         </p>
       </div>
     )
@@ -113,7 +113,7 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
 
       <p className="mt-3 text-xs text-faint">
         Forward-looking context, not a guarantee. We judge managers by how their <em>other</em> funds
-        have done versus peers (a sign of repeatable skill), but past performance doesn’t assure future results.
+        have done versus peers (a sign of repeatable skill), but past performance doesn't assure future results.
       </p>
     </div>
   )

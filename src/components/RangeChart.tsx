@@ -82,7 +82,7 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
   if (error)
     return (
       <div className="flex h-64 items-center justify-center text-faint">
-        Couldn’t load NAV chart (live source unavailable).
+        Couldn't load NAV chart (live source unavailable).
       </div>
     )
   if (points.length < 2)
