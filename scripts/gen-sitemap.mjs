@@ -8,10 +8,10 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SITE } from './site-config.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = join(ROOT, 'dist')
-const SITE = 'https://nishants-lab.github.io/fairfund'
 
 const data = JSON.parse(readFileSync(join(ROOT, 'src/data/funds.json'), 'utf-8'))
 const funds = data.funds ?? []
