@@ -145,7 +145,6 @@ export const categoryOrder = [
   'Dividend Yield',
   'Sectoral/Thematic',
   'International',
-  'FoF-Equity (Domestic)',
   'Index Funds',
   'Index-MidCap',
   'Index-SmallCap',
