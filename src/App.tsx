@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import Onboarding from './components/Onboarding'
 import InstallBanner from './components/InstallBanner'
+import BackToTopFAB from './components/BackToTopFAB'
 import { ToastProvider } from './components/Toast'
 
 import NotFound from './pages/NotFound'
@@ -59,6 +60,7 @@ export default function App() {
       <Footer />
       <Onboarding />
       <InstallBanner />
+      <BackToTopFAB />
     </div>
     </ToastProvider>
   )
