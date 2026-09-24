@@ -93,7 +93,7 @@ function DistStrip({ values, unit }: { values: number[]; unit: string }) {
 /* ---------- main page ---------- */
 
 export default function CategoryDetail() {
-  const { key: rawKey } = useParams()
+  const { slug: rawKey } = useParams()
   const navigate = useNavigate()
   const catKey = catSlugToKey(rawKey ?? '')
   const catInfo = catKey ? data.categories[catKey] : undefined
