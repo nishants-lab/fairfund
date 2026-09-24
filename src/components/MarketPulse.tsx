@@ -41,10 +41,14 @@ function computeIndex(pts: NavPoint[], label: string, sub: string): IndexData | 
   const latest = pts[pts.length - 1]
   const prev = pts[pts.length - 2]
 
-  const now = new Date()
-  const d1w = new Date(now); d1w.setDate(d1w.getDate() - 7)
-  const d1m = new Date(now); d1m.setMonth(d1m.getMonth() - 1)
-  const dYtd = `${now.getFullYear()}-01-01`
+  // Anchor all lookbacks to the latest NAV date, NOT today.
+  // mfapi data can lag by several days (weekends, holidays, publishing delay).
+  // Using new Date() would compress the window: e.g. if latest NAV is Sep 18
+  // but today is Sep 24, "1 week ago" = Sep 17, giving a 1-day change.
+  const anchor = new Date(latest.date + 'T00:00:00')
+  const d1w = new Date(anchor); d1w.setDate(d1w.getDate() - 7)
+  const d1m = new Date(anchor); d1m.setMonth(d1m.getMonth() - 1)
+  const dYtd = `${anchor.getFullYear()}-01-01`
 
   const p1w = findNavAtOrBefore(pts, d1w.toISOString().slice(0, 10))
   const p1m = findNavAtOrBefore(pts, d1m.toISOString().slice(0, 10))
