@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { data, fundsByCategory, categoryOrder } from '../lib/data'
 import { pct, signedPct, num, riskColor, alphaColor, fundSlug } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
@@ -13,6 +13,10 @@ import { computeDebtRanks } from '../lib/debtVerdict'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
 type SortDir = 'asc' | 'desc'
+
+function catSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 // Format an AUM value already expressed in Rs crore.
 function fmtCrore(cr: number): string {
@@ -291,6 +295,12 @@ export default function Explore() {
           <div className="ml-auto">
             <HorizonToggle value={horizon} onChange={setHorizon} />
           </div>
+          <Link
+            to={`/category/${catSlug(cat)}`}
+            className="ml-auto shrink-0 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300"
+          >
+            Category deep dive →
+          </Link>
         </div>
       )}
 

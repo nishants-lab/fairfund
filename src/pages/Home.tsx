@@ -10,6 +10,11 @@ import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
 import { makeEdition, type EditionFact, type EditionSpotlight } from '../lib/edition'
 import type { Fund } from '../types'
 
+/** Slug for category deep-dive URL */
+function catSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 /** Performance tier classification for category cards */
 function cagrTier(cagr: number | null | undefined): 'high' | 'normal' | 'low' {
   if (!cagr) return 'normal'
@@ -519,7 +524,7 @@ export default function Home() {
             return (
               <Link
                 key={c.key}
-                to={`/explore?cat=${encodeURIComponent(c.key)}`}
+                to={`/category/${catSlug(c.key)}`}
                 className="group relative flex min-h-[56px] items-center justify-between rounded-lg border border-line bg-canvas px-4 py-3.5 transition hover:border-brand-300 hover:shadow-sm dark:bg-surface dark:hover:border-brand-500"
               >
                 <div className="flex items-center gap-2.5">
