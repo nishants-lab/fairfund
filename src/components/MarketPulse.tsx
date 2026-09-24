@@ -130,12 +130,12 @@ export default function MarketPulse() {
   return (
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
       {indices.map((idx) => (
-        <div key={idx.label} className="overflow-hidden rounded-xl border border-line bg-surface px-3 py-2.5">
+        <div key={idx.label} className="overflow-hidden rounded-xl border border-line bg-surface px-3.5 py-3">
           {/* Row 1: label + sparkline */}
           <div className="flex items-center justify-between gap-1">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold leading-tight text-fg">{idx.label}</div>
-              <div className="text-[9px] leading-tight text-faint">{idx.sub}</div>
+              <div className="text-xs font-semibold leading-tight text-fg">{idx.label}</div>
+              <div className="text-[10px] leading-tight text-faint">{idx.sub}</div>
             </div>
             <MiniSpark data={idx.spark} className="h-5 w-10" />
           </div>
@@ -144,10 +144,10 @@ export default function MarketPulse() {
             <span className={`text-base font-bold tabular-nums leading-none ${chgColor(idx.chg1D)}`}>
               {fmtPct(idx.chg1D)}
             </span>
-            <span className="text-[9px] text-faint">1D</span>
+            <span className="text-[10px] text-faint">1D</span>
           </div>
           {/* Row 3: secondary returns */}
-          <div className="mt-1 flex gap-2 text-[9px] tabular-nums text-muted">
+          <div className="mt-1.5 flex gap-3 text-[11px] tabular-nums text-muted">
             <span>1W <span className={chgColor(idx.chg1W)}>{fmtPct(idx.chg1W)}</span></span>
             <span>1M <span className={chgColor(idx.chg1M)}>{fmtPct(idx.chg1M)}</span></span>
             <span>YTD <span className={chgColor(idx.chgYTD)}>{fmtPct(idx.chgYTD)}</span></span>
