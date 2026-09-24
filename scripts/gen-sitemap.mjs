@@ -30,6 +30,19 @@ for (const page of ['explore', 'compare', 'movers', 'methodology']) {
   }
 }
 
+// Category deep-dive pages
+function catSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+const categories = Object.keys(data.categories ?? {}).filter(k => (data.categories[k].fundCount ?? 0) > 0)
+for (const key of categories) {
+  const slug = catSlug(key)
+  const shellPath = join(DIST, 'c', slug, 'index.html')
+  if (existsSync(shellPath)) {
+    urls.push({ loc: `${SITE}/c/${slug}/`, priority: '0.7', changefreq: 'weekly' })
+  }
+}
+
 // Per-fund pages
 for (const f of funds) {
   const shellPath = join(DIST, 'f', String(f.code), 'index.html')

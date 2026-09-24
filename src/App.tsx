@@ -22,6 +22,7 @@ const SignIn = lazy(() => import('./pages/SignIn'))
 const MyDashboard = lazy(() => import('./pages/MyDashboard'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const Movers = lazy(() => import('./pages/Movers'))
+const CategoryDetail = lazy(() => import('./pages/CategoryDetail'))
 
 function PageLoader() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="/signin" element={<SignIn />} />
             <Route path="/my" element={<MyDashboard />} />
             <Route path="/my/portfolio" element={<Portfolio />} />
+            <Route path="/category/:slug" element={<CategoryDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
