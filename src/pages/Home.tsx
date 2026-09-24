@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import SearchBox from '../components/SearchBox'
@@ -28,7 +28,7 @@ const tierCagrColor = {
 /* Reshuffling leaderboard: the hero proof that the window decides     */
 /* the winner. All real bundle data, top 5 by CAGR per window.         */
 /* ------------------------------------------------------------------ */
-const DEMO_CATS = ['Flexi Cap', 'Large Cap', 'Mid Cap', 'Small Cap', 'ELSS'] as const
+const DEMO_CATS = ['Flexi Cap', 'Large Cap', 'Mid Cap', 'Small Cap', 'ELSS', 'Value/Contra', 'Multi Cap', 'Sectoral/Thematic'] as const
 const DEMO_WINDOWS = ['1Y', '3Y', '5Y'] as const
 type DemoWindow = (typeof DEMO_WINDOWS)[number]
 const ROW_H = 58
@@ -43,6 +43,14 @@ function ReshuffleBoard({
   const navigate = useNavigate()
   const [cat, setCat] = useState<string>(initialCat)
   const [win, setWin] = useState<DemoWindow>(initialWin)
+  const pillsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = pillsRef.current
+    if (!container) return
+    const active = container.querySelector('[aria-selected="true"]') as HTMLElement
+    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
+  }, [cat])
 
   const demo = useMemo(() => {
     const catFunds = funds.filter((f) => f.category === cat)
@@ -86,6 +94,7 @@ function ReshuffleBoard({
       </div>
       <div
         className="flex gap-1.5 overflow-x-auto border-b border-line px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5"
+        ref={pillsRef}
         role="tablist"
         aria-label="Category"
       >

@@ -321,6 +321,7 @@ export default function FundDetail() {
           </div>
           <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
+          <div className='text-xs text-faint'>Data as of {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
           {/* Latest NAV with day change */}
           {allNav.length >= 2 && (() => {
@@ -573,8 +574,31 @@ export default function FundDetail() {
         )}
       </div>
 
+      {!loading && !error && (
+        <div className='sticky top-[57px] z-20 -mx-4 overflow-x-auto border-b border-line bg-surface/90 px-4 py-2 backdrop-blur md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+          <div className='flex gap-2'>
+            {[
+              { id: 'verdict', label: 'Verdict' },
+              ...(!usesReducedSurface(fund) ? [
+                { id: 'holdings', label: 'Holdings' },
+                { id: 'sectors', label: 'Sectors' },
+                { id: 'moves', label: 'Moves' },
+                { id: 'management', label: 'Manager' },
+                { id: 'forward', label: 'Forward' },
+              ] : [{ id: 'costs', label: 'Costs' }]),
+              { id: 'tax', label: 'Tax' },
+              { id: 'peers', label: 'Peers' },
+            ].map(s => (
+              <button key={s.id} onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className='shrink-0 rounded-full bg-surface2 px-3 py-1 text-xs font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300'>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
-      <VerdictCard fund={fund} />
+      <div id='verdict'><VerdictCard fund={fund} /></div>
 
       {usesReducedSurface(fund) && (() => {
         const ter = typeof fund.expenseRatio === 'string' ? parseFloat(fund.expenseRatio) : fund.expenseRatio
@@ -583,7 +607,7 @@ export default function FundDetail() {
         const aum = fund.aum?.current
         const anyFact = hasTer || !!exit || aum != null
         return (
-          <div className="mt-6 card p-5">
+          <div id='costs' className="mt-6 card p-5">
             <h3 className="font-bold text-fg">Costs matter most here</h3>
             <p className="mt-2 text-sm text-muted">
               {fund.isArbitrage
@@ -623,18 +647,18 @@ export default function FundDetail() {
       {!usesReducedSurface(fund) && (
         <>
           {/* Portfolio holdings */}
-          <HoldingsTable fund={fund} peerCode={peers[0]?.code} />
+          <div id='holdings'><HoldingsTable fund={fund} peerCode={peers[0]?.code} /></div>
 
-          <SectorBreakdown fund={fund} />
+          <div id='sectors'><SectorBreakdown fund={fund} /></div>
 
           {/* Portfolio changes (stock-picking intelligence) */}
-          <PortfolioMoves fund={fund} />
+          <div id='moves'><PortfolioMoves fund={fund} /></div>
 
           {/* Management quality */}
-          <ManagementCard fund={fund} />
+          <div id='management'><ManagementCard fund={fund} /></div>
 
           {/* Forward-looking analytics (v3): "If you stay invested for..." + signals */}
-          <ForwardAnalytics fund={fund} nav={allNav} />
+          <div id='forward'><ForwardAnalytics fund={fund} nav={allNav} /></div>
         </>
       )}
 
@@ -687,11 +711,11 @@ export default function FundDetail() {
       })()}
 
       {/* Taxation */}
-      <TaxCard fund={fund} />
+      <div id='tax'><TaxCard fund={fund} /></div>
 
       {/* Peers */}
       {peers.length > 0 && (
-        <div className="mt-6">
+        <div id='peers' className="mt-6">
           <div className="mb-3">
             <h3 className="font-bold text-fg">Top peers in {fund.categoryDisplay}</h3>
           </div>

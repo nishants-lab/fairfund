@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { data, fundsByCategory, categoryOrder } from '../lib/data'
@@ -102,16 +102,24 @@ export default function Explore() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const initial = params.get('cat') ?? 'Flexi Cap'
+  const initialH = (params.get('h') as Horizon) || '3Y'
   const [cat, setCat] = useState(initial)
   const isDebtCat = cat === 'Liquid' || cat === 'Money Market' || cat === 'Arbitrage'
   const EQUITY_ONLY_KEYS = new Set(['alpha', 'sharpe', 'maxDrawdown', 'batting', 'score'])
   const cols = isDebtCat ? [...COLUMNS.filter((c) => !EQUITY_ONLY_KEYS.has(c.key)), ...DEBT_COLUMNS] : COLUMNS
-  const [horizon, setHorizon] = useState<Horizon>('3Y')
+  const [horizon, setHorizon] = useState<Horizon>(initialH)
   const [sortKey, setSortKey] = useState<SortKey>('rank')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [query, setQuery] = useState('')
+  const pillsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setParams({ cat }, { replace: true })
+    setParams({ cat, ...(horizon !== '3Y' ? { h: horizon } : {}) }, { replace: true })
+  }, [cat, horizon])
+
+  useEffect(() => {
+    const el = pillsRef.current?.querySelector('[data-active="true"]') as HTMLElement
+    if (el) el.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
   }, [cat])
 
   const baseFunds = fundsByCategory(cat)
@@ -145,6 +153,10 @@ export default function Explore() {
 
   const funds = useMemo(() => {
     const arr = [...baseFunds]
+    const q = query.trim().toLowerCase()
+    const base = q
+      ? arr.filter((f) => f.name.toLowerCase().includes(q) || f.amc.toLowerCase().includes(q))
+      : arr
     const getVal = (f: Fund): number | string => {
       const m = f.metrics[horizon]
       switch (sortKey) {
@@ -175,7 +187,7 @@ export default function Explore() {
           return 0
       }
     }
-    arr.sort((a, b) => {
+    base.sort((a, b) => {
       // Funds with no data for the selected horizon always sink to the bottom.
       // Debt composite ranks are horizon-aware too, so a young fund shown as
       // "too new for a {horizon} rank" is never sorted above ranked peers.
@@ -194,8 +206,8 @@ export default function Explore() {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-    return arr
-  }, [baseFunds, horizon, sortKey, sortDir, debtRanks])
+    return base
+  }, [baseFunds, horizon, sortKey, sortDir, debtRanks, query])
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -209,14 +221,15 @@ export default function Explore() {
       </p>
 
       {/* Category tabs */}
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div ref={pillsRef} className="mt-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categoryOrder
           .filter((c) => data.categories[c])
           .map((c) => (
             <button
               key={c}
               onClick={() => setCat(c)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              data-active={cat === c ? 'true' : undefined}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                 cat === c
                   ? 'bg-brand-600 text-white'
                   : 'border border-line bg-surface text-muted hover:border-brand-300'
@@ -268,6 +281,13 @@ export default function Explore() {
             <div className="text-xs text-faint">Risk level</div>
             <span className={`pill ${riskColor(summary.riskLevel)}`}>{summary.riskLevel}</span>
           </div>
+          <div className="hidden sm:block">
+            <div className="text-xs text-faint">Data as of</div>
+            <div className="font-bold text-fg">
+              {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+          </div>
+          <div className="hidden h-8 w-px bg-line sm:block" />
           <div className="ml-auto">
             <HorizonToggle value={horizon} onChange={setHorizon} />
           </div>
@@ -285,6 +305,15 @@ export default function Explore() {
       ) : (
         <FundLandscape category={cat} horizon={horizon} />
       )}
+
+      <div className="mt-4">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={'Search in ' + (summary?.display ?? cat) + '...'}
+          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+        />
+      </div>
 
       {/* Fund table */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
