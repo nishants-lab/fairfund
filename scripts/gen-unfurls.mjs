@@ -31,6 +31,9 @@ const funds = data.funds ?? []
 function fundSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 }
+function catSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 function esc(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -69,7 +72,7 @@ function head(title, desc, url, image, jsonld) {
 function redirectScript(hash, delayMs) {
   return `<script>
   setTimeout(function(){
-    var root = location.pathname.replace(/\\/(f|s)\\/.*$/, '/');
+    var root = location.pathname.replace(/\\/(f|s|c)\\/.*$/, '/');
     location.replace(location.origin + root + '#${hash}');
   }, ${delayMs});
 </script>`
@@ -179,7 +182,7 @@ const cats = Object.entries(data.categories ?? {})
   .filter(c => c.count > 0)
   .sort((a, b) => b.count - a.count)
 const catRows = cats.map(c =>
-  `<tr><td style="padding:6px 16px 6px 0"><a href="${SHELL_UP}#/explore?cat=${encodeURIComponent(c.key)}" style="color:#2563eb">${esc(c.display)}</a></td><td style="padding:6px 16px 6px 0;text-align:right">${c.count}</td><td style="padding:6px 16px 6px 0;text-align:right">${c.median5Y != null ? c.median5Y.toFixed(1) + '%' : '-'}</td><td style="padding:6px 0;text-align:right">${c.top5Y != null ? c.top5Y.toFixed(1) + '%' : '-'}</td></tr>`
+  `<tr><td style="padding:6px 16px 6px 0"><a href="${SITE}/c/${catSlug(c.key)}/" style="color:#2563eb">${esc(c.display)}</a></td><td style="padding:6px 16px 6px 0;text-align:right">${c.count}</td><td style="padding:6px 16px 6px 0;text-align:right">${c.median5Y != null ? c.median5Y.toFixed(1) + '%' : '-'}</td><td style="padding:6px 0;text-align:right">${c.top5Y != null ? c.top5Y.toFixed(1) + '%' : '-'}</td></tr>`
 ).join('')
 const exploreBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">Explore ${total} Indian mutual funds</h1>
@@ -235,4 +238,33 @@ for (const [dir, hash, title, desc, bodyHtml, jsonld] of pages) {
   writeShell({ dir, hash, title, desc, canonicalPath: `${dir}/`, bodyHtml, jsonld, delayMs: 1200 })
 }
 
-console.log(`[gen-unfurls] wrote ${n} enriched fund shells + ${pages.length} page shells into dist/`)
+
+// ---- Per-category deep-dive shells -----------------------------------------
+const categories = Object.entries(data.categories ?? {})
+  .map(([key, c]) => ({ key, display: c.display || key, count: c.fundCount ?? 0, median5Y: c.medianCagr5Y, top5Y: c.topCagr5Y, risk: c.riskLevel }))
+  .filter(c => c.count > 0)
+let catN = 0
+for (const c of categories) {
+  const slug = catSlug(c.key)
+  const hash = `/category/${slug}`
+  const title = `${c.display} funds - deep dive | FairFund`
+  const desc = `${c.count} ${c.display} funds analyzed: return distribution, regime stress tests, skill vs luck, mean reversion and AUM landscape.${c.median5Y != null ? ` Median 5Y CAGR ${c.median5Y.toFixed(1)}%.` : ''} Evidence, not advice.`
+  const jsonld = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${c.display} funds - category deep dive`,
+    description: desc,
+    url: `${SITE}/c/${slug}/`,
+  })
+  const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
+<h1 style="font-size:28px;margin:0 0 6px">${esc(c.display)} funds</h1>
+<p style="font-size:15px;color:#475569;margin:0 0 20px">${c.count} funds &middot; ${c.risk || 'Moderate'} risk${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
+<p style="font-size:16px">A statistical deep dive into the ${esc(c.display)} category: how returns are distributed across the field, which funds lead over different horizons, how the category behaves during market stress regimes, and whether past winners tend to revert or persist.</p>
+<p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the interactive deep dive &rarr;</a></p>
+<p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
+
+  writeShell({ dir: `c/${slug}`, hash, title, desc, canonicalPath: `c/${slug}/`, jsonld, bodyHtml, delayMs: 1200 })
+  catN++
+}
+
+console.log(`[gen-unfurls] wrote ${n} enriched fund shells + ${pages.length} page shells + ${catN} category shells into dist/`)

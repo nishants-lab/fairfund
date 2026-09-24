@@ -30,6 +30,10 @@ import { usePageMeta } from '../lib/usePageMeta'
 // Regime data imported from auto-generated regimes.json (pipeline/detect_regimes.py)
 import { fallReason, riseContext } from '../lib/regimes'
 
+function catSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 export default function FundDetail() {
   const { code, slug } = useParams()
   const navigate = useNavigate()
@@ -298,7 +302,7 @@ export default function FundDetail() {
       <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/explore?cat=${encodeURIComponent(fund.category)}`} className={`pill ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
+            <Link to={`/category/${catSlug(fund.category)}`} className={`pill ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
             <RiskBadge level={fund.riskLevel} />
             {fund.sebiRisk && fund.sebiRisk !== fund.riskLevel && (
               <span className="pill border border-line bg-surface2/60 text-muted" title="SEBI regulatory riskometer, as published by the AMC. Post-2021 nearly all equity funds are rated Very High, so this label rarely differentiates funds - FairFund's own risk grade (left) is the more useful comparison.">
@@ -321,6 +325,7 @@ export default function FundDetail() {
           </div>
           <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
+          <Link to={`/category/${catSlug(fund.category)}`} className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">See all {fund.metrics['3Y']?.catSize ?? ''} {fund.categoryDisplay} funds →</Link>
           <div className='text-xs text-faint'>Data as of {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
           {/* Latest NAV with day change */}
