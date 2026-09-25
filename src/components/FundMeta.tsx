@@ -27,6 +27,35 @@ function fmtPct(n: number): string {
   return parseFloat(n.toFixed(4)).toString()
 }
 
+const MON = [Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec]
+function fmtAsOf(iso: string): string {
+  const y = iso.slice(0, 4), m = parseInt(iso.slice(5, 7), 10), d = parseInt(iso.slice(8, 10), 10)
+  return `${d} ${MON[m - 1] ?? ""} ${y}`
+}
+
+// Fresh-subscription status from the ISIN-validated Kuvera snapshot.
+// Gated on a recent as-of date: a stale or missing stamp shows nothing.
+function subscriptionStatus(
+  a?: { lumpsum: boolean; sip: boolean; redemption: boolean; asOf: string | null }
+): { label: string; tone: "amber" | "red" | "emerald"; asOf: string } | null {
+  if (!a || !a.asOf) return null
+  const t = Date.parse(a.asOf)
+  if (Number.isNaN(t)) return null
+  const days = (Date.now() - t) / 86400000
+  if (days < 0 || days > 40) return null
+  if (a.redemption === false) return { label: "Redemptions restricted", tone: "red", asOf: a.asOf }
+  if (a.lumpsum && a.sip) return { label: "Open for investment", tone: "emerald", asOf: a.asOf }
+  if (!a.lumpsum && !a.sip) return { label: "Closed for fresh investment", tone: "amber", asOf: a.asOf }
+  if (a.lumpsum && !a.sip) return { label: "Lumpsum only \u00b7 SIP closed", tone: "amber", asOf: a.asOf }
+  return { label: "SIP only \u00b7 lumpsum closed", tone: "amber", asOf: a.asOf }
+}
+
+const TONE: Record<string, string> = {
+  amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20",
+  red: "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20",
+  emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20",
+}
+
 /**
  * Parse a free-text exit-load string into a compact headline plus the full
  * detail for a tooltip. Handles graded liquid loads (many tiers), partial-
@@ -72,11 +101,23 @@ export default function FundMeta({ fund }: { fund: Fund }) {
   if (!aum && er == null && !inv) return null
 
   const lockIn = inv?.lock_in ? fmtLockIn(inv.lock_in) : null
-  // Removed: investment-status flags (closed, sip_allowed, lumpsum_allowed) come
-  // from an unvalidated vendor snapshot. We cannot show assumed data.
+  // Fresh-subscription status: ISIN-validated Kuvera snapshot, shown only when
+  // its as-of date is recent (see subscriptionStatus).
+  const sub = subscriptionStatus(inv?.availability)
 
   return (
     <div className="mt-3">
+      {sub && (
+        <div className="mb-2 flex items-center gap-2 text-xs">
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset ${TONE[sub.tone]}`}>
+            {sub.label}
+          </span>
+          <span className="text-faint">as of {fmtAsOf(sub.asOf)}</span>
+          <InfoTip label="Investment status" width={280}>
+            Whether the scheme accepts fresh purchases, from Kuvera as of {fmtAsOf(sub.asOf)}. Overseas and international funds are periodically capped under the industry limit on foreign investment, so this can change month to month. Existing units can still be redeemed.
+          </InfoTip>
+        </div>
+      )}
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-xs">
         {aum && (
           <div className="flex items-baseline gap-1">
