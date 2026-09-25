@@ -69,6 +69,13 @@ export interface Fund {
     lumpsum_allowed?: boolean
     available_for_investment?: boolean
     lock_in?: { years?: number | null; months?: number | null; days?: number | null }
+    availability?: {
+      lumpsum: boolean
+      sip: boolean
+      redemption: boolean
+      asOf: string | null
+      source: string
+    }
   } | null
 }
 
