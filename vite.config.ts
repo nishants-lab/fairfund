@@ -46,6 +46,14 @@ export default defineConfig({
       workbox: {
         // Precache the app shell (JS, CSS, HTML, fonts, SVG)
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // The app uses HashRouter, so real server paths are only the SPA root
+        // plus the prerendered crawler shells at /f/, /s/, /c/. Without this
+        // denylist the catch-all navigation route serves the app index.html for
+        // those paths too, so a shared /f/<code>/ link opens blank for anyone
+        // who already has the service worker (every repeat visitor). Denylisting
+        // them lets the navigation hit the network and load the real shell,
+        // which then redirects into the hash route.
+        navigateFallbackDenylist: [/\/(f|s|c)\//],
         // Exclude the massive per-fund JSON data from precache
         globIgnores: [
           '**/fund-data/**',
