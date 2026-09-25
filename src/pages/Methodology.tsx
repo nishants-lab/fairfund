@@ -1,5 +1,6 @@
 import { data } from "../lib/data"
 import { usePageMeta } from "../lib/usePageMeta"
+import { REGIMES } from "../lib/regimes"
 
 export default function Methodology() {
   usePageMeta(
@@ -24,7 +25,7 @@ export default function Methodology() {
         <p className="text-muted leading-relaxed text-sm">
           We check every fund over the exact same dates, only compare it to similar funds (small-cap vs
           small-cap, never small-cap vs large-cap), and measure whether the manager genuinely did better
-          than the average fund of its type. On top of that, we stress-test each fund across 10 real market
+          than the average fund of its type. On top of that, we stress-test each fund across {REGIMES.length} real market
           regimes (crashes, rallies, wars) and compute forward-looking probability signals. The goal: show
           you the data-backed picture, not a flattering one.
         </p>
@@ -162,22 +163,33 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <Section title="Regime stress test (10 market phases)">
+      <Section title={`Regime stress test (${REGIMES.length} market phases)`}>
         <p>
-          How did the fund perform during real market events? We define 10 fixed regimes and show
+          How did the fund perform during real market events? We define {REGIMES.length} fixed regimes and show
           each fund's return during each:
         </p>
         <ul className="ml-5 mt-2 list-disc space-y-1 text-sm">
-          <li><span className="text-rose-600 dark:text-rose-400">COVID crash</span> (Feb-Mar 2020)</li>
-          <li><span className="text-emerald-600 dark:text-emerald-400">COVID recovery</span> (Apr 2020 - Oct 2021)</li>
-          <li><span className="text-rose-600 dark:text-rose-400">2022 correction</span> (Jan-Jun 2022)</li>
-          <li><span className="text-emerald-600 dark:text-emerald-400">2022-24 bull run</span> (Jul 2022 - Sep 2024)</li>
-          <li><span className="text-rose-600 dark:text-rose-400">2024-25 correction</span> (Oct 2024 - Mar 2025)</li>
-          <li><span className="text-rose-600 dark:text-rose-400">Liberation Day tariff shock</span> (Apr 2025)</li>
-          <li><span className="text-emerald-600 dark:text-emerald-400">Tariff-pause recovery</span> (May 2025)</li>
-          <li><span className="text-emerald-600 dark:text-emerald-400">H2 2025 rally</span> (Jun-Nov 2025)</li>
-          <li><span className="text-rose-600 dark:text-rose-400">US-Iran war</span> (Feb-Mar 2026)</li>
-          <li><span className="text-emerald-600 dark:text-emerald-400">Post-war recovery</span> (Apr-Jun 2026)</li>
+          {REGIMES.map((r) => {
+            const s = new Date(r.start), e = new Date(r.end)
+            const mon = (d: Date) => d.toLocaleDateString("en-IN", { month: "short" })
+            const range =
+              s.getFullYear() === e.getFullYear()
+                ? mon(s) === mon(e)
+                  ? `${mon(s)} ${e.getFullYear()}`
+                  : `${mon(s)}-${mon(e)} ${e.getFullYear()}`
+                : `${mon(s)} ${s.getFullYear()} - ${mon(e)} ${e.getFullYear()}`
+            const color =
+              r.market === "down"
+                ? "text-rose-600 dark:text-rose-400"
+                : r.market === "up"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-amber-600 dark:text-amber-400"
+            return (
+              <li key={r.name}>
+                <span className={color}>{r.name}</span> ({range})
+              </li>
+            )
+          })}
         </ul>
         <p className="mt-2">
           You can compare any fund against another using the "+ Compare" picker. The better performer
@@ -233,10 +245,11 @@ export default function Methodology() {
 
       <Section title="Chart benchmarks: index, peer, and category median">
         <p>
-          The NAV Growth chart overlays a dashed comparison line, rebased with your fund to a common
-          start of 100 so only relative growth is compared, never rupee price levels. What the dashed
-          line shows depends on the fund, and where more than one option exists you can switch between
-          them above the chart.
+          The NAV Growth chart plots your fund's actual NAV in rupees over the selected range. The
+          dashed comparison line is rebased to your fund's starting NAV, so both sit on the same
+          rupee axis and you see what the same money would have grown to. What the dashed line shows
+          depends on the fund, and where more than one option exists you can switch between them above
+          the chart.
         </p>
         <ul className="ml-5 mt-2 list-disc space-y-1.5">
           <li>

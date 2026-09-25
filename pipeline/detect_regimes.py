@@ -105,10 +105,16 @@ KNOWN_REGIMES = [
         "market": "up", "auto": False,
         "desc": "Strong April rebound on ceasefire signals and cooling oil prices. Markets recovered about half the war-driven losses by mid-June."
     },
+    {
+        "name": "Mid-2026 consolidation",
+        "start": "2026-06-26", "end": "2026-09-24",
+        "market": "down", "auto": False,
+        "desc": "A soft, range-bound stretch. The Nifty 50 briefly bounced about 3% into an early-August high, then drifted to fresh lows by late September, ending roughly 4% below June and still around 12% under its November 2025 peak."
+    },
 ]
 
 # After this date, regimes are auto-detected from NAV data
-AUTO_DETECT_FROM = "2026-06-26"
+AUTO_DETECT_FROM = "2026-09-25"
 
 
 def load_nav(code):
