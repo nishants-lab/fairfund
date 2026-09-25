@@ -41,16 +41,24 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
   const navigate = useNavigate()
   const [aum, setAum] = useState<Record<string, number>>({})
   useEffect(() => { loadAum().then(setAum) }, [])
+  const [sel, setSel] = useState<Horizon>(horizon)
 
   const catKey = fund?.category ?? category
   const currentCode = fund?.code
 
+  const horizons = useMemo<Horizon[]>(() => {
+    const opts: Horizon[] = ['1Y', '3Y', '5Y']
+    return opts.filter(
+      (h) => ALL.filter((f) => f.category === catKey && f.metrics[h]?.volatility && f.metrics[h]?.cagr != null).length >= 4,
+    )
+  }, [catKey])
+
   const { rows, xDomain, yDomain, xMed, yMed, n, catDisplay, fundPlotted } = useMemo(() => {
     const peers = ALL.filter(
-      (f) => f.category === catKey && f.metrics[horizon]?.volatility && f.metrics[horizon]?.cagr != null,
+      (f) => f.category === catKey && f.metrics[sel]?.volatility && f.metrics[sel]?.cagr != null,
     )
     const rows: Row[] = peers.map((f) => {
-      const m = f.metrics[horizon]!
+      const m = f.metrics[sel]!
       const a = aum[String(f.code)]
       return {
         x: m.volatility, y: m.cagr,
@@ -69,7 +77,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
       catDisplay: peers[0]?.categoryDisplay ?? catKey ?? '',
       fundPlotted: currentCode != null && rows.some((r) => r.current),
     }
-  }, [catKey, currentCode, aum, horizon])
+  }, [catKey, currentCode, aum, sel])
 
   if (n < 4) return null
 
@@ -102,13 +110,26 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
         <h3 className="font-bold text-fg">{fund ? 'Where it stands' : `${catDisplay} landscape`}</h3>
         <span className="text-xs text-faint">{n} {catDisplay} funds</span>
       </div>
+      {horizons.length > 1 && (
+        <div className="mb-3 inline-flex rounded-lg border border-line bg-surface2 p-0.5" title="Risk-vs-return window">
+          {horizons.map((h) => (
+            <button
+              key={h}
+              onClick={() => setSel(h)}
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${sel === h ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+            >
+              {h}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="mb-3 text-xs text-muted">
-        Risk vs return over {horizon}. Each bubble is a fund; size = AUM. X-axis is volatility (annualised), Y-axis is CAGR. The shaded quadrant is lower risk and higher return than the category median.
+        Risk vs return over {sel}. Each bubble is a fund; size = AUM. X-axis is volatility (annualised), Y-axis is CAGR. The shaded quadrant is lower risk and higher return than the category median.
         Hover any fund for detail; click to open it.
       </p>
       {fundMissing && (
         <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-          This fund has no {horizon} track record yet, so it can't be placed on this {horizon} chart. The peers shown all have {horizon} history.
+          This fund has no {sel} track record yet, so it can't be placed on this {sel} chart. The peers shown all have {sel} history.
         </p>
       )}
       <ResponsiveContainer width="100%" height={360}>
@@ -128,7 +149,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
             type="number" dataKey="y" domain={yDomain} tick={{ fontSize: 11, fill: axis }}
             tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             width={44}
-            label={{ value: `${horizon} CAGR (return)`, angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
+            label={{ value: `${sel} CAGR (return)`, angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
           />
           <ZAxis type="number" dataKey="z" range={[60, 620]} />
           <Tooltip content={tooltip} cursor={{ strokeDasharray: '3 3', stroke: axis }} />
