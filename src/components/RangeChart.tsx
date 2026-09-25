@@ -25,32 +25,28 @@ interface Props {
 const FUND_COLOR = '#2563eb'
 const PEER_COLOR = '#94a3b8'
 
-/** Rebase a NAV series to start at 100, so a peer on a different price level is
- *  comparable to this fund on the same axis (relative growth, not rupees). */
-function rebase(points: NavPoint[]): { date: string; v: number }[] {
-  if (!points.length) return []
-  const base = points[0].nav
-  return points.map((p) => ({ date: p.date, v: base > 0 ? (p.nav / base) * 100 : 100 }))
-}
-
 export default function RangeChart({ points, peer, peerName, mode = 'nav', loading, error }: Props) {
   const { theme } = useTheme()
   const grid = theme === 'dark' ? '#1e293b' : '#f1f5f9'
   const axis = theme === 'dark' ? '#64748b' : '#94a3b8'
   const hasPeer = !!peer && peer.length > 1
 
-  // NAV mode merges fund + peer on a rebased (start=100) scale by date.
+  // NAV mode: the fund line is its ACTUAL NAV in rupees over the selected range.
+  // A peer overlay is rebased to the fund's starting NAV, so both share one
+  // real-rupee axis and show what the same rupees would have grown to.
   const navMerged = useMemo(() => {
     if (mode !== 'nav') return []
-    const f = rebase(points)
-    const p = hasPeer ? rebase(peer!) : []
+    const fundBase = points[0]?.nav ?? 0
+    const peerBase = hasPeer ? peer![0].nav : 0
     const byDate = new Map<string, any>()
-    f.forEach((d) => byDate.set(d.date, { date: d.date, fund: Math.round(d.v * 10) / 10 }))
-    p.forEach((d) => {
-      const row = byDate.get(d.date) ?? { date: d.date }
-      row.peer = Math.round(d.v * 10) / 10
-      byDate.set(d.date, row)
-    })
+    points.forEach((p) => byDate.set(p.date, { date: p.date, fund: Math.round(p.nav * 100) / 100 }))
+    if (hasPeer && peerBase > 0) {
+      peer!.forEach((p) => {
+        const row = byDate.get(p.date) ?? { date: p.date }
+        row.peer = Math.round((p.nav / peerBase) * fundBase * 100) / 100
+        byDate.set(p.date, row)
+      })
+    }
     return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
   }, [points, peer, mode, hasPeer])
 
@@ -124,11 +120,11 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
       <LineChart data={navMerged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={grid} />
         <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={(d) => d.slice(0, 7)} minTickGap={40} />
-        <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `₹${v.toFixed(0)}`} width={50} />
+        <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `₹${v >= 100 ? v.toFixed(0) : v.toFixed(1)}`} width={54} />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(v: number, key: string) => [`₹${(v as number).toFixed(1)}`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
-          labelFormatter={(d) => `${d} · growth of ₹100`}
+          formatter={(v: number, key: string) => [`₹${(v as number).toFixed(2)}`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
+          labelFormatter={(d) => `NAV on ${d}`}
         />
         {hasPeer && <Legend formatter={legendFmt} wrapperStyle={{ fontSize: 12 }} />}
         {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}

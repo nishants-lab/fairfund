@@ -88,7 +88,7 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
 /** Fetch a precomputed category-median benchmark series (public/category-median/{key}.json),
  *  used as the chart overlay for cash-like categories (Liquid, Money Market, Arbitrage)
  *  where no single index proxy is meaningful. Same compact format + parse as self-hosted NAV,
- *  so RangeChart's rebase path consumes it unchanged. Cached in-memory by key. */
+ *  so RangeChart consumes it unchanged. Cached in-memory by key. */
 const medianCache = new Map<string, NavPoint[]>()
 export async function fetchCategoryMedian(key: string): Promise<NavPoint[]> {
   if (medianCache.has(key)) return medianCache.get(key)!

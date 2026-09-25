@@ -3,25 +3,19 @@ import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
 
-// Neutral by design: the composite score is a data point, not a rating, so it
-// is never coloured good/bad.
-const TONE_RING: Record<string, string> = {
-  good: 'border-l-slate-400',
-  warn: 'border-l-slate-400',
-  bad: 'border-l-slate-400',
-  neutral: 'border-l-slate-400',
-}
-const TONE_TEXT: Record<string, string> = {
-  good: 'text-fg',
-  warn: 'text-fg',
-  bad: 'text-fg',
-  neutral: 'text-fg',
-}
-const TONE_BAR: Record<string, string> = {
-  good: 'bg-slate-400',
-  warn: 'bg-slate-400',
-  bad: 'bg-slate-400',
-  neutral: 'bg-slate-400',
+// The composite score is a data point, not a buy/avoid rating, so it is never
+// coloured red/green. Instead we use a single blue intensity that deepens with
+// the score, plus a plain descriptive band word - alive, but not a verdict.
+function scoreBand(score: number): {
+  ring: string; text: string; bar: string; word: string
+} {
+  if (score >= 75)
+    return { ring: 'border-l-blue-600', text: 'text-blue-700 dark:text-blue-300', bar: 'bg-blue-600', word: 'Top-tier data profile' }
+  if (score >= 60)
+    return { ring: 'border-l-blue-500', text: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500', word: 'Above-median profile' }
+  if (score >= 45)
+    return { ring: 'border-l-blue-400', text: 'text-blue-500 dark:text-blue-300', bar: 'bg-blue-400', word: 'Middle of the pack' }
+  return { ring: 'border-l-slate-400', text: 'text-slate-500 dark:text-slate-400', bar: 'bg-slate-400', word: 'Below-median profile' }
 }
 
 /**
@@ -89,18 +83,20 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
   }
 
   const v = buildVerdict(fund)
+  const b = scoreBand(v.score)
   return (
-    <div className={`mt-6 card border-l-4 ${TONE_RING[v.tone]} p-5`}>
+    <div className={`mt-6 card border-l-4 ${b.ring} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold text-fg">Composite data score</h3>
-        <span className={`text-sm font-bold ${TONE_TEXT[v.tone]}`}>
-          {v.score}/100
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span className={`text-xs font-semibold uppercase tracking-wide ${b.text}`}>{b.word}</span>
+          <span className={`text-lg font-bold ${b.text}`}>{v.score}<span className="text-xs font-semibold text-faint">/100</span></span>
+        </div>
       </div>
 
-      {/* conviction bar */}
+      {/* score bar - blue intensity by band, not a red/green verdict */}
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
-        <div className={`h-full rounded-full ${TONE_BAR[v.tone]}`} style={{ width: `${v.score}%` }} />
+        <div className={`h-full rounded-full ${b.bar}`} style={{ width: `${v.score}%` }} />
       </div>
 
       <p className="mt-3 text-muted">{v.oneLiner}</p>
@@ -141,10 +137,9 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       </div>
 
       <p className="mt-4 text-xs text-faint">
-        The composite score blends backward-tested rank, peer-relative alpha and risk-adjusted
-        ratios with forward-looking consistency, alpha confidence, downside capture and manager
-        track record. A weighted reading of past data, not a rating or recommendation. Past
-        performance does not indicate future returns.
+        A weighted reading of past data (peer rank, alpha, risk-adjusted ratios, consistency,
+        downside capture, manager record), not a rating or recommendation. Past performance does
+        not indicate future returns.
       </p>
     </div>
   )
