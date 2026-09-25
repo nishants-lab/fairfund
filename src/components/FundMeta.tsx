@@ -27,7 +27,7 @@ function fmtPct(n: number): string {
   return parseFloat(n.toFixed(4)).toString()
 }
 
-const MON = [Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec]
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 function fmtAsOf(iso: string): string {
   const y = iso.slice(0, 4), m = parseInt(iso.slice(5, 7), 10), d = parseInt(iso.slice(8, 10), 10)
   return `${d} ${MON[m - 1] ?? ""} ${y}`
