@@ -263,13 +263,26 @@ def fetch_prices(tickers, start_date="2024-01-01"):
 
     if to_fetch:
         print(f"Fetching prices for {len(to_fetch)} tickers from Yahoo Finance...")
-        # Separate known-foreign tickers from NSE tickers upfront to avoid noisy
-        # 'possibly delisted' warnings from yfinance when appending .NS to US stocks.
-        # Foreign tickers: <=5 chars, all alpha, extracted from 'Forgn. Eq (TICKER)' pattern
-        # Also check the ticker cache: if marked as foreign during resolution, skip .NS
+        # Separate foreign tickers from NSE tickers to avoid noisy 'possibly
+        # delisted' warnings from yfinance. Use the NSE equity master as the
+        # source of truth: if a ticker is in the master, it's Indian regardless
+        # of length. Only classify as foreign if it's short, all-alpha, uppercase
+        # AND not in the NSE master list.
+        nse_master_path = next(
+            (p for p in [
+                os.path.join(HERE, '..', 'data', 'nse_equity_master.json'),
+                os.path.join(ROOT, 'nse_equity_master.json'),
+            ] if os.path.exists(p)), None)
+        nse_symbols = set()
+        if nse_master_path:
+            try:
+                nse_symbols = {e['symbol'] for e in json.load(open(nse_master_path, encoding='utf-8'))}
+            except Exception:
+                pass
         foreign_set = set()
         for t in to_fetch:
-            # Short all-alpha tickers (AAPL, MSFT, NVDA) are likely US stocks
+            if t in nse_symbols:
+                continue  # definitely Indian, even if short (SJS, BBL, BSE, DIXON, etc.)
             if len(t) <= 5 and t.isalpha() and t.isupper():
                 foreign_set.add(t)
         nse_batch = [t for t in to_fetch if t not in foreign_set]

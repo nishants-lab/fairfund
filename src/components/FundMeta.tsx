@@ -72,7 +72,8 @@ export default function FundMeta({ fund }: { fund: Fund }) {
   if (!aum && er == null && !inv) return null
 
   const lockIn = inv?.lock_in ? fmtLockIn(inv.lock_in) : null
-  const closed = inv?.available_for_investment === false
+  // Removed: investment-status flags (closed, sip_allowed, lumpsum_allowed) come
+  // from an unvalidated vendor snapshot. We cannot show assumed data.
 
   return (
     <div className="mt-3">
@@ -117,13 +118,13 @@ export default function FundMeta({ fund }: { fund: Fund }) {
             <span className="font-semibold text-fg">{lockIn}</span>
           </div>
         )}
-        {inv?.min_sip != null && inv.sip_allowed !== false && !closed && (
+        {inv?.min_sip != null && (
           <div className="flex items-baseline gap-1">
             <span className="text-faint">Min SIP</span>
             <span className="font-semibold text-fg">₹{inv.min_sip.toLocaleString('en-IN')}</span>
           </div>
         )}
-        {inv?.min_lumpsum != null && inv.lumpsum_allowed !== false && !closed && (
+        {inv?.min_lumpsum != null && (
           <div className="flex items-baseline gap-1">
             <span className="text-faint">Min lumpsum</span>
             <span className="font-semibold text-fg">₹{inv.min_lumpsum.toLocaleString('en-IN')}</span>
@@ -131,25 +132,7 @@ export default function FundMeta({ fund }: { fund: Fund }) {
         )}
       </div>
 
-      {(closed || inv?.sip_allowed === false || inv?.lumpsum_allowed === false) && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          {closed && (
-            <span className="rounded bg-red-50 px-2 py-0.5 font-semibold text-red-600 dark:bg-red-900/20 dark:text-red-400">
-              Closed for investment
-            </span>
-          )}
-          {!closed && inv?.sip_allowed === false && (
-            <span className="rounded bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-              SIP not available
-            </span>
-          )}
-          {!closed && inv?.lumpsum_allowed === false && (
-            <span className="rounded bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-              Lumpsum not available
-            </span>
-          )}
-        </div>
-      )}
+
     </div>
   )
 }
