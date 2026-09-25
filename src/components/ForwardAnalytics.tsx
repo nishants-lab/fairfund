@@ -296,8 +296,12 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           </div>
         )}
 
-        {/* Capture ratios */}
-        {a?.capture && (a.capture.up != null || a.capture.down != null) && (
+        {/* Capture ratios — suppress when values are misleading (negative, near-zero,
+           or extreme), which indicates the fund doesn't correlate with its category
+           median and the metric is not useful. */}
+        {a?.capture && (a.capture.up != null || a.capture.down != null) &&
+         (a.capture.up == null || a.capture.up >= 10) &&
+         (a.capture.down == null || (a.capture.down >= 0 && a.capture.down <= 200)) && (
           <div className="card p-4">
             <h4 className="flex items-center gap-1.5 font-semibold text-fg">
               Up / down capture
