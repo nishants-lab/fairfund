@@ -38,9 +38,13 @@ export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
   if (detail.holdingsMeta) fund.holdingsMeta = detail.holdingsMeta
   if (detail.management) fund.management = detail.management
   if (detail.stockMoves !== undefined) fund.stockMoves = detail.stockMoves
-  if (detail.aum !== undefined) fund.aum = detail.aum
-  if (detail.expenseRatio !== undefined) fund.expenseRatio = detail.expenseRatio
-  if (detail.investInfo !== undefined) fund.investInfo = detail.investInfo
+  // Guard: only override when the shell carries a real value. `!= null` skips
+  // both undefined and null so a stale/placeholder shell can never blank out a
+  // fresh bundled aum/expenseRatio/investInfo (which then leaks globally via the
+  // shared singleton this mutates).
+  if (detail.aum != null) fund.aum = detail.aum
+  if (detail.expenseRatio != null) fund.expenseRatio = detail.expenseRatio
+  if (detail.investInfo != null) fund.investInfo = detail.investInfo
   return fund
 }
 
