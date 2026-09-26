@@ -245,11 +245,10 @@ export default function Methodology() {
 
       <Section title="Chart benchmarks: index, peer, and category median">
         <p>
-          The NAV Growth chart plots your fund's actual NAV in rupees over the selected range. The
-          dashed comparison line is rebased to your fund's starting NAV, so both sit on the same
-          rupee axis and you see what the same money would have grown to. What the dashed line shows
-          depends on the fund, and where more than one option exists you can switch between them above
-          the chart.
+          The NAV Growth chart overlays a dashed comparison line, rebased with your fund to a common
+          start of 100 so only relative growth is compared, never rupee price levels. What the dashed
+          line shows depends on the fund, and where more than one option exists you can switch between
+          them above the chart.
         </p>
         <ul className="ml-5 mt-2 list-disc space-y-1.5">
           <li>

@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Fund } from '../types'
+import type { Fund, ManagerInfo } from '../types'
 import { signedPct, fundSlug } from '../lib/format'
 
 function signalStyle(signal?: string): { tone: string; ring: string } {
@@ -17,9 +18,73 @@ function signalStyle(signal?: string): { tone: string; ring: string } {
   }
 }
 
+/** Background detail for one manager, opened from the compact name row. */
+function ManagerModal({ m, onClose }: { m: ManagerInfo; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={m.name}
+        className="relative max-h-[80vh] w-full max-w-md overflow-y-auto rounded-3xl bg-surface p-6 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h4 className="text-lg font-bold text-fg">{m.name}</h4>
+            {m.sinceYears != null && (
+              <div className="mt-0.5 text-xs text-faint">
+                {m.sinceYears} {m.sinceYears === 1 ? 'yr' : 'yrs'} managing this fund
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-1 -mt-1 shrink-0 rounded-lg px-2 py-1 text-faint hover:bg-surface2 hover:text-fg"
+          >
+            &#10005;
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3 text-sm">
+          {m.education && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-faint">Education</div>
+              <p className="mt-0.5 leading-relaxed text-muted">{m.education}</p>
+            </div>
+          )}
+          {m.experience && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-faint">Experience</div>
+              <p className="mt-0.5 leading-relaxed text-muted">{m.experience}</p>
+            </div>
+          )}
+          {!m.education && !m.experience && (
+            <p className="text-muted">No background details available from public sources.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const CHIP_LIMIT = 6
+
 export default function ManagementCard({ fund }: { fund: Fund }) {
   const navigate = useNavigate()
+  const [openMgr, setOpenMgr] = useState<ManagerInfo | null>(null)
+  const [allChips, setAllChips] = useState(false)
   const mgmt = fund.management
+
   if (!mgmt || !mgmt.available) {
     return (
       <div className="mt-6 card p-5">
@@ -33,6 +98,10 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
 
   const s = signalStyle(mgmt.signal)
   const tr = mgmt.trackRecord
+  const managers = mgmt.managers ?? []
+  const anyBio = managers.some((m) => m.education || m.experience)
+  const chips = tr?.sampleFunds ?? []
+  const shownChips = allChips ? chips : chips.slice(0, CHIP_LIMIT)
 
   return (
     <div className={`mt-6 card border-l-4 ${s.ring} p-5`}>
@@ -43,21 +112,34 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
 
       <p className="mt-1 text-sm text-muted">{mgmt.note}</p>
 
-      {/* Managers + tenure */}
-      <div className="mt-4 space-y-3">
-        {mgmt.managers?.map((m) => (
-          <div key={m.name} className="rounded-xl border border-line bg-surface2/40 p-3">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-fg">{m.name}</span>
-              {m.sinceYears != null && (
-                <span className="text-xs text-faint">{m.sinceYears} yrs on this fund</span>
-              )}
-            </div>
-            {m.education && <div className="mt-1 text-xs text-muted">{m.education}</div>}
-            {m.experience && <div className="mt-0.5 text-xs text-faint">{m.experience}</div>}
-          </div>
-        ))}
-      </div>
+      {/* Managers: one compact row each; background lives in a modal */}
+      {managers.length > 0 && (
+        <div className="mt-4 divide-y divide-line rounded-xl border border-line">
+          {managers.map((m) => {
+            const hasBio = !!(m.education || m.experience)
+            return (
+              <div key={m.name} className="flex items-center justify-between gap-3 px-3 py-2">
+                {hasBio ? (
+                  <button
+                    onClick={() => setOpenMgr(m)}
+                    className="text-left text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    {m.name}
+                  </button>
+                ) : (
+                  <span className="text-sm font-semibold text-fg">{m.name}</span>
+                )}
+                {m.sinceYears != null && (
+                  <span className="shrink-0 text-xs text-faint">
+                    {m.sinceYears} {m.sinceYears === 1 ? 'yr' : 'yrs'} here
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {anyBio && <p className="mt-1.5 text-xs text-faint">Tap a name for their background.</p>}
 
       {/* Cross-fund track record */}
       {tr && (
@@ -88,11 +170,11 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
             </div>
           </div>
 
-          {tr.sampleFunds && tr.sampleFunds.length > 0 && (
+          {chips.length > 0 && (
             <div className="mt-3">
               <div className="mb-1 text-xs text-faint">Their funds (peer-relative alpha):</div>
               <div className="flex flex-wrap gap-2">
-                {tr.sampleFunds.map((sf) => (
+                {shownChips.map((sf) => (
                   <button
                     key={sf.code}
                     onClick={() => navigate(`/fund/${sf.code}/${fundSlug(sf.name)}`)}
@@ -105,6 +187,14 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
                     </span>
                   </button>
                 ))}
+                {chips.length > CHIP_LIMIT && (
+                  <button
+                    onClick={() => setAllChips((v) => !v)}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    {allChips ? 'Show fewer' : `+${chips.length - CHIP_LIMIT} more`}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -112,9 +202,11 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
       )}
 
       <p className="mt-3 text-xs text-faint">
-        Forward-looking context, not a guarantee. We judge managers by how their <em>other</em> funds
-        have done versus peers (a sign of repeatable skill), but past performance doesn't assure future results.
+        Forward-looking context, not a guarantee. We judge managers by how their <em>other</em> funds have
+        done versus peers, but past performance doesn't assure future results.
       </p>
+
+      {openMgr && <ManagerModal m={openMgr} onClose={() => setOpenMgr(null)} />}
     </div>
   )
 }
