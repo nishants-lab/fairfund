@@ -81,10 +81,9 @@ else:
         {"name": "2022 correction", "start": "2021-10-19", "end": "2022-06-17"},
         {"name": "2022-24 bull run", "start": "2022-06-18", "end": "2024-09-27"},
         {"name": "2024-25 correction", "start": "2024-09-28", "end": "2025-03-31"},
-        {"name": "Liberation Day tariff shock", "start": "2025-04-01", "end": "2025-04-22"},
-        {"name": "Tariff-pause recovery", "start": "2025-04-23", "end": "2025-05-30"},
-        {"name": "US-Iran war & volatility", "start": "2025-06-01", "end": "2025-08-31"},
-        {"name": "Post-war recovery", "start": "2025-09-01", "end": "2026-04-30"},
+        {"name": "2025 recovery rally", "start": "2025-04-01", "end": "2026-01-02"},
+        {"name": "2026 correction", "start": "2026-01-03", "end": "2026-03-31"},
+        {"name": "Post-correction drift", "start": "2026-04-01", "end": "2026-09-25"},
     ]
 
 
