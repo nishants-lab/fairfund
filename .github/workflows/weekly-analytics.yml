@@ -29,6 +29,9 @@ jobs:
       - name: Split fund data for serving
         run: python migrations/split-analytics/split_funds.py
 
+      - name: Rebuild rolling-alpha series (re-inject; build_analytics drops it)
+        run: python scripts/build_rolling_alpha.py
+
       - name: Smoke test
         run: python tests/smoke.py
 
