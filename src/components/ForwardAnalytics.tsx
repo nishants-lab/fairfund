@@ -573,7 +573,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   return (
                   <tr key={r.name} className="border-b border-line last:border-0">
                     <td className="px-2 py-1.5 group cursor-pointer" onClick={(e) => { const el = (e.currentTarget as HTMLElement).querySelector('[data-desc]'); if (el) el.classList.toggle('hidden') }}>
-                      <span className={ri?.market === 'down' ? 'text-rose-600 dark:text-rose-400' : ri?.market === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'}>{r.name}</span>
+                      <span className={ri?.market === 'down' ? 'text-rose-600 dark:text-rose-400' : ri?.market === 'up' ? 'text-emerald-600 dark:text-emerald-400' : ri?.market === 'mixed' ? 'text-amber-600 dark:text-amber-400' : 'text-muted'}>{r.name}</span>
                       {ri && <span className="block text-xs text-faint">{ri.range}{ri.desc && <span className="ml-1 opacity-50">ⓘ</span>}</span>}
                       {ri?.desc && <span data-desc className="hidden block text-xs text-faint/80 mt-0.5 leading-snug">{ri.desc}</span>}
                     </td>

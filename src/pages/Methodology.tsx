@@ -26,7 +26,7 @@ export default function Methodology() {
           We check every fund over the exact same dates, only compare it to similar funds (small-cap vs
           small-cap, never small-cap vs large-cap), and measure whether the manager genuinely did better
           than the average fund of its type. On top of that, we stress-test each fund across {REGIMES.length} real market
-          regimes (crashes, rallies, wars) and compute forward-looking probability signals. The goal: show
+          regimes (crashes, rallies, corrections) and compute forward-looking probability signals. The goal: show
           you the data-backed picture, not a flattering one.
         </p>
       </div>

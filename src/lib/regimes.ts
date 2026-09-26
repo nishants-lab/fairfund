@@ -22,14 +22,22 @@ export function overlappingRegimes(start: string, end: string): Regime[] {
 export function fallReason(start: string, end: string): string | null {
   const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'up')
   if (hits.length === 0) return null
-  return `Overlaps ${hits[0].name} - likely a market-wide fall, not specific to this fund.`
+  const r = hits[0]
+  if (r.market === 'mixed') {
+    return `Overlaps ${r.name} - a flat, choppy market, so the fall may not be specific to this fund.`
+  }
+  return `Overlaps ${r.name} - likely a market-wide fall, not specific to this fund.`
 }
 
 /** Short positive context for a strong month: did it ride a broad rally? */
 export function riseContext(start: string, end: string): string | null {
   const hits = overlappingRegimes(start, end).filter((r) => r.market !== 'down')
   if (hits.length === 0) return null
-  return `Came during ${hits[0].name} - a broad rally lifted most funds.`
+  const r = hits[0]
+  if (r.market === 'mixed') {
+    return `Came during ${r.name} - a flat, choppy market, so this was not simply a rising tide.`
+  }
+  return `Came during ${r.name} - a broad rally lifted most funds.`
 }
 
 /** Match a drawdown peak-to-trough window to the most relevant regime. */
