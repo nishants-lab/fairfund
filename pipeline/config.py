@@ -214,3 +214,48 @@ def map_amfi_category(amfi_cat):
             return category
 
     return None
+
+
+# --- Date integrity invariant (shared by refresh + rankings) ---
+# The site "anchor" is the single date shown as "NAV data as of ...". It must be
+# (1) never in the future, and (2) robust to a few funds whose data source
+# forward-dates NAV (liquid funds get a next-day-stamped NAV from AMFI). A plain
+# global max over all cached files is neither: 4 liquid funds dated tomorrow would
+# drag the whole site's date past today. We instead take the newest date that at
+# least MIN_ANCHOR_FUNDS funds share, capped at today.
+MIN_ANCHOR_FUNDS = 20
+
+
+def robust_latest_nav_date(nav_dir, today_iso=None, min_funds=MIN_ANCHOR_FUNDS):
+    """Newest NAV date that is (a) not in the future and (b) shared by at least
+    `min_funds` funds. Returns None if no cached NAV files are readable.
+
+    Falls back to the newest non-future date if no single date clears the
+    threshold (e.g. a tiny universe), so it degrades safely."""
+    import glob as _glob
+    import json as _json
+    import os as _os
+    from datetime import date as _date
+    today_iso = today_iso or _date.today().isoformat()
+    counts = {}
+    for path in _glob.glob(_os.path.join(nav_dir, "*.json")):
+        if "_manifest" in _os.path.basename(path):
+            continue
+        try:
+            with open(path) as f:
+                d = _json.load(f)
+        except Exception:
+            continue
+        dd = d.get("d")
+        if not dd:
+            continue
+        last = dd[-1]
+        if last > today_iso:  # invariant: never anchor on a future date
+            continue
+        counts[last] = counts.get(last, 0) + 1
+    if not counts:
+        return None
+    shared = [dt for dt, n in counts.items() if n >= min_funds]
+    if shared:
+        return max(shared)
+    return max(counts)  # safe fallback: newest non-future date

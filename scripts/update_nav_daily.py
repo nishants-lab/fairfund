@@ -134,13 +134,15 @@ def main():
                 hist = fetch_mfapi_history(code)
                 have = set(j["d"])
                 for dt in sorted(dt for dt in hist
-                                 if last_have < dt <= new_date and dt not in have):
+                                 if last_have < dt <= new_date and dt <= today and dt not in have):
                     j["d"].append(dt)
                     j["v"].append(hist[dt])
                 if len(j["d"]) > len(have):
                     backfilled += 1
-            # Always ensure AMFI's latest date is present (mfapi can lag intraday)
-            if new_date not in j["d"]:
+            # Always ensure AMFI's latest date is present (mfapi can lag intraday).
+            # Invariant: never store a NAV dated in the future. AMFI forward-dates
+            # liquid-fund NAV (next-day stamp); it must not leak into the series.
+            if new_date <= today and new_date not in j["d"]:
                 j["d"].append(new_date)
                 j["v"].append(new_nav)
             j["u"] = j["d"][-1]
