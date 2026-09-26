@@ -9,7 +9,7 @@
 import satori from 'satori'
 import { Resvg } from '@resvg/resvg-js'
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -78,12 +78,17 @@ function card(fund) {
   const win = fund.metrics?.['3Y'] ? '3Y' : fund.metrics?.['5Y'] ? '5Y' : fund.metrics?.['1Y'] ? '1Y' : null
 
   const stats = []
-  if (m?.catRank && m?.catSize) stats.push(statCard('CATEGORY RANK', `#${m.catRank}`, '#f8fafc', accent))
+  if (m?.catRank && m?.catSize) stats.push(statCard('CATEGORY RANK', `#${m.catRank} of ${m.catSize}`, '#f8fafc', accent))
   if (m?.cagr != null && win) stats.push(statCard(`${win} CAGR`, `${m.cagr.toFixed(1)}%`, m.cagr >= 0 ? POS : NEG, accent))
   if (m?.alpha != null && win) stats.push(statCard('ALPHA VS PEERS', `${m.alpha >= 0 ? '+' : ''}${m.alpha.toFixed(1)}%`, m.alpha >= 0 ? POS : NEG, accent))
-  if (stats.length === 0 && fund.aum) stats.push(statCard('AUM', `\u20B9${(fund.aum / 100).toFixed(0)} Cr`, '#f8fafc', accent))
+  if (stats.length === 0 && fund.aum?.current) stats.push(statCard('AUM', `Rs ${Math.round(fund.aum.current).toLocaleString('en-IN')} Cr`, '#f8fafc', accent))
 
-  const rankSub = (m?.catRank && m?.catSize) ? `of ${m.catSize} in ${cat}` : cat
+  // Subtitle carries facts shown nowhere else on the card (AUM, expense), not a
+  // fragment of the rank. Falls back to the fund house, then the category.
+  const subParts = []
+  if (fund.aum?.current) subParts.push(`Rs ${Math.round(fund.aum.current).toLocaleString('en-IN')} Cr AUM`)
+  if (fund.expenseRatio != null) subParts.push(`${fund.expenseRatio}% expense ratio`)
+  const rankSub = subParts.length ? subParts.join('  \u00B7  ') : (fund.amc || cat)
 
   return div(
     { width: 1200, height: 630, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
@@ -125,6 +130,9 @@ function card(fund) {
   )
 }
 
+export { card, fonts, funds }
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 let n = 0, errs = 0
 const t0 = Date.now()
 for (const f of funds) {
@@ -140,3 +148,4 @@ for (const f of funds) {
   }
 }
 console.log(`[gen-og-images] wrote ${n} OG images (${errs} errors) in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+}
