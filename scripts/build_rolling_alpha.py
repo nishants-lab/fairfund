@@ -10,10 +10,12 @@ Reuses month_end_series / load_universe / ROLL_WINDOW_M from build_analytics.py
 so the window and NAV handling never diverge from the batting-average computation.
 
 Writes analytics.rollingAlpha = { spark: [[YYYY-MM, excessPct], ...], windowM }
-into BOTH:
-  - src/data/funds.json (bundled index; used by Explore/Compare)
-  - public/fund-data/<code>.json (detail files; authoritative on the fund page,
-    because mergeFundDetail overwrites analytics with the detail file's copy)
+into the per-fund detail shells ONLY:
+  - public/fund-data/<code>.json (authoritative on the fund page, because
+    mergeFundDetail overwrites analytics with the detail file's copy).
+It is deliberately NOT merged into the bundled src/data/funds.json: no view reads
+rollingAlpha from the index, and the ~0.5 MB it adds would push the index chunk
+past the 2 MiB PWA precache limit.
 
 Only the rollingAlpha field is added/replaced; all other analytics are left as-is,
 keeping the data diff surgical.
@@ -122,10 +124,11 @@ def main():
     result = compute_rolling_alpha()
     print(f"Computed rolling alpha for {len(result)} funds (window={ROLL_WINDOW_M}m)")
 
-    funds_path = os.path.join(ROOT, "src", "data", "funds.json")
-    nfj = merge_into(funds_path, result)
-    print(f"  merged into funds.json: {nfj}")
-
+    # Inject into the per-fund detail shells ONLY. The fund page reads the shell
+    # (mergeFundDetail makes the shell authoritative for analytics), and no other
+    # view reads rollingAlpha. Injecting into the bundled funds.json instead would
+    # add ~0.5 MB to the index chunk every page loads and pushes it past the 2 MiB
+    # PWA precache limit, so it is deliberately kept out of the bundle.
     detail_dir = os.path.join(ROOT, "public", "fund-data")
     ndet = merge_into_details(detail_dir, result)
     print(f"  merged into fund-data detail files: {ndet}")
