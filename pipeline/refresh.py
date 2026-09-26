@@ -38,20 +38,11 @@ PIPELINE_DIR = ROOT / "pipeline"
 
 
 def _latest_nav_date():
-    """Scan self-hosted NAV files and return the actual latest date string."""
-    latest = None
-    for p in NAV_DIR.glob("*.json"):
-        if "_manifest" in p.name:
-            continue
-        try:
-            d = json.load(open(p))
-            if "d" in d and d["d"]:
-                last = d["d"][-1]
-                if latest is None or last > latest:
-                    latest = last
-        except Exception:
-            continue
-    return latest
+    """Robust site anchor: newest NAV date that is not in the future and is
+    shared by at least MIN_ANCHOR_FUNDS funds (config.robust_latest_nav_date).
+    Guards against liquid funds whose AMFI NAV is forward-dated a day ahead."""
+    from config import robust_latest_nav_date
+    return robust_latest_nav_date(str(NAV_DIR))
 
 
 def run_script(script_path, args=None, description=None):
@@ -84,6 +75,12 @@ def daily_refresh(data):
     # Anchor = actual latest NAV date, not the run date
     data["anchor"] = _latest_nav_date() or date.today().isoformat()
     data["generatedAt"] = date.today().isoformat()
+    # Invariant: the site data date can never be in the future.
+    if data["anchor"] > data["generatedAt"]:
+        raise SystemExit(
+            f"FATAL: anchor {data['anchor']} in the future "
+            f"(today {data['generatedAt']}). Aborting."
+        )
 
 
 def monthly_refresh(data):

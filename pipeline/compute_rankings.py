@@ -29,22 +29,11 @@ NAV_DIR = os.path.join(ROOT, "public", "nav")
 
 
 def _latest_nav_date(nav_dir):
-    """Scan self-hosted NAV JSON files and return the actual latest date string."""
-    import glob
-    latest = None
-    for path in glob.glob(os.path.join(nav_dir, "*.json")):
-        if "_manifest" in os.path.basename(path):
-            continue
-        try:
-            with open(path) as f:
-                d = json.load(f)
-            if "d" in d and d["d"]:
-                last = d["d"][-1]
-                if latest is None or last > latest:
-                    latest = last
-        except Exception:
-            continue
-    return latest
+    """Robust site anchor: newest NAV date that is not in the future and is
+    shared by at least MIN_ANCHOR_FUNDS funds (config.robust_latest_nav_date).
+    Guards against liquid funds whose AMFI NAV is forward-dated a day ahead."""
+    from config import robust_latest_nav_date
+    return robust_latest_nav_date(nav_dir)
 
 # The 6 metrics used in the composite score (all higher = better).
 # maxDrawdown is negative, so higher (less negative) = less loss = better.
@@ -265,6 +254,12 @@ def main():
     actual_nav_date = _latest_nav_date(NAV_DIR)
     data["anchor"] = actual_nav_date or date.today().isoformat()
     data["generatedAt"] = date.today().isoformat()
+    # Invariant: the site data date can never be in the future.
+    if data["anchor"] > data["generatedAt"]:
+        raise SystemExit(
+            f"FATAL: anchor {data['anchor']} in the future "
+            f"(today {data['generatedAt']}). Aborting."
+        )
 
     with open(FUNDS_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))

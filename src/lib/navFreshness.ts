@@ -29,7 +29,16 @@ function subscribe(cb: () => void) {
   return () => { listeners.delete(cb) }
 }
 
+/** Local calendar date (matches the pipeline's date.today()), YYYY-MM-DD. */
+function localToday(): string {
+  const n = new Date()
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+}
+
 function updateDate(iso: string) {
+  // Invariant: never advance the displayed NAV date into the future. A liquid
+  // fund's AMFI NAV is sometimes forward-dated; it must not move the site date.
+  if (iso > localToday()) return
   if (iso > latestKnown) {
     latestKnown = iso
     listeners.forEach((cb) => cb())
@@ -58,8 +67,17 @@ function fetchManifest() {
         (d): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
       )
       if (!dates.length) return
-      dates.sort()
-      updateDate(dates[dates.length - 1])
+      // Robust: newest date shared by >= MIN_ANCHOR_FUNDS funds and not in the
+      // future. Mirrors config.robust_latest_nav_date so a few forward-dated
+      // liquid funds cannot move the site's headline date past the market date.
+      const today = localToday()
+      const counts = new Map<string, number>()
+      for (const d of dates) if (d <= today) counts.set(d, (counts.get(d) ?? 0) + 1)
+      const MIN_ANCHOR_FUNDS = 20
+      let best = ''
+      counts.forEach((n, d) => { if (n >= MIN_ANCHOR_FUNDS && d > best) best = d })
+      if (!best) counts.forEach((_n, d) => { if (d > best) best = d })
+      if (best) updateDate(best)
     })
     .catch(() => {}) // silently fall back
 }
