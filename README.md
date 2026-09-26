@@ -10,7 +10,7 @@ A data-driven mutual fund research tool that compares **989 active Indian mutual
 - **Custom time-period analysis** — analyze any fund over ANY date range with live-computed CAGR, Sharpe, Sortino, max drawdown, and more
 - **Fund comparison** — side-by-side metrics over a shared custom period + normalized growth chart + green-highlight on winner per metric
 - **Forward-looking signals** — skill consistency (rolling alpha), capture ratios, regime stress-test performance, worst-case drawdown analysis
-- **10 market regimes** — how each fund performed during COVID crash, 2022-24 bull run, H2 2025 rally, US-Iran war, post-war recovery, etc. with a "+ Compare" picker to benchmark against any other fund
+- **8 market regimes** — how each fund performed during the COVID crash, the 2022-24 bull run, the 2025 recovery rally, the 2026 correction, etc. with a "+ Compare" picker to benchmark against any other fund
 - **Verdict system** — automated plain-English assessment per fund (green/amber/red) based on quantitative signals, not opinion
 - **Portfolio moves scoring** — tracks what each fund added and exited, then scores how those moves performed post-change (smart moves vs questionable moves)
 - **Management quality** — manager track record across all their funds, median alpha, and category beat rate
@@ -50,8 +50,14 @@ All analytics are pre-computed offline and shipped as static JSON:
 | `pipeline/compute_rankings.py` | Within-category percentile rankings |
 | `pipeline/refresh.py` | Orchestrates daily NAV updates |
 
-### Market Regimes (10 total)
-COVID crash, post-COVID rally, 2021 consolidation, 2022 correction, 2022-24 bull run, mid-cap correction (Oct 2024), H2 2025 rally, US-Iran war, post-war recovery, plus auto-detected recent regimes.
+### Market Regimes (8 total)
+COVID crash, COVID recovery, 2022 correction, 2022-24 bull run, 2024-25 correction, 2025 recovery rally,
+2026 correction, post-correction drift, plus auto-detected recent regimes.
+
+Every regime must clear a magnitude bar (at least an 8% net index move or an 8% drawdown within the
+window) and its `market` label must match what the benchmark actually did. `detect_regimes.py` fails the
+build otherwise, so short non-events and mislabelled windows cannot ship. A deliberately flat, choppy
+stretch is labelled `mixed` and is exempt from the magnitude bar.
 
 ## Build Pipeline
 

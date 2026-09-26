@@ -2,7 +2,7 @@
 Auto-detect market regimes from Nifty 50 index fund NAV data.
 ==============================================================
 Analyses the NAV of a Nifty 50 index fund to identify bull/bear/correction
-phases automatically. Historical events (COVID, Liberation Day, etc.) are
+phases automatically. Historical events (COVID, the 2026 correction, etc.) are
 annotated with human-readable names; recent phases get auto-generated names.
 
 Output: src/data/regimes.json
@@ -76,45 +76,27 @@ KNOWN_REGIMES = [
         "desc": "Heavy FII outflows and stretched valuations drove a domestic correction before the global shocks of 2025."
     },
     {
-        "name": "Liberation Day tariff shock",
-        "start": "2025-04-01", "end": "2025-04-22",
-        "market": "down", "auto": False,
-        "desc": "Trump's 'Liberation Day' tariffs (Apr 2) triggered the year's sharpest crash. Nifty fell 3.24% on Apr 7 alone."
-    },
-    {
-        "name": "Tariff-pause recovery",
-        "start": "2025-04-23", "end": "2025-05-30",
+        "name": "2025 recovery rally",
+        "start": "2025-04-01", "end": "2026-01-02",
         "market": "up", "auto": False,
-        "desc": "A sharp V-shaped rebound after the 90-day tariff pause announcement. Markets recovered to pre-Liberation Day levels."
+        "desc": "A long climb out of the 2024-25 correction. Trump's April tariffs and the 90-day pause caused only a brief wobble in India, and strong domestic flows carried the Nifty 50 about 15% higher to an all-time high on 2 January 2026."
     },
     {
-        "name": "H2 2025 rally",
-        "start": "2025-06-01", "end": "2025-11-28",
-        "market": "up", "auto": False,
-        "desc": "Post-tariff recovery extended through H2 2025, with Nifty reaching all-time highs by November. Strong DII flows and robust domestic earnings drove a broad rally."
-    },
-    {
-        "name": "US-Iran war",
-        "start": "2026-02-25", "end": "2026-03-31",
+        "name": "2026 correction",
+        "start": "2026-01-03", "end": "2026-03-31",
         "market": "down", "auto": False,
-        "desc": "US military strikes on Iran in late February 2026 triggered a sharp selloff. Crude surged above $95, FII selling intensified, and Nifty fell ~12% in five weeks."
+        "desc": "A peak-to-trough fall of about 15% from the January high. Stretched valuations unwound through January and February, then US strikes on Iran in late February accelerated the selloff as crude spiked above $95 and foreign selling intensified."
     },
     {
-        "name": "Post-war recovery",
-        "start": "2026-04-01", "end": "2026-06-25",
-        "market": "up", "auto": False,
-        "desc": "Strong April rebound on ceasefire signals and cooling oil prices. Markets recovered about half the war-driven losses by mid-June."
-    },
-    {
-        "name": "Mid-2026 consolidation",
-        "start": "2026-06-26", "end": "2026-09-24",
-        "market": "down", "auto": False,
-        "desc": "A soft, range-bound stretch. The Nifty 50 briefly bounced about 3% into an early-August high, then drifted to fresh lows by late September, ending roughly 4% below June and still around 12% under its November 2025 peak."
+        "name": "Post-correction drift",
+        "start": "2026-04-01", "end": "2026-09-25",
+        "market": "mixed", "auto": False,
+        "desc": "A rebound that stalled. Markets recovered through the second quarter on ceasefire signals and cooling crude, then gave much of it back and drifted sideways into late September, finishing about 3% above where April began and still roughly 11% under the January peak."
     },
 ]
 
 # After this date, regimes are auto-detected from NAV data
-AUTO_DETECT_FROM = "2026-09-25"
+AUTO_DETECT_FROM = "2026-09-26"
 
 
 def load_nav(code):
@@ -222,6 +204,43 @@ def detect_phases(nav_points, from_date):
     return result
 
 
+MIN_NET_MOVE = 8.0        # a regime must move the index at least this much (%)
+MIN_DRAWDOWN = -8.0       # ...or draw down at least this much (%) within the window
+
+
+def validate_regimes(regimes, nav_points):
+    """Reject regimes that are too small to carry signal, or whose `market` label
+    contradicts what the benchmark actually did. A 'mixed' regime is exempt from
+    the magnitude bar, because flat-and-choppy is the point of that label.
+
+    Returns a list of error strings (empty == all good)."""
+    pts = dict(nav_points)
+    keys = sorted(pts)
+    errors = []
+    for r in regimes:
+        seg = [pts[k] for k in keys if r["start"] <= k <= r["end"]]
+        if len(seg) < 2:
+            errors.append(f"{r['name']}: fewer than 2 NAV points in window")
+            continue
+        net = (seg[-1] / seg[0] - 1) * 100
+        peak = seg[0]
+        dd = 0.0
+        for v in seg:
+            peak = max(peak, v)
+            dd = min(dd, (v / peak - 1) * 100)
+        mkt = r.get("market")
+        if mkt == "down" and net > 0:
+            errors.append(f"{r['name']}: labelled 'down' but index rose {net:+.1f}%")
+        if mkt == "up" and net < 0:
+            errors.append(f"{r['name']}: labelled 'up' but index fell {net:+.1f}%")
+        if mkt != "mixed" and abs(net) < MIN_NET_MOVE and dd > MIN_DRAWDOWN:
+            errors.append(
+                f"{r['name']}: too small to be a regime (net {net:+.1f}%, maxDD {dd:.1f}%) "
+                f"- needs |net| >= {MIN_NET_MOVE}% or maxDD <= {MIN_DRAWDOWN}%, or label it 'mixed'"
+            )
+    return errors
+
+
 def main():
     dry_run = "--dry-run" in sys.argv
 
@@ -256,6 +275,15 @@ def main():
 
     # Sort by start date
     all_regimes.sort(key=lambda r: r["start"])
+
+    # Guard: no undersized regimes, no label that contradicts the index
+    errors = validate_regimes(all_regimes, nav_points)
+    if errors:
+        print("\nREGIME VALIDATION FAILED:")
+        for e in errors:
+            print(f"  - {e}")
+        sys.exit(1)
+    print("\nRegime validation passed (magnitude + label direction).")
 
     print(f"\nRegimes ({len(all_regimes)} total):")
     for r in all_regimes:
