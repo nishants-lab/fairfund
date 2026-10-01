@@ -103,7 +103,7 @@ class PublishingContractTests(unittest.TestCase):
     def test_release_gate_includes_new_private_local_feature_journeys(self):
         runner = (ROOT / 'scripts/check_release.mjs').read_text(encoding='utf-8')
         for journey in ('saved-comparisons-browser.mjs', 'portfolio-import-browser.mjs',
-                        'fund-changes-browser.mjs', 'usage-browser.cjs', 'reliability-browser.mjs'):
+                        'fund-changes-browser.mjs', 'usage-browser.cjs', 'reliability-browser.mjs', 'dated-ranking-browser.mjs'):
             self.assertIn(journey, runner)
             self.assertTrue((ROOT / 'tests' / journey).is_file())
 

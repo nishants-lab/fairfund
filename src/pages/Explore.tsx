@@ -9,7 +9,7 @@ import FundLandscape from '../components/FundLandscape'
 import WishlistButton from '../components/WishlistButton'
 import ShareButton from '../components/ShareButton'
 import type { Horizon, Fund } from '../types'
-import { computeDebtRanks } from '../lib/debtVerdict'
+import RankingPeriod from '../components/RankingPeriod'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
 type SortDir = 'asc' | 'desc'
@@ -127,11 +127,6 @@ export default function Explore() {
 
   const baseFunds = fundsByCategory(cat)
   const summary = data.categories[cat]
-  const debtRanks = useMemo(
-    () => isDebtCat ? computeDebtRanks(baseFunds, cat === 'Arbitrage', horizon) : new Map<number, { rank: number; count: number; score: number | null }>(),
-    [baseFunds, isDebtCat, cat, horizon],
-  )
-
   // Category median/best CAGR for the SELECTED horizon, so the summary bar labels
   // and values follow the toggle and never disagree with it.
   const horizonStats = useMemo(() => {
@@ -161,10 +156,9 @@ export default function Explore() {
       ? arr.filter((f) => f.name.toLowerCase().includes(q) || f.amc.toLowerCase().includes(q))
       : arr
     const getVal = (f: Fund): number | string => {
-      const m = f.metrics[horizon]
+      const m = f.dataQuality?.status === 'quarantined' ? undefined : f.metrics[horizon]
       switch (sortKey) {
         case 'rank':
-          if (isDebtCat) return debtRanks.get(f.code)?.rank ?? 9999
           return m?.catRank ?? 9999
         case 'name':
           return f.name.toLowerCase()
@@ -192,10 +186,8 @@ export default function Explore() {
     }
     base.sort((a, b) => {
       // Funds with no data for the selected horizon always sink to the bottom.
-      // Debt composite ranks are horizon-aware too, so a young fund shown as
-      // "too new for a {horizon} rank" is never sorted above ranked peers.
-      const ma = a.metrics[horizon]
-      const mb = b.metrics[horizon]
+      const ma = a.dataQuality?.status === 'quarantined' ? undefined : a.metrics[horizon]
+      const mb = b.dataQuality?.status === 'quarantined' ? undefined : b.metrics[horizon]
       if (!ma && !mb) return 0
       if (!ma) return 1
       if (!mb) return -1
@@ -210,7 +202,7 @@ export default function Explore() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return base
-  }, [baseFunds, horizon, sortKey, sortDir, debtRanks, query])
+  }, [baseFunds, horizon, sortKey, sortDir, query])
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -362,9 +354,9 @@ export default function Explore() {
             </thead>
             <tbody>
               {funds.map((f) => {
-                const m = f.metrics[horizon]
+                const m = f.dataQuality?.status === 'quarantined' ? undefined : f.metrics[horizon]
                 if (!m) {
-                  const si = f.si
+                  const si = f.dataQuality?.status === 'quarantined' ? undefined : f.si
                   const launched = f.inceptionDate
                     ? new Date(f.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
                     : null
@@ -375,9 +367,7 @@ export default function Explore() {
                       className="cursor-pointer border-b border-line text-faint transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
                     >
                       <td className="px-4 py-3">
-                        {f.isYoung ? (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">NEW</span>
-                        ) : '—'}
+                        <RankingPeriod fund={f} horizon={horizon} compact />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
@@ -388,13 +378,13 @@ export default function Explore() {
                           </div>
                         </div>
                       </td>
-                      {f.isYoung && si ? (
+                      {si ? (
                         <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-right text-xs">
                           <span className="font-semibold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}% since launch</span>
-                          {launched && <span className="text-faint"> · new fund, launched {launched}, too new for a {horizon} rank</span>}
+                          {launched && <span className="text-faint"> · since {launched}; current matched {horizon} period unavailable</span>}
                         </td>
                       ) : (
-                        <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-center text-xs">Insufficient {horizon} data</td>
+                        <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-center text-xs">Current matched {horizon} period unavailable</td>
                       )}
                     </tr>
                   )
@@ -406,16 +396,7 @@ export default function Explore() {
                     className="cursor-pointer border-b border-line transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
                   >
                     <td className="px-4 py-3">
-                      {(() => {
-                        const rank = isDebtCat ? (debtRanks.get(f.code)?.rank ?? m.catRank) : m.catRank
-                        return (
-                          <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                            rank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : rank <= 5 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-surface2 text-muted'
-                          }`}>
-                            {rank}
-                          </span>
-                        )
-                      })()}
+                      <RankingPeriod fund={f} horizon={horizon} compact />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

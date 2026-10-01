@@ -40,7 +40,23 @@ export default function Methodology() {
 
       <Section title="Available history and horizons">
         <p>
-          Fixed 1-year, 3-year and 5-year rankings require full calendar-year history and identical observed start and end dates within each category and horizon. A shared observation up to seven calendar days before an anniversary or snapshot anchor accommodates non-trading dates. Funds missing these endpoints remain browsable without that ranking. Interior gaps may still exist in source history.
+          Fixed 1-year, 3-year and 5-year rankings require full calendar-year history and identical observed
+          start and end dates within each category and horizon. The shared start is on or up to seven calendar
+          days before the full-period anniversary. Funds missing these endpoints remain browsable without that ranking.
+          Interior gaps may still exist in source history.
+        </p>
+        <p className="mt-2">
+          The category endpoint can lag by up to three published NAV dates. A published date is observed in more
+          than half of recent category histories with at least one year of data and 60 NAV observations;
+          if none meet that threshold, dates with the most observations are used. Among the latest four such
+          dates, we choose the endpoint covering the most of these histories, preferring the latest date
+          in a tie. Funds without that observation are excluded.
+        </p>
+        <p className="mt-2">
+          A fund's latest NAV must also be within seven calendar days of the dataset's validated NAV snapshot.
+          Stale funds are excluded from the current ranking. Any retained previous ranking is dated and shown
+          separately, never as a current rank. These checks use the dated dataset snapshot and do not establish
+          that it is up to date today.
         </p>
       </Section>
 
@@ -122,7 +138,7 @@ export default function Methodology() {
         <p>
           A one-sided t-test tests whether the fund's average monthly return above its category median is positive.
           It requires at least 36 paired monthly returns and non-zero variation in excess returns.
-          The fund page shows the existing t-statistic and sample count. Raw p-values and observation dates are
+          The test is not displayed on the fund page and is excluded from its composite score. Raw p-values and observation dates are
           unavailable in the current dataset; we do not recover a p-value from the rounded score input.
         </p>
         <p className="mt-2">
@@ -198,11 +214,16 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <Section title="Modeled outcome range">
+      <Section title="Historical-return simulation">
         <p>
-          A block-bootstrap Monte Carlo simulation (10,000 runs, 6-month blocks) models the range of
-          possible outcomes for a lumpsum or SIP investment over 1-10 years. Reports the 10th, 50th,
-          and 90th percentile. These are simulated outcomes under the stated assumptions. Actual returns can fall outside the displayed range.
+          We run 10,000 simulations by sampling the fund's historical monthly returns in six-month blocks,
+          using a fixed seed. The lower, median and higher simulated values are the 10th, 50th and 90th
+          percentiles of these simulations. They do not describe the probabilities of future results.
+          One-time investments and monthly SIP contributions can be simulated over 1, 3, 5 or 10 years.
+          SIP contributions are invested at the start of each month, and the total invested is shown separately.
+        </p>
+        <p className="mt-2">
+          These simulated values use the fund’s historical returns and do not predict future performance. Actual results may be lower or higher than the values shown.
         </p>
       </Section>
 

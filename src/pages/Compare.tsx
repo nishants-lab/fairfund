@@ -1,3 +1,4 @@
+import RankingPeriod from '../components/RankingPeriod'
 import { trackUsageEvent } from '../lib/usage'
 import SavedComparisons from '../components/SavedComparisons'
 import {summarizeMaterialDifferences} from '../lib/savedComparisons'
@@ -18,7 +19,13 @@ import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
 import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
-import type { Fund, NavPoint } from '../types'
+import type { Fund, NavPoint, Horizon } from '../types'
+
+function ScorePeriod({ fund, horizon }: { fund: Fund; horizon?: Horizon }) {
+  const metric = horizon ? fund.metrics[horizon] : undefined
+  if (!horizon || !metric?.windowStart || !metric.windowEnd) return <span className="text-xs text-faint">Score period unavailable</span>
+  return <span className="text-xs font-normal text-faint" title={`Score return period: ${metric.windowStart} to ${metric.windowEnd}`}>{horizon} score basis: {metric.windowStart} to {metric.windowEnd}</span>
+}
 
 // Up to 5 funds - 5 distinct, theme-safe series colors.
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
@@ -308,12 +315,14 @@ export default function Compare() {
   const winClass = 'rounded-md bg-emerald-100 px-2 py-0.5 dark:bg-emerald-700/50'
 
   // Overall verdicts for the final row (#18) - conviction score per fund.
-  const verdicts = useMemo(() => funds.map((f) => buildVerdict(f)), [funds])
+  const verdicts = useMemo(() => funds.map((f) =>
+    navIssues[f.code] || f.dataQuality?.status === 'quarantined' || usesReducedSurface(f)
+      || (!f.metrics['3Y'] && !f.metrics['5Y'] && !f.metrics['1Y']) ? null : buildVerdict(f)), [funds, navIssues])
   const verdictWinner = useMemo(() => {
     let best = -1
     let bestVal = -Infinity
     verdicts.forEach((v, i) => {
-      if (v.score > bestVal) {
+      if (v && v.score > bestVal) {
         bestVal = v.score
         best = i
       }
@@ -538,11 +547,11 @@ export default function Compare() {
                     Category Rank <span className="text-xs text-faint">(3Y baseline)</span>
                   </td>
                   {funds.map((f, i) => {
-                    const win = bestIdxBy((x) => x.metrics['3Y'] ? -x.metrics['3Y']!.catRank : null, 'high')
+                    const win = bestIdxBy((x) => !navIssues[x.code] && x.dataQuality?.status !== 'quarantined' && x.metrics['3Y'] ? -x.metrics['3Y']!.catRank : null, 'high')
                     return (
                       <td key={f.code} className="px-4 py-3 text-right text-muted">
                         <span className={i === win && funds.length > 1 ? winClass + ' font-semibold text-fg' : ''}>
-                          {f.metrics['3Y'] ? `#${f.metrics['3Y'].catRank} / ${f.categorySize}` : '—'}
+                          <RankingPeriod fund={f} horizon="3Y" compact withheld={!!navIssues[f.code]} />
                         </span>
                       </td>
                     )
@@ -650,6 +659,7 @@ export default function Compare() {
                             <div className="inline-flex flex-col items-end">
                               <span className="font-bold text-fg">{dv.score}/100</span>
                               <span className="text-xs text-faint">{dv.peerSet}</span>
+                              <ScorePeriod fund={f} horizon={dv.horizon} />
                             </div>
                           ) : (
                             <span className="text-sm text-faint">No score<span className="block text-xs">{dv.tier === 3 ? 'rate/credit data unavailable' : 'full-period return unavailable'}</span></span>
@@ -657,13 +667,14 @@ export default function Compare() {
                         </td>
                       )
                     }
-                    if (!f.metrics['3Y'] && !f.metrics['5Y'] && !f.metrics['1Y']) return <td key={f.code} className="px-4 py-3 text-right text-faint">No score</td>
                     const v = verdicts[i]
+                    if (!v) return <td key={f.code} className="px-4 py-3 text-right text-faint">No score</td>
                     const isWin = i === verdictWinner && funds.length > 1
                     return (
                       <td key={f.code} className="px-4 py-3 text-right align-top">
                         <div className={`inline-flex flex-col items-end ${isWin ? winClass : ''}`}>
                           <span className="font-bold text-fg">{v.score}/100</span>
+                          <ScorePeriod fund={f} horizon={f.metrics['3Y'] ? '3Y' : f.metrics['5Y'] ? '5Y' : '1Y'} />
                         </div>
                       </td>
                     )

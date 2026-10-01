@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Fund, NavPoint } from '../types'
-import { pct, signedPct, num, inr, fundSlug } from '../lib/format'
+import { pct, signedPct, num, inr, inrFull, fundSlug } from '../lib/format'
 import { rollingReturnsDistribution, deepestDrawdown, outcomeCone } from '../lib/forward'
 import { fmtDate, fmtMonth } from '../lib/metrics'
 import { funds, data, usesReducedSurface } from '../lib/data'
@@ -36,9 +36,9 @@ function zWords(z: number): string {
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface2/40 p-3">
+    <div className="min-w-0 rounded-xl border border-line bg-surface2/40 p-3">
       <div className="text-xs text-faint">{label}</div>
-      <div className={`mt-0.5 text-lg font-bold ${tone ?? 'text-fg'}`}>{value}</div>
+      <div className={`mt-0.5 break-words text-lg font-bold ${tone ?? 'text-fg'}`}>{value}</div>
       {sub && <div className="text-xs text-faint">{sub}</div>}
     </div>
   )
@@ -114,7 +114,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
   }, [fund.category])
 
   const hasAny =
-    a && (a.rankTrajectory || a.battingAverage || a.capture || a.alpha || a.meanReversion || a.regimes?.length)
+    a && (a.rankTrajectory || a.battingAverage || a.capture || a.meanReversion || a.regimes?.length)
   const navAvailable = nav.length > 30
 
   if (usesReducedSurface(fund)) return null // forward analytics are not meaningful for cash-equivalent debt or fully-hedged arbitrage funds
@@ -219,31 +219,6 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           </div>
         )}
 
-        {a?.alpha && (
-          <details className="card p-4">
-            <summary className="cursor-pointer font-semibold text-fg">Monthly excess-return test</summary>
-            <p className="mt-2 text-xs text-muted">
-              Tests whether the fund's average monthly return above its category median is positive.
-              Based on {a.alpha.n} paired monthly returns.
-            </p>
-            {a.alpha.insufficient || a.alpha.tStat == null ? (
-              <p className="mt-2 text-sm text-muted">
-                Test unavailable. At least 36 paired monthly returns and non-zero variation in excess returns are required.
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-fg">t-statistic: {num(a.alpha.tStat)}</p>
-            )}
-            <p className="mt-2 text-xs text-muted">
-              This one-sided t-test assumes independent monthly observations and does not adjust for testing many funds.
-              It does not measure the probability of manager skill or future outperformance.
-            </p>
-            <p className="mt-2 text-xs text-faint">
-              Raw p-value and observation dates are unavailable in the current dataset.
-              The monthly excess-return test is excluded from the equity fund-page composite score.
-            </p>
-          </details>
-        )}
-
         {/* Capture ratios — suppress when values are misleading (negative, near-zero,
            or extreme), which indicates the fund doesn't correlate with its category
            median and the metric is not useful. */}
@@ -337,7 +312,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             Historical returns and simulations based on past monthly returns.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-faint">Holding period:</span>
               {[1, 3, 5, 10].map((h) => (
                 <button
@@ -374,7 +349,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           {/* SIP amount input (#10): editable, ₹5k–₹3L/mo, default ₹1L */}
           {invMode === 'sip' && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <label htmlFor="sip-amt" className="font-semibold text-faint">Monthly amount (₹):</label>
+              <label htmlFor="sip-amt" className="font-semibold text-faint">Monthly contribution (₹):</label>
               <input
                 id="sip-amt"
                 type="number"
@@ -408,44 +383,45 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                     depended on when you happened to enter.
                   </InfoTip>
                 </h4>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <Stat label="Worst" value={pct(rollDist.min)} sub={`${fmtMonth(rollDist.minStart)}–${fmtMonth(rollDist.minEnd)}`} tone="text-rose-600 dark:text-rose-400" />
                   <Stat label="Median" value={pct(rollDist.median)} sub="per year" />
                   <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}–${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <p className="mt-2 text-xs text-muted">
-                  Annualized returns over measured {horizon}-year periods, across {rollDist.n}{' '}
-                  windows. {rollDist.negPct > 0 ? `${rollDist.negPct.toFixed(0)}% of those windows lost money.` : 'No window lost money.'}
+                  {Math.round(rollDist.negPct * rollDist.n / 100)} of {rollDist.n} measured {horizon}-year periods lost money.
+                  Returns are annualized. Future periods can lose money.
                 </p>
               </div>
             )}
 
-            {/* Modeled outcome cone (#10 SIP-aware) */}
             {cone && (
-              <div className="card p-4">
-                <h4 className="flex items-center gap-1.5 font-semibold text-fg">
-                  Modeled {horizon}-year range
-                  <InfoTip width={285} label="About the modeled range">
-                    We run {cone.sims.toLocaleString('en-IN')} simulations that re-shuffle this fund's
-                    own past monthly returns in 6-month blocks, then see where your money lands after{' '}
-                    {horizon} years. Pessimistic / Median / Optimistic are the 10th, 50th and 90th
-                    percentiles of the simulations. The model uses {cone.history} monthly returns and a fixed seed.
-                    "×" is the multiple of money invested.
+              <div className="card min-w-0 p-4">
+                <h4 className="flex items-start gap-1.5 font-semibold text-fg">
+                  <span className="min-w-0">
+                    {inrFull(cone.mode === 'sip' ? clampSip(sipAmount) : cone.invested)}{cone.mode === 'sip' ? ' monthly SIP' : ''} after {horizon} year{horizon === 1 ? '' : 's'}: historical-return simulation
+                  </span>
+                  <InfoTip width={285} label="About the historical-return simulation">
+                    We run {cone.sims.toLocaleString('en-IN')} simulations by sampling this fund's
+                    historical monthly returns in six-month blocks. Lower, median and higher values
+                    are the 10th, 50th and 90th percentiles of the simulated values.
+                    These percentiles describe the simulations, not the probabilities of future results.
+                    The model uses {cone.history} monthly returns and a fixed seed.
+                    {cone.mode === 'sip' && ' Each monthly contribution is invested at the start of the month.'}
                   </InfoTip>
                 </h4>
-                <p className="mt-1 text-xs text-muted">
-                  {cone.mode === 'sip'
-                    ? `Investing ${inr(clampSip(sipAmount))}/mo (${inr(cone.invested)} total over ${horizon}y) simulated outcomes:`
-                    : `Simulated outcomes for ${inr(cone.invested)} invested:`}
-                </p>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  <Stat label="Pessimistic" value={inr(cone.endP10)} sub={`${cone.p10.toFixed(2)}× · 10th %ile`} tone="text-rose-600 dark:text-rose-400" />
-                  <Stat label="Median" value={inr(cone.endP50)} sub={`${cone.p50.toFixed(2)}× · 50th %ile`} />
-                  <Stat label="Optimistic" value={inr(cone.endP90)} sub={`${cone.p90.toFixed(2)}× · 90th %ile`} tone="text-emerald-600 dark:text-emerald-400" />
+                {cone.mode === 'sip' && (
+                  <p className="mt-1 text-xs text-muted">
+                    Monthly contribution: {inrFull(clampSip(sipAmount))}. Total invested: {inrFull(cone.invested)} over {horizon} year{horizon === 1 ? '' : 's'}.
+                  </p>
+                )}
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <Stat label="Lower simulated value" value={inr(cone.endP10)} />
+                  <Stat label="Median simulated value" value={inr(cone.endP50)} />
+                  <Stat label="Higher simulated value" value={inr(cone.endP90)} />
                 </div>
-                <p className="mt-2 text-xs text-faint">
-                  Assumes the future resembles the past, which it may not.
-                  Actual returns can fall outside the displayed range. Not a guarantee.
+                <p className="mt-2 text-xs text-muted">
+                  These simulated values use the fund’s historical returns and do not predict future performance. Actual results may be lower or higher than the values shown.
                 </p>
               </div>
             )}

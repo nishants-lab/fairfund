@@ -30,18 +30,15 @@ test('owned copy omits probability-of-skill marketing and fixed-cutoff profile c
   }
 })
 
-test('monthly test uses existing statistic and sample count with missing-provenance disclosure', () => {
+test('monthly test is absent from the fund analytics while methodology retains its caveats', () => {
   const text = source('src/components/ForwardAnalytics.tsx')
-  const panel = text.slice(text.indexOf('{a?.alpha && ('), text.indexOf('{/* Capture ratios'))
-  assert.match(panel, /<details/)
-  assert.match(panel, /Monthly excess-return test/)
-  assert.match(panel, /num\(a.alpha.tStat\)/)
-  assert.match(panel, /a.alpha.n/)
-  assert.match(panel, /independent monthly observations/)
-  assert.match(panel, /does not adjust for testing many funds/)
-  assert.match(panel, /Raw p-value and observation dates are unavailable/)
-  assert.match(panel, /36 paired monthly returns and non-zero variation/)
-  assert.doesNotMatch(panel, /alpha.confidence|Spectrum|Math.round/)
+  assert.doesNotMatch(text, /Monthly excess-return test|a\?\.alpha|a\.alpha/)
+  const methodology = source('src/pages/Methodology.tsx')
+  assert.match(methodology, /independent monthly observations/)
+  assert.match(methodology, /does not adjust\s+for testing many funds/)
+  assert.match(methodology, /Raw p-values and observation dates are\s+unavailable/)
+  assert.match(methodology, /36 paired monthly returns and non-zero variation/)
+  assert.match(methodology, /not displayed on the fund page and is excluded from its composite score/)
 })
 
 test('consistency explains overlap and comparisons omit the old test leaderboard', () => {
@@ -106,7 +103,7 @@ test('recent-return descriptions follow sign and simulations disclose out-of-ran
   const text = source('src/components/ForwardAnalytics.tsx')
   assert.match(text, /meanReversion.z > 0 && ' The latest 1-year return is above/)
   assert.match(text, /meanReversion.z < 0 && ' The latest 1-year return is below/)
-  assert.match(text, /Actual returns can fall outside the displayed range/)
+  assert.match(text, /Actual results may be lower or higher than the values shown/)
   assert.doesNotMatch(text, /returns tend to revert|Hot streaks tend to|mean-reversion can cut both ways/)
 })
 
@@ -138,7 +135,7 @@ test('relocated metric definitions stay in tooltips without hiding data warnings
     ['src/pages/Compare.tsx', 'About consistency', /overlapping 3Y periods beating category median/],
     ['src/pages/CategoryDetail.tsx', 'About category consistency', /periods overlap, so the observations are related/],
     ['src/components/PortfolioMoves.tsx', 'About portfolio changes', /unweighted price-direction count/],
-    ['src/components/ForwardAnalytics.tsx', 'About the modeled range', /fixed seed/],
+    ['src/components/ForwardAnalytics.tsx', 'About the historical-return simulation', /fixed seed/],
   ] as const) {
     const text = source(path)
     const tooltip = [...text.matchAll(/<InfoTip\b[^>]*>[\s\S]*?<\/InfoTip>/g)]
@@ -148,7 +145,7 @@ test('relocated metric definitions stay in tooltips without hiding data warnings
   const visible = (path: string) => source(path).replace(/<InfoTip\b[^>]*>[\s\S]*?<\/InfoTip>/g, '')
   const analytics = visible('src/components/ForwardAnalytics.tsx')
   assert.match(analytics, /Limited history:/)
-  assert.match(analytics, /Actual returns can fall outside the displayed range/)
+  assert.match(analytics, /Actual results may be lower or higher than the values shown/)
   assert.match(analytics, /fmtDate\(dd.peakDate\)/)
   const moves = visible('src/components/PortfolioMoves.tsx')
   assert.match(moves, /fmtMonth\(moves.fromDate\)/)
@@ -176,4 +173,19 @@ test('account and dashboard copy makes no unsupported sync or alert promises', (
  assert.doesNotMatch(source('src/pages/MyDashboard.tsx'),/Deep diagnostics|more insight than you think|coming soon/)
  assert.doesNotMatch(source('src/pages/Wishlist.tsx'),/sync across devices|coming soon/)
  assert.match(source('src/pages/Wishlist.tsx'),/Clearing site data removes your saved funds/)
+})
+
+
+test('ranking methodology discloses publication delay bounds and separates dated previous ranks', () => {
+  const text = source('src/pages/Methodology.tsx').replace(/\s+/g, ' ')
+  assert.match(text, /full calendar-year history and identical observed start and end dates/)
+  assert.match(text, /up to three published NAV dates/)
+  assert.match(text, /more than half of recent category histories with at least one year of data and 60 NAV observations/)
+  assert.match(text, /dates with the most observations/)
+  assert.match(text, /latest four such dates/)
+  assert.match(text, /preferring the latest date in a tie/)
+  assert.match(text, /within seven calendar days of the dataset's validated NAV snapshot/)
+  assert.match(text, /Stale funds are excluded from the current ranking/)
+  assert.match(text, /previous ranking is dated and shown separately, never as a current rank/)
+  assert.match(text, /do not establish that it is up to date today/)
 })

@@ -20,12 +20,13 @@ import json
 import sys
 import os
 from math import log, exp, isfinite
+from datetime import date, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
-from market_date import ist_today
+from market_date import ist_today, is_usable_nav_date
 
 
 # The 6 metrics used in the composite score (all higher = better).
@@ -73,6 +74,55 @@ def finite_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
 
 
+def validated_previous_metrics(value, horizon, category):
+    required = ["cagr"] if category in DEBT_CATS | ARBITRAGE_CATS else SCORE_METRICS
+    if not isinstance(value, dict) or not all(finite_number(value.get(key)) for key in required):
+        return None
+    start, end = value.get("windowStart"), value.get("windowEnd")
+    if not is_usable_nav_date(start) or not is_usable_nav_date(end) or start >= end:
+        return None
+    end_date = date.fromisoformat(end)
+    if end_date.year <= int(horizon[0]):
+        return None
+    try:
+        target = end_date.replace(year=end_date.year - int(horizon[0]))
+    except ValueError:
+        target = end_date.replace(year=end_date.year - int(horizon[0]), day=28)
+    if not target - timedelta(days=7) <= date.fromisoformat(start) <= target:
+        return None
+    if value.get("targetHorizon", horizon) != horizon or value.get("targetStart", target.isoformat()) != target.isoformat():
+        return None
+    for key in (*SCORE_METRICS, "volatility", "catMedianCagr"):
+        if key in value and value[key] is not None and not finite_number(value[key]):
+            return None
+    rank, size, score = (value.get(key) for key in ("catRank", "catSize", "score"))
+    if (type(rank) is not int or type(size) is not int or not 1 <= rank <= size
+            or not finite_number(score) or not 0 <= score <= 1):
+        return None
+    return dict(value)
+
+
+def retain_previous_rankings(fund, current_metrics):
+    if (fund.get("dataQuality") or {}).get("status") == "quarantined":
+        fund.pop("previousRankings", None)
+        return
+    previous = fund.get("previousRankings") or {}
+    old_metrics = fund.get("metrics") or {}
+    retained = {}
+    for horizon in HORIZONS:
+        if horizon in current_metrics:
+            continue
+        candidates = [validated_previous_metrics(source.get(horizon), horizon, fund.get("category"))
+                      for source in (previous, old_metrics) if isinstance(source, dict)]
+        valid = [candidate for candidate in candidates if candidate is not None]
+        if valid:
+            retained[horizon] = max(valid, key=lambda candidate: candidate["windowEnd"])
+    if retained:
+        fund["previousRankings"] = retained
+    else:
+        fund.pop("previousRankings", None)
+
+
 def ter_of(fund):
     value = fund.get("expenseRatio")
     if isinstance(value, str):
@@ -113,6 +163,10 @@ def recompute_rankings(data, dry_run=False):
     """Recompute catRank and score for all funds, all horizons."""
     funds = data["funds"]
     changes = {"rank_changes": 0, "score_changes": 0, "funds_ranked": 0}
+    for fund in funds:
+        if (fund.get("dataQuality") or {}).get("status") == "quarantined":
+            fund["metrics"] = {}
+        retain_previous_rankings(fund, fund.get("metrics") or {})
 
     for horizon in HORIZONS:
         # Group funds by category (only those with this horizon's metrics)

@@ -87,6 +87,18 @@ class QuarantineTests(unittest.TestCase):
         self.assertEqual(self.run_mode("--apply"), 0)
         self.assertEqual(after, self.snapshot())
 
+    def test_hold_clears_historical_rankings_from_index_and_detail(self):
+        for path in (self.index, self.details / "101.json"):
+            data = self.read(path)
+            record = data["funds"][0] if path == self.index else data
+            record["previousRankings"] = {"3Y": {"catRank": 1, "catSize": 10}}
+            self.write(path, data)
+        self.make_jump()
+        self.assertEqual(self.run_mode("--check"), 1)
+        self.assertEqual(self.run_mode("--apply"), 0)
+        self.assertNotIn("previousRankings", self.read(self.index)["funds"][0])
+        self.assertNotIn("previousRankings", self.read(self.details / "101.json"))
+
     def test_normal_data_and_metadata_are_byte_identical(self):
         self.write(self.nav / "_manifest.json", {"generated": TODAY})
         before = self.snapshot()
