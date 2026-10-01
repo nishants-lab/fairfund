@@ -4,6 +4,16 @@
 
 /* ============ Theme tokens (RGB triplets for Tailwind alpha) ============ */
 :root {
+  --brand-50: 239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+  --brand-300: 147 197 253;
+  --brand-400: 96 165 250;
+  --brand-500: 59 130 246;
+  --brand-600: 37 99 235;
+  --brand-700: 29 78 216;
+  --brand-800: 30 64 175;
+  --brand-900: 30 58 138;
   --canvas: 248 250 252;     /* slate-50  */
   --surface: 255 255 255;    /* white     */
   --surface2: 241 245 249;   /* slate-100 */
@@ -25,12 +35,35 @@
   color-scheme: dark;
 }
 
+/* Palette primitives are selected once by public/palette.js before React starts.
+   Semantic category, gain/loss and warning colors intentionally stay unchanged. */
+:root[data-palette] {
+  --canvas: var(--palette-light-canvas);
+  --surface: var(--palette-light-surface);
+  --surface2: var(--palette-light-surface2);
+  --wash: var(--palette-light-wash);
+  --text-base: var(--palette-light-fg);
+  --text-muted: var(--palette-light-muted);
+  --text-faint: var(--palette-light-faint);
+  --line: var(--palette-light-line);
+}
+:root[data-palette].dark {
+  --canvas: var(--palette-dark-canvas);
+  --surface: var(--palette-dark-surface);
+  --surface2: var(--palette-dark-surface2);
+  --wash: var(--palette-dark-wash);
+  --text-base: var(--palette-dark-fg);
+  --text-muted: var(--palette-dark-muted);
+  --text-faint: var(--palette-dark-faint);
+  --line: var(--palette-dark-line);
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-canvas text-base antialiased;
+  @apply bg-canvas text-fg antialiased;
   margin: 0;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1, 'cv02', 'cv03', 'cv04', 'cv11', 'ss01' 1;
@@ -185,7 +218,7 @@ input[type='range']::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #2563eb;
+  background: rgb(var(--brand-600, 37 99 235));
   cursor: pointer;
   border: 2px solid rgb(var(--surface));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -194,7 +227,7 @@ input[type='range']::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #2563eb;
+  background: rgb(var(--brand-600, 37 99 235));
   cursor: pointer;
   border: 2px solid rgb(var(--surface));
 }
