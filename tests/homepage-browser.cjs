@@ -26,15 +26,19 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${name}: overflow`);
    const text=await page.locator('main').innerText();
    assert.doesNotMatch(text,/skill|luck|superpower|batting average|scientific|identical dates|stored CAGR|stored \dY/i);
-   assert.equal(await page.getByText('Top 3 by 5Y return',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Top 3 by 5Y return',{exact:true}).count(),2);
    assert.equal(await page.getByText('Lower NAV volatility',{exact:true}).count(),3);
-   assert.equal(await page.getByText('Broader fund choice',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Broader fund choice',{exact:true}).count(),0);
+   assert.equal(await page.getByText('Top 3 by 3Y return',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Top 3 by 3Y & 5Y return',{exact:true}).count(),0);
    assert.equal(await page.locator('[data-category-card]').count(),20);
-   assert.equal(await page.locator('[data-category-badge]').count(),9);
+   assert.equal(await page.locator('[data-category-badge]').count(),8);
    for(const [category, label, expected] of [
      ['Index - Mid Cap','Top 3 by 5Y return',/3 eligible funds \(small sample\)/],
      ['Liquid','Lower NAV volatility',/credit or liquidity risk/],
-     ['Sectoral \/ Thematic','Broader fund choice',/244 funds/],
+     ['International / Global','Top 3 by 3Y return',/26.74%/],
+     ['Index - Other','Top 3 by 3Y return',/16.10%/],
+     ['Mid Cap','Top 3 by 3Y return',/3-year annualised returns: 15.68%/],
    ]) {
      const button=page.getByRole('button',{name:`About ${category}: ${label}`,exact:true});
      await button.scrollIntoViewIfNeeded();
