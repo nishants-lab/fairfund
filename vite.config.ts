@@ -52,7 +52,7 @@ export default defineConfig({
         // those paths too, so a shared /f/<code>/ link opens blank for anyone
         // who already has the service worker (every repeat visitor). Denylisting
         // them lets the navigation hit the network and load the real shell,
-        // which then redirects into the hash route.
+        // which keeps its public URL and links explicitly into the hash app.
         navigateFallbackDenylist: [/\/(f|s|c)\//],
         // Exclude the massive per-fund JSON data from precache
         globIgnores: [
