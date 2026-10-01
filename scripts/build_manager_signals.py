@@ -295,37 +295,36 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
     if n < 3:
         if not tr["usedOtherFunds"]:
             return ("Limited evidence",
-                    "These managers run only this fund in our universe, so there's no independent cross-fund track record to judge yet.")
+                    "The data covers only this fund for these managers. A comparison with other covered funds is unavailable.")
         return ("Limited evidence",
-                f"Only {n} other fund(s) by these managers are in our universe, too small a sample to judge skill reliably (median alpha {ma:+.1f}%/yr).")
+                f"The data covers {n} other funds run by these managers. Their median return difference against category peers is {ma * 100:+.0f} bps per year; coverage is limited.")
 
     # ---- Determine the BASE signal from cross-fund record ----
     if ma >= 2 and beat >= 0.6:
         base_signal = "Strong"
-        base_note = f"Across {n} funds these managers run, the median peer-relative alpha is {ma:+.1f}%/yr and {int(beat*100)}% beat their category."
+        base_note = f"Across {n} other covered funds, the median return difference against category peers is {ma * 100:+.0f} bps per year; {int(beat*100)}% had a positive return difference."
     elif ma > 0 and beat >= 0.5:
         base_signal = "Solid"
-        base_note = f"Across {n} funds, median alpha {ma:+.1f}%/yr with {int(beat*100)}% beating their category."
+        base_note = f"Across {n} other covered funds, the median return difference against category peers is {ma * 100:+.0f} bps per year; {int(beat*100)}% had a positive return difference."
     else:
         base_signal = "Mixed"
-        base_note = f"Across {n} funds, median alpha {ma:+.1f}%/yr and {int(beat*100)}% beat their category, an inconsistent record."
+        base_note = f"Across {n} other covered funds, the median return difference against category peers is {ma * 100:+.0f} bps per year; {int(beat*100)}% had a positive return difference."
 
     # ---- Apply tenure-window overlay (the new lens) ----
     if lead_tenure_yrs is not None and lead_tenure_yrs < MIN_TENURE_YEARS:
         # SHORT TENURE: too early to attribute anything to this manager.
         months_str = f"{int(lead_tenure_yrs * 12)} months" if lead_tenure_yrs < 1 else f"{lead_tenure_yrs:.1f} yrs"
-        caveat = f" However, the lead manager has been here only {months_str}, too early to attribute this fund's recent performance to them."
+        caveat = f" The tenure used for the history threshold is {months_str}. This is a short observation period."
         if tenure_perf:
             tp = tenure_perf
             if tp["alpha"] > 5:
-                caveat += (f" The fund returned {tp['fundReturn']:+.1f}% since they joined "
-                           f"(category median {tp['categoryReturn']:+.1f}%), looks good, but "
-                           f"a {tp['months']}-month window can't distinguish skill from market timing.")
+                caveat += (f" Since the lead manager joined, the fund returned {tp['fundReturn']:+.1f}% "
+                           f"against {tp['categoryReturn']:+.1f}% for the category comparison "
+                           f"over {tp['months']} months.")
             elif tp["alpha"] < -5:
-                caveat += (f" The fund returned {tp['fundReturn']:+.1f}% since they joined "
-                           f"(category median {tp['categoryReturn']:+.1f}%), an early concern, "
-                           f"though {tp['months']} months isn't enough to judge conclusively. "
-                           f"{'The whole category fell similarly.' if tp['categoryReturn'] < -5 else 'The category did better, suggesting fund-specific weakness.'}")
+                caveat += (f" Since the lead manager joined, the fund returned {tp['fundReturn']:+.1f}% "
+                           f"against {tp['categoryReturn']:+.1f}% for the category comparison "
+                           f"over {tp['months']} months. These figures do not identify the cause of the performance gap.")
         # Signal stays at its base level but with a clear caveat
         return (base_signal + " *", base_note + caveat)
 
@@ -341,34 +340,33 @@ def classify(tr, avg_tenure, tenure_perf, lead_tenure_yrs):
                     # STRONGEST caution: category thrived but fund didn't. This is
                     # NOT macro, it's management-specific underperformance.
                     downgrade_note = (
-                        f" CAUTION: since the current lead manager took over ({tp['months']} months ago), "
-                        f"this fund returned {tp['fundReturn']:+.1f}% while the category median returned "
-                        f"{tp['categoryReturn']:+.1f}%. The category did well but this fund didn't, "
-                        f"this points to fund-specific issues under the current management, not macro headwinds."
+                        f" Over the {tp['months']}-month tenure period, the fund returned {tp['fundReturn']:+.1f}% "
+                        f"and the category comparison returned {tp['categoryReturn']:+.1f}%. "
+                        f"These figures describe the performance gap; they do not identify its cause."
                     )
                 else:
                     downgrade_note = (
-                        f" But since the current lead manager took over ({tp['months']} months ago), "
-                        f"this fund returned {tp['fundReturn']:+.1f}% vs the category median's "
-                        f"{tp['categoryReturn']:+.1f}%, a {tp['alpha']:+.1f}% gap. "
-                        f"{'The category also struggled (macro headwinds), but this fund fared worse.' if tp['categoryReturn'] < 0 else 'The category did fine; this fund lagged, the cross-fund record may not be translating here.'}"
+                        f" Over the {tp['months']}-month tenure period, the fund returned {tp['fundReturn']:+.1f}% "
+                        f"and the category comparison returned {tp['categoryReturn']:+.1f}%, "
+                        f"a return difference of {tp['alpha'] * 100:+.0f} bps. "
+                        f"These figures describe the performance gap; they do not identify its cause."
                     )
                 return ("Mixed", base_note + downgrade_note)
             # Already Mixed or worse, add context with the category-up-fund-down flag
-            addendum = (f" Since the current manager took over ({tp['months']} months), "
-                        f"alpha vs category is {tp['alpha']:+.1f}%.")
+            addendum = (f" During the current lead manager's {tp['months']}-month tenure, "
+                        f"the return difference against the category comparison was {tp['alpha'] * 100:+.0f} bps.")
             if tp.get("categoryUpFundDown"):
-                addendum += " Notably, the category performed well in this period but this fund lagged, a fund-specific concern."
+                addendum += " These figures describe the performance gap; they do not identify its cause."
             return (base_signal, base_note + addendum)
         elif tp["alpha"] > 3:
             # Positive alpha under this manager confirms the cross-fund signal.
-            confirm_note = (f" Confirmed at this fund: since the lead manager took over "
-                            f"({tp['months']} months), alpha vs the category is {tp['alpha']:+.1f}%.")
+            confirm_note = (f" During the current lead manager's {tp['months']}-month tenure, "
+                            f"the return difference against the category comparison was {tp['alpha'] * 100:+.0f} bps.")
             return (base_signal, base_note + confirm_note)
         else:
             # Alpha near zero, neutral, no modification.
-            neutral_note = (f" Under the current lead ({tp['months']} months), this fund has tracked "
-                            f"its category closely ({tp['alpha']:+.1f}% alpha).")
+            neutral_note = (f" During the current lead manager's {tp['months']}-month tenure, "
+                            f"the return difference against the category comparison was {tp['alpha'] * 100:+.0f} bps.")
             return (base_signal, base_note + neutral_note)
 
     return (base_signal, base_note)
@@ -460,22 +458,22 @@ for code, fund in fund_by_code.items():
             signal_key = "Mixed"
             months_new = int(min(t for t in tenures if t is not None and t < 1.0) * 12)
             fade_reasons = []
-            if is_fading: fade_reasons.append("rank is deteriorating")
-            if is_cold: fade_reasons.append("running cold vs its own norm")
-            if is_bottom_half: fade_reasons.append(f"ranked {m3y.get('catRank')}/{m3y.get('catSize')} in its category")
+            if is_fading: fade_reasons.append("category rank has declined over the measured rank-history period")
+            if is_cold: fade_reasons.append("latest 1-year return is below its historical average")
+            if is_bottom_half: fade_reasons.append(f"3Y category rank is {m3y.get('catRank')}/{m3y.get('catSize')}")
             note = (
                 f"{new_mgr_count} of {team_size} managers joined in the last year, "
-                f"effectively a new team. Since the change, the fund's {' and '.join(fade_reasons)}. "
-                f"Cross-fund record ({tr['medianAlpha']:+.1f}%/yr median alpha across {tr['funds']} funds) "
-                f"looks good on paper, but that record may be from passive/index mandates under these "
-                f"managers and may not transfer to this fund's active mandate. Too early to call, watch the next 6-12 months."
+                f"and the fund's {' and '.join(fade_reasons)}. "
+                f"Across {tr['funds']} other covered funds, the median return difference against category peers "
+                f"is {tr['medianAlpha'] * 100:+.0f} bps per year. "
+                f"These measures use their own observation periods and do not identify the cause of performance changes."
             )
     # Also: if effective tenure is short (team-level), add caveat even without fading signals
     elif team_recently_changed and signal_key in ("Strong", "Solid"):
         months_new = int(min(t for t in tenures if t is not None and t < 1.0) * 12)
-        note += (f" Note: {new_mgr_count} of {team_size} managers are new (< 1 year). "
-                 f"While the longest-serving manager has been here {lead_tenure:.1f} yrs, "
-                 f"this level of team turnover means the dynamics may have shifted. Watch for stability.")
+        note += (f" {new_mgr_count} of {team_size} managers joined in the last year. "
+                 f"The longest-serving manager's tenure is {lead_tenure:.1f} years. "
+                 f"Coverage and tenure dates can limit the comparison.")
 
     has_caveat = signal != signal_key or (team_recently_changed and signal_key != signal.rstrip(" *"))
 

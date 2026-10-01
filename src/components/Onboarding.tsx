@@ -4,31 +4,26 @@ import { useNavigate } from 'react-router-dom'
 const SEEN_KEY = 'ff-onboarded'
 
 interface Step {
-  emoji: string
   title: string
   body: string
 }
 
 const STEPS: Step[] = [
   {
-    emoji: '👋',
-    title: 'Welcome to FairFund',
-    body: 'A smarter, forward-looking way to research Indian mutual funds. We do the heavy number-crunching - backward-tested and probability-based - so you can make confident decisions. No finance degree needed.',
+    title: 'Find a mutual fund',
+    body: 'Search by fund name, AMC or category. Open a fund to review its performance history and available portfolio disclosures.',
   },
   {
-    emoji: '⚖️',
-    title: 'We compare funds fairly',
-    body: 'Other sites can make a fund look great by picking a flattering time period. We check every fund over the same timeframes and show whether the manager truly beat similar funds - not just got lucky with a good year.',
+    title: 'Compare with similar funds',
+    body: 'Add funds to a side-by-side comparison. Review their returns and risk, and check how much their disclosed holdings overlap.',
   },
   {
-    emoji: '🗓️',
-    title: 'Analyse any time period',
-    body: 'Want to see how a fund did in the last 6 months, or between two specific dates? Drag a slider or pick dates, and every number updates instantly. That flexibility is our superpower.',
+    title: 'Choose a date range',
+    body: 'Select dates to recalculate returns and risk from available NAV data. Category ranks and portfolio disclosures use their own reporting periods.',
   },
   {
-    emoji: '🔮',
-    title: 'Forward-looking, not just history',
-    body: 'Beyond past returns: how consistent the fund has been, whether its edge looks like skill or luck, how it cushions falls, and a modeled range for the years ahead.',
+    title: 'Review your portfolio',
+    body: 'Import a CAMS statement to see your fund allocation and available holdings overlap. The statement is processed in your browser. Fund coverage and matching can be incomplete.',
   },
 ]
 
@@ -41,8 +36,10 @@ export default function Onboarding() {
     // Only open when explicitly triggered via resetOnboarding (sets a flag)
     const trigger = sessionStorage.getItem('ff-show-tour')
     if (trigger) {
-      sessionStorage.removeItem('ff-show-tour')
-      const t = setTimeout(() => setOpen(true), 200)
+      const t = setTimeout(() => {
+        sessionStorage.removeItem('ff-show-tour')
+        setOpen(true)
+      }, 200)
       return () => clearTimeout(t)
     }
   }, [])
@@ -80,9 +77,7 @@ export default function Onboarding() {
         </div>
 
         <div className="px-6 pb-6 pt-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-4xl dark:bg-brand-900/30">
-            {s.emoji}
-          </div>
+          <p className="text-sm text-muted">Step {step + 1} of {STEPS.length}</p>
           <h2 className="mt-5 text-xl font-extrabold text-fg">{s.title}</h2>
           <p className="mt-2 text-muted">{s.body}</p>
 

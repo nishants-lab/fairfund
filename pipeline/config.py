@@ -1,4 +1,8 @@
 import re
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from market_date import ist_today, is_usable_nav_date
 """
 Shared configuration for FairFund pipeline.
 Single source of truth for category mappings, thresholds, and API settings.
@@ -235,8 +239,7 @@ def robust_latest_nav_date(nav_dir, today_iso=None, min_funds=MIN_ANCHOR_FUNDS):
     import glob as _glob
     import json as _json
     import os as _os
-    from datetime import date as _date
-    today_iso = today_iso or _date.today().isoformat()
+    today_iso = today_iso or ist_today()
     counts = {}
     for path in _glob.glob(_os.path.join(nav_dir, "*.json")):
         if "_manifest" in _os.path.basename(path):
@@ -247,11 +250,12 @@ def robust_latest_nav_date(nav_dir, today_iso=None, min_funds=MIN_ANCHOR_FUNDS):
         except Exception:
             continue
         dd = d.get("d")
-        if not dd:
+        if not isinstance(dd, list):
             continue
-        last = dd[-1]
-        if last > today_iso:  # invariant: never anchor on a future date
+        usable = [day for day in dd if is_usable_nav_date(day, today_iso)]
+        if not usable:
             continue
+        last = max(usable)
         counts[last] = counts.get(last, 0) + 1
     if not counts:
         return None

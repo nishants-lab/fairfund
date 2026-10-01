@@ -59,7 +59,7 @@ function head(title, desc, url, image, jsonld) {
 <meta property="og:image" content="${image}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
-<meta property="og:image:alt" content="FairFund - forward-looking mutual fund research for India"/>
+<meta property="og:image:alt" content="FairFund - Indian mutual fund research"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
@@ -120,7 +120,7 @@ for (const f of funds) {
   if (lead?.catRank && lead?.catSize) descBits.push(`Rank #${lead.catRank} of ${lead.catSize}`)
   if (lead?.cagr != null && leadWin) descBits.push(`${leadWin} CAGR ${lead.cagr.toFixed(1)}%`)
   if (lead?.alpha != null && leadWin) descBits.push(`alpha ${sign(lead.alpha)}%`)
-  const desc = `${descBits.join(' \u00b7 ')}. Forward-looking analysis, evidence not advice, on FairFund.`
+  const desc = `${descBits.join(' \u00b7 ')}. Mutual fund research on FairFund.`
   const title = `${f.name} - ${cat} | FairFund`
   const image = existsSync(join(DIST, 'og', `${f.code}.png`)) ? `${SITE}/og/${f.code}.png` : COVER_IMAGE
   const url = `${SITE}/f/${f.code}/`
@@ -159,7 +159,7 @@ for (const f of funds) {
 <table style="border-collapse:collapse;font-size:14px"><tbody>${rows.join('')}</tbody></table>`
     : ''
 
-  const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
+  const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(f.name)}</h1>
 <p style="font-size:15px;color:#475569;margin:0 0 20px">${subline}</p>
 <p style="font-size:16px">${leadSentence}</p>
@@ -184,16 +184,16 @@ const cats = Object.entries(data.categories ?? {})
 const catRows = cats.map(c =>
   `<tr><td style="padding:6px 16px 6px 0"><a href="${SITE}/c/${catSlug(c.key)}/" style="color:#2563eb">${esc(c.display)}</a></td><td style="padding:6px 16px 6px 0;text-align:right">${c.count}</td><td style="padding:6px 16px 6px 0;text-align:right">${c.median5Y != null ? c.median5Y.toFixed(1) + '%' : '-'}</td><td style="padding:6px 0;text-align:right">${c.top5Y != null ? c.top5Y.toFixed(1) + '%' : '-'}</td></tr>`
 ).join('')
-const exploreBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
+const exploreBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">Explore ${total} Indian mutual funds</h1>
-<p style="font-size:16px;margin:0 0 20px">Every fund scored within its own category over identical time windows, using peer-relative alpha, consistency and downside protection. No ads, no affiliate links, no sponsored rankings.${stockCov ? ` Stock-level holdings disclosed for ${stockCov} funds.` : ''}</p>
+<p style="font-size:16px;margin:0 0 20px">Browse Indian mutual funds by category and compare historical returns, risk and costs. Check the dates and available history before comparing results.${stockCov ? ` Stock-level holdings disclosed for ${stockCov} funds.` : ''}</p>
 <h2 style="font-size:18px;margin:24px 0 8px">Categories</h2>
 <table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Category</th><th style="text-align:right;padding:0 16px 6px 0">Funds</th><th style="text-align:right;padding:0 16px 6px 0">Median 5Y CAGR</th><th style="text-align:right;padding:0 0 6px 0">Best 5Y</th></tr></thead><tbody>${catRows}</tbody></table>
 <p style="margin-top:24px"><a href="${SHELL_UP}#/explore" style="color:#2563eb;font-weight:600">Open the full explorer &rarr;</a></p>
 <p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 
 function pageBody(h1, paras, hash) {
-  return `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
+  return `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 12px">${esc(h1)}</h1>
 ${paras.map(p => `<p style="font-size:16px;margin:0 0 14px">${p}</p>`).join('\n')}
 <p style="margin-top:20px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open it on FairFund &rarr;</a></p>
@@ -210,29 +210,31 @@ const moversBody = pageBody("Mutual fund movers", [
 ], '/movers')
 
 const compareBody = pageBody("Compare mutual funds side by side", [
-  `Put any two or more Indian mutual funds head to head over a shared custom period. FairFund computes CAGR, alpha versus the category median, Sharpe and Sortino ratios, maximum drawdown and a normalized growth chart, highlighting the winner on each metric.`,
-  `For equity funds it also shows holdings overlap, so you can see how much two funds actually duplicate each other before holding both.`,
+  `Select dates on a fund or comparison page to recalculate returns and risk from the available NAV data. Category ranks and portfolio disclosures use their own reporting periods.`,
+  `Compare monthly portfolio disclosures to review overlap in equity holdings.`,
 ], '/compare')
 
 const methodBody = pageBody("How FairFund works", [
-  `FairFund builds its universe from the authoritative AMFI scheme-category classification, then scores every fund over fixed, identical calendar windows (1Y, 3Y, 5Y) within its own category.`,
-  `Rankings use peer-relative alpha against the category median rather than raw returns, so a fund is credited for genuine skill, not for sitting in a category that happened to run hot. On top of the backward-looking metrics, each fund gets forward-looking signals: rolling-alpha consistency, up- and down-capture, regime stress tests across 10 real market periods, and worst-case drawdown and recovery.`,
-  `Holdings come from monthly portfolio disclosures with fund-of-fund look-through where available. Everything is research, not investment advice.`,
+  `FairFund compares mutual funds within their categories using NAV history and published portfolio data. This page explains the calculations, ranking rules and data limitations.`,
+  `Returns measured over different periods include different market conditions. A since-launch return can therefore give a different picture from a trailing 3-year return. Check the dates and available history before comparing results.`,
+  `Rankings compare funds within the same category. Categories can differ substantially in risk and investment strategy, so their ranks should be read separately.`,
+  `These analyses describe past returns across different periods and market conditions. Simulations reuse past monthly returns to illustrate outcomes under a specified model.`,
+  `Holdings come from monthly portfolio disclosures with fund-of-fund look-through where available. Data for research only, not investment advice.`,
 ], '/methodology')
 
 const pages = [
   ['s/explore', '/explore', `Explore ${total} funds - FairFund`,
-    `Filter and rank India's mutual funds by consistency, skill vs luck and downside protection. Evidence, not advice.`, exploreBody,
-    pageJsonld('Explore mutual funds', `Browse and rank ${total} Indian mutual funds by category.`, 's/explore/')],
+    `Browse Indian mutual funds by category and compare historical returns, risk and costs.`, exploreBody,
+    pageJsonld('Explore mutual funds', `Browse ${total} Indian mutual funds by category and compare historical returns, risk and costs.`, 's/explore/')],
   ['s/movers', '/movers', `Fund movers - FairFund`,
     `Asset, category-rank and return-momentum movers across ${total} Indian mutual funds on FairFund.`, moversBody,
     pageJsonld('Mutual fund movers', 'Funds moving fastest on assets, category rank and return momentum.', 's/movers/')],
   ['s/compare', '/compare', `Compare funds side by side - FairFund`,
-    `Compare Indian mutual funds on risk-adjusted return, alpha, drawdown and holdings overlap. Evidence, not advice.`, compareBody,
-    pageJsonld('Compare mutual funds', 'Compare Indian mutual funds side by side over a shared period.', 's/compare/')],
+    `Compare mutual funds over a selected period and review overlap in their disclosed holdings.`, compareBody,
+    pageJsonld('Compare mutual funds', 'Compare mutual funds over a selected period and review overlap in their disclosed holdings.', 's/compare/')],
   ['s/methodology', '/methodology', `Methodology - FairFund`,
-    `How FairFund scores funds: fixed-window backtests plus probability-based consistency, skill-vs-luck and downside signals.`, methodBody,
-    pageJsonld('FairFund methodology', 'How FairFund ranks and scores Indian mutual funds.', 's/methodology/')],
+    `How FairFund calculates returns, compares funds within categories and handles data limitations.`, methodBody,
+    pageJsonld('FairFund methodology', 'How FairFund calculates returns, compares funds within categories and handles data limitations.', 's/methodology/')],
 ]
 for (const [dir, hash, title, desc, bodyHtml, jsonld] of pages) {
   writeShell({ dir, hash, title, desc, canonicalPath: `${dir}/`, bodyHtml, jsonld, delayMs: 1200 })
@@ -248,7 +250,7 @@ for (const c of categories) {
   const slug = catSlug(c.key)
   const hash = `/category/${slug}`
   const title = `${c.display} funds - deep dive | FairFund`
-  const desc = `${c.count} ${c.display} funds analyzed: return distribution, regime stress tests, skill vs luck, mean reversion and AUM landscape.${c.median5Y != null ? ` Median 5Y CAGR ${c.median5Y.toFixed(1)}%.` : ''} Evidence, not advice.`
+  const desc = `Explore ${c.count} ${c.display} funds, their historical returns and category comparisons.`
   const jsonld = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -256,10 +258,10 @@ for (const c of categories) {
     description: desc,
     url: `${SITE}/c/${slug}/`,
   })
-  const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Forward-looking mutual fund research</p>
+  const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(c.display)} funds</h1>
 <p style="font-size:15px;color:#475569;margin:0 0 20px">${c.count} funds &middot; ${c.risk || 'Moderate'} risk${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
-<p style="font-size:16px">A statistical deep dive into the ${esc(c.display)} category: how returns are distributed across the field, which funds lead over different horizons, how the category behaves during market stress regimes, and whether past winners tend to revert or persist.</p>
+<p style="font-size:16px">Explore the ${esc(c.display)} category: historical return distributions, category comparisons and performance during past market falls. Check the dates and available history before comparing results.</p>
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the interactive deep dive &rarr;</a></p>
 <p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 

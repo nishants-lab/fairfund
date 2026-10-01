@@ -23,10 +23,13 @@ and RangeChart rebase path consume it unchanged.
 Usage: python scripts/build_category_median.py
 Idempotent. Reads committed public/nav/*.json (no network).
 """
-import os, json, statistics, datetime
+import os, json, statistics, sys
+from math import isfinite
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
+sys.path.insert(0, HERE)
+from market_date import ist_today, is_usable_nav_date
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 BENCH_JSON = os.path.join(ROOT, "src", "data", "benchmarks.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
@@ -44,8 +47,15 @@ def load_nav(code):
     d, v = j.get("d"), j.get("v")
     if not d or not v or len(d) != len(v):
         return None
-    # chronological (files are oldest->newest already)
-    return list(zip(d, [float(x) for x in v]))
+    today = ist_today()
+    points = {}
+    for day, value in zip(d, v):
+        if not is_usable_nav_date(day, today):
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value <= 0:
+            continue
+        points[day] = float(value)
+    return sorted(points.items()) or None
 
 def daily_returns(series):
     """Map date -> daily return using the fund's own consecutive points."""
@@ -90,7 +100,7 @@ def build_category(cat, funds):
     if not out_d:
         return None, len(ret_maps)
     return {"d": out_d, "v": out_v, "n": len(ret_maps),
-            "generated": datetime.date.today().isoformat()}, len(ret_maps)
+            "generated": ist_today(), "asOf": out_d[-1]}, len(ret_maps)
 
 def main():
     with open(FUNDS_JSON, encoding="utf-8") as f:
@@ -100,10 +110,12 @@ def main():
         bench = json.load(f)
     median_cats = bench["medianCategories"]
     os.makedirs(OUT_DIR, exist_ok=True)
+    missing = []
     for cat, key in median_cats.items():
         series, n = build_category(cat, funds)
         if not series:
-            print(f"  SKIP {cat}: no constituent NAV data")
+            missing.append(cat)
+            print(f"  ERROR {cat}: no constituent NAV data; refusing publication with a stale file")
             continue
         outp = os.path.join(OUT_DIR, f"{key}.json")
         with open(outp, "w", encoding="utf-8", newline="\n") as f:
@@ -111,6 +123,9 @@ def main():
         start_v, end_v = series["v"][0], series["v"][-1]
         print(f"  OK  {cat:14s} -> {key}.json  funds={n:3d}  points={len(series['d']):4d}  "
               f"{series['d'][0]}..{series['d'][-1]}  100 -> {end_v:.2f}")
+
+    if missing:
+        raise RuntimeError(f"No category benchmark generated for: {missing}")
 
 if __name__ == "__main__":
     main()

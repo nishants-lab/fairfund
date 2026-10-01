@@ -29,17 +29,28 @@ jobs:
       - name: Split fund data for serving
         run: python migrations/split-analytics/split_funds.py
 
+      - name: Synchronize shared analytics and verify parity
+        run: |
+          python scripts/sync_analytics_to_shells.py
+          python scripts/sync_analytics_to_shells.py --check
+
       - name: Rebuild rolling-alpha series (re-inject; build_analytics drops it)
         run: python scripts/build_rolling_alpha.py
 
+      - name: Rebuild category benchmarks from current NAV
+        run: python scripts/build_category_median.py
+
       - name: Smoke test
         run: python tests/smoke.py
+
+      - name: Validate research contracts
+        uses: ./.github/actions/validate
 
       - name: Commit updated analytics
         run: |
           git config user.name fairfund-bot
           git config user.email bot@fairfund.in
-          git add src/data/ public/fund-data/
+          git add src/data/ public/fund-data/ public/category-median/
           if git diff --staged --quiet; then
             echo "No analytics changes"
           else

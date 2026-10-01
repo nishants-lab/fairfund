@@ -47,10 +47,10 @@ interface Row {
 }
 
 const METRICS: { key: Metric; label: string; blurb: string }[] = [
-  { key: 'aum', label: 'Fund size', blurb: 'Latest assets under management and how the book has grown or shrunk over 1, 3 and 6 months.' },
+  { key: 'aum', label: 'Fund size', blurb: 'Fund size and its change over 1, 3 and 6 months.' },
   { key: 'rank', label: 'Category rank', blurb: 'Funds climbing or slipping in their category ranking.' },
-  { key: 'momentum', label: 'Return momentum', blurb: 'Funds whose recent return is running ahead of (or behind) their longer-term track record.' },
-  { key: 'debtView', label: 'Debt / Cash', blurb: 'Liquid, money market and arbitrage funds compared by AUM and expense ratio — the two levers that matter most for these categories.' },
+  { key: 'momentum', label: 'Return momentum', blurb: 'Compare 1-year returns with 3- or 5-year annualised returns.' },
+  { key: 'debtView', label: 'Debt / Cash', blurb: 'Compare liquid, money market and arbitrage funds by size and annual costs.' },
 ]
 
 // AUM change windows shown as parallel columns.

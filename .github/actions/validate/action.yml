@@ -1,0 +1,20 @@
+name: Validate research contracts
+description: Execute production-code, data-structure and browser regressions before publication
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - run: python -m pip install -r pipeline/requirements.txt
+      shell: bash
+    - run: npm ci
+      shell: bash
+    - run: npx playwright install --with-deps chromium
+      shell: bash
+    - run: npm run check:release
+      shell: bash

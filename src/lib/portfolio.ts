@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { getFund, fetchFundDetail, mergeFundDetail } from './data'
 import { getUniverseFund, universeCategoryLabel } from './matcherUniverse'
+import { isIsoDate } from './marketDate'
 import type { Fund, Holding } from '../types'
 
 // ---- Types ----
@@ -26,6 +27,16 @@ export interface FundSummary {
   totalCost: number      // from CAMS Total Cost Value
   latestNav: number      // from CAMS 'NAV on' line
   marketValue: number    // from CAMS 'Market Value on' line
+  // Dates the statement stamps on those same two lines, yyyy-mm-dd. Optional
+  // and nullable: statements parsed before these were captured are still in
+  // localStorage, and an unreadable date stays unknown rather than guessed.
+  navDate?: string | null
+  marketValueDate?: string | null
+  // From CAMS 'Opening Unit Balance'. A value > 0 means the statement window
+  // starts mid-history. Null or absent means the line was not read, which is
+  // unknown rather than zero: see the limitation noted on historyGate below.
+  openingUnits?: number | null
+  historyUnusable?: boolean // a transaction-shaped row in this block could not be dated
 }
 
 export interface ParsedPortfolio {
@@ -67,6 +78,7 @@ export interface PortfolioHolding {
   dayChangeValue: number // value change vs previous NAV day
   dayChangePct: number   // NAV % change vs previous day
   personalCagr: number | null // your money-weighted annualized return (XIRR) from CAMS history, null if not computable
+  valuationDate: string | null // statement date this currentValue is stamped with, and the date of the XIRR terminal flow; null when unknown
 }
 
 export interface ConcentrationItem {
@@ -149,11 +161,90 @@ export function usePortfolio(): ParsedPortfolio | null {
 
 interface CashFlow { when: number; amount: number } // when = epoch ms
 
+/** yyyy-mm-dd -> epoch ms at UTC midnight. The caller must have validated the string. */
+function isoToUtcMs(iso: string): number {
+  return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+}
+
+/**
+ * The statement date a folio's terminal value carries: the Market Value on date
+ * when the market value is what we use, the NAV on date when we fall back to
+ * units x NAV. Null when the statement line carried no readable date, which is
+ * the honest answer. Neither today nor the upload time can stand in for it:
+ * both would make one unchanged statement report a different return every day
+ * it is reopened.
+ */
+function folioValuationDate(s: FundSummary): string | null {
+  if (s.marketValue > 0) return isIsoDate(s.marketValueDate) ? s.marketValueDate : null
+  if (s.closingUnits * s.latestNav > 0) return isIsoDate(s.navDate) ? s.navDate : null
+  return null
+}
+
+/** Per-holding XIRR inputs that the public holding shape does not carry. */
+interface XirrContext {
+  txKey: string              // transaction group holding this folio's cashflows
+  ambiguous: boolean         // the group may pool another scheme's transactions
+  incompleteHistory: boolean // some folio of this fund has a partial history
+}
+
+/**
+ * The terminal value of one folio: the statement's market value, or units x NAV
+ * when the statement printed no market value. Normalizing per folio matters
+ * before any sum, because summing raw market values across folios silently
+ * drops the whole of a sibling folio that only had a NAV to value it by.
+ */
+function folioValue(s: FundSummary): number {
+  const value = s.marketValue > 0 ? s.marketValue : s.closingUnits * s.latestNav
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+/** A statement folio plus what merging its siblings did to its value and date. */
+interface MergedFolio extends FundSummary {
+  value: number              // sum of each folio's own normalized value
+  valuationDate: string | null
+}
+
+/** Units at or below this are rounding dust, not a position. */
+const UNIT_TOLERANCE = 0.001
+
+/**
+ * Whether a folio's statement rows cannot support a money-weighted return.
+ *
+ * A read, zero Opening Unit Balance is NECESSARY, not sufficient: it says only
+ * that no units predate the statement window, never that every row inside the
+ * window was parsed. So this is a gate, not a certificate. It withholds a return
+ * for a non-zero balance (units predate the rows), a negative or NaN one (the
+ * line was misread, so it proves nothing) and an absent or null one (never read,
+ * as in every portfolio parsed before it was captured - the default must not be
+ * an assumed zero). Rows dropped for any other reason stay undetected here.
+ */
+function historyGate(s: FundSummary): boolean {
+  if (s.historyUnusable) return true
+  const opening = s.openingUnits
+  if (typeof opening !== 'number' || !Number.isFinite(opening)) return true
+  return Math.abs(opening) > UNIT_TOLERANCE
+}
+
+/**
+ * The transaction group a folio or a transaction row belongs to. An unmatched
+ * scheme parses to code 0, so a key of code alone pools unrelated funds; those
+ * fall back to the statement's own scheme name.
+ */
+function txKeyOf(x: { fundCode: number; fundName: string }): string {
+  return x.fundCode > 0 ? `c${x.fundCode}` : `n${x.fundName}`
+}
+
 function xirr(flows: CashFlow[]): number | null {
   if (flows.length < 2) return null
   if (!flows.some(f => f.amount < 0) || !flows.some(f => f.amount > 0)) return null
+  if (flows.some(f => !Number.isFinite(f.when) || !Number.isFinite(f.amount))) return null
   const sorted = [...flows].sort((a, b) => a.when - b.when)
   const t0 = sorted[0].when
+  // Every flow on one day: there is no elapsed time to annualize over, so the
+  // discount factor is 1 for every term and any rate solves the equation just as
+  // well as any other. Bisection would still return whatever rate it happened to
+  // land on, which reads as a measured return. There is nothing to measure.
+  if (sorted[sorted.length - 1].when <= t0) return null
   const YEAR = 365 * 24 * 3600 * 1000
   const yearsOf = (w: number) => (w - t0) / YEAR
   const npv = (r: number) => sorted.reduce((acc, f) => acc + f.amount / Math.pow(1 + r, yearsOf(f.when)), 0)
@@ -184,21 +275,53 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
 
   const holdings: PortfolioHolding[] = []
   const detailPromises: Promise<void>[] = []
+  // mergeFundDetail is pure, so hydrated copies are collected here and attached
+  // to the holdings once every shell has resolved.
+  const hydratedFunds = new Map<number, Fund>()
+
+  // A scheme name carried by more than one unmatched block cannot be split into
+  // per-block cashflows at all, so such blocks get no return.
+  const unmatchedNameCount = new Map<string, number>()
+  for (const s of summaries) {
+    if (s.fundCode > 0) continue
+    unmatchedNameCount.set(s.fundName, (unmatchedNameCount.get(s.fundName) ?? 0) + 1)
+  }
+
+  // Gate the whole transaction group, over EVERY folio of the fund including the
+  // fully-redeemed ones. A closed folio is not displayed, but its purchases and
+  // its redemption inflow sit in the same group as the surviving folio's, so a
+  // partial history there makes the group partial too: the redemption arrives
+  // without the purchases that funded it and inflates the surviving holding's
+  // return. The merge below drops zero-unit folios, so this must run before it.
+  const unusableTxKeys = new Set<string>()
+  for (const s of summaries) {
+    if (historyGate(s)) unusableTxKeys.add(txKeyOf(s))
+  }
+  const xirrContext = new Map<PortfolioHolding, XirrContext>()
 
   if (hasSummaries) {
     // Merge multiple folios of the same fund (sum units, cost, market value)
-    const byCode = new Map<number, FundSummary>()
+    const byCode = new Map<number, MergedFolio>()
     for (const s of summaries) {
-      if (s.closingUnits <= 0.001) continue // fully redeemed, skip
+      if (s.closingUnits <= UNIT_TOLERANCE) continue // fully redeemed, skip
       const key = s.fundCode > 0 ? s.fundCode : -(byCode.size + 1) // unmatched funds stay separate
       const existing = byCode.get(key)
+      const folioDate = folioValuationDate(s)
       if (existing) {
         existing.closingUnits += s.closingUnits
         existing.totalCost += s.totalCost
         existing.marketValue += s.marketValue
+        existing.value += folioValue(s)
         if (s.latestNav > 0) existing.latestNav = s.latestNav
+        // Folio amounts are still summed, because the holding's value and weight
+        // are the sum. The merged valuation DATE only survives if every folio
+        // agrees: adopting one folio's date for another folio's money, or the
+        // last date seen for a folio that had none, would date money to a day it
+        // was not valued on. A disagreement makes the date unavailable, which
+        // leaves XIRR unavailable for the holding.
+        if (existing.valuationDate !== folioDate) existing.valuationDate = null
       } else {
-        byCode.set(key, { ...s })
+        byCode.set(key, { ...s, value: folioValue(s), valuationDate: folioDate })
       }
     }
 
@@ -206,7 +329,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
       const fund = getFund(s.fundCode)
       if (fund) {
         detailPromises.push(
-          fetchFundDetail(s.fundCode).then(d => { mergeFundDetail(fund, d) })
+          fetchFundDetail(s.fundCode).then(d => { hydratedFunds.set(s.fundCode, mergeFundDetail(fund, d)) })
         )
       }
       const uni = fund ? undefined : getUniverseFund(s.fundCode)
@@ -217,7 +340,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
         categoryDisplay: fund?.categoryDisplay ?? (uni ? universeCategoryLabel(uni.amfiCategory) : 'Unknown'),
         units: s.closingUnits,
         invested: s.totalCost,
-        currentValue: s.marketValue || s.closingUnits * s.latestNav,
+        currentValue: s.value,
         latestNav: s.latestNav,
         gain: 0,
         gainPct: 0,
@@ -228,6 +351,13 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
         dayChangeValue: 0,
         dayChangePct: 0,
         personalCagr: null,
+        valuationDate: s.valuationDate,
+      })
+      const txKey = txKeyOf(s)
+      xirrContext.set(holdings[holdings.length - 1], {
+        txKey,
+        ambiguous: s.fundCode <= 0 && (unmatchedNameCount.get(s.fundName) ?? 0) > 1,
+        incompleteHistory: unusableTxKeys.has(txKey),
       })
     }
   } else {
@@ -249,7 +379,7 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
       const fund = getFund(code)
       if (fund) {
         detailPromises.push(
-          fetchFundDetail(code).then(d => { mergeFundDetail(fund, d) })
+          fetchFundDetail(code).then(d => { hydratedFunds.set(code, mergeFundDetail(fund, d)) })
         )
       }
       const uni = fund ? undefined : getUniverseFund(code)
@@ -271,31 +401,53 @@ export async function analyzePortfolio(portfolio: ParsedPortfolio): Promise<Port
         dayChangeValue: 0,
         dayChangePct: 0,
         personalCagr: null,
+        // Netting transactions reconstructs units, not a valuation: there is no
+        // statement date to anchor a terminal flow to, so XIRR stays unavailable.
+        valuationDate: null,
       })
     }
   }
 
   await Promise.all(detailPromises)
+  for (const h of holdings) {
+    const hydrated = hydratedFunds.get(h.code)
+    if (hydrated) h.fund = hydrated
+  }
 
   // Personal money-weighted return (XIRR) per holding, from your CAMS history.
-  const txByCode = new Map<number, Transaction[]>()
+  // The terminal inflow is the statement's own valuation, so it is dated from
+  // the statement and never from the clock. Any condition that would force a
+  // guess leaves personalCagr null: an absent number is read as unknown, while
+  // a plausible-looking one is read as a measurement.
+  const txGroups = new Map<string, Transaction[]>()
   for (const tx of portfolio.transactions) {
-    const list = txByCode.get(tx.fundCode)
+    const key = txKeyOf(tx)
+    const list = txGroups.get(key)
     if (list) list.push(tx)
-    else txByCode.set(tx.fundCode, [tx])
+    else txGroups.set(key, [tx])
   }
-  const nowMs = Date.now()
   for (const h of holdings) {
-    const txs = txByCode.get(h.code)
-    if (!txs || txs.length === 0 || h.currentValue <= 0) continue
+    const ctx = xirrContext.get(h)
+    if (!ctx || ctx.ambiguous || ctx.incompleteHistory) continue
+    const valuationDate = h.valuationDate
+    if (!valuationDate || !(h.currentValue > 0) || !Number.isFinite(h.currentValue)) continue
+    const txs = txGroups.get(ctx.txKey)
+    if (!txs || txs.length === 0) continue
     const flows: CashFlow[] = []
+    // One unusable row invalidates the whole series rather than being dropped:
+    // a cashflow dated after the valuation, or with no usable date at all, means
+    // the history and the terminal value do not describe the same period, and
+    // silently skipping it would still produce a confident-looking percentage.
+    let unusable = false
     for (const tx of txs) {
-      const when = new Date(tx.date).getTime()
-      if (isNaN(when) || tx.amount <= 0) continue
+      if (!isIsoDate(tx.date) || tx.date > valuationDate) { unusable = true; break }
+      if (!Number.isFinite(tx.amount)) { unusable = true; break }
+      if (tx.amount <= 0) continue
       const isInflow = tx.type === 'redeem' || tx.type === 'switch_out' || tx.type === 'dividend'
-      flows.push({ when, amount: isInflow ? tx.amount : -tx.amount })
+      flows.push({ when: isoToUtcMs(tx.date), amount: isInflow ? tx.amount : -tx.amount })
     }
-    flows.push({ when: nowMs, amount: h.currentValue })
+    if (unusable || flows.length === 0) continue
+    flows.push({ when: isoToUtcMs(valuationDate), amount: h.currentValue })
     h.personalCagr = xirr(flows)
   }
 

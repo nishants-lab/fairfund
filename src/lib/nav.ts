@@ -1,5 +1,6 @@
 import type { NavPoint } from '../types'
 import { reportLiveNavDate } from './navFreshness'
+import { dropFutureNavPoints, istToday } from './marketDate'
 
 // Simple in-memory cache so we don't refetch the same fund repeatedly
 const cache = new Map<number, NavPoint[]>()
@@ -30,21 +31,29 @@ function withTimeout(url: string, ms: number): Promise<Response> {
   return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t))
 }
 
-function parseLive(json: MfApiResponse): NavPoint[] {
-  return json.data
+/** mfapi.in dates are DD-MM-YYYY. Points dated past the Indian market date, or
+ *  with an unparseable date, are dropped: AMFI forward-dates some liquid-fund
+ *  NAVs and that stamp must not reach charts or the headline "NAV as of" date. */
+export function parseLive(json: MfApiResponse, todayIso: string = istToday()): NavPoint[] {
+  const points = (json?.data ?? [])
     .map((d) => {
-      const [dd, mm, yyyy] = d.date.split('-')
-      return { date: `${yyyy}-${mm}-${dd}`, nav: parseFloat(d.nav) }
+      const [dd, mm, yyyy] = String(d?.date ?? '').split('-')
+      return { date: `${yyyy}-${mm}-${dd}`, nav: parseFloat(d?.nav) }
     })
     .filter((p) => !isNaN(p.nav) && p.nav > 0)
     .reverse() // oldest first
+  return dropFutureNavPoints(points, todayIso)
 }
 
-function parseSelfHosted(j: SelfHostedNav): NavPoint[] | null {
+export function parseSelfHosted(j: SelfHostedNav, todayIso: string = istToday()): NavPoint[] | null {
   if (!j || !Array.isArray(j.d) || !Array.isArray(j.v) || j.d.length !== j.v.length || j.d.length === 0) {
     return null
   }
-  return j.d.map((date, i) => ({ date, nav: j.v[i] }))
+  const points = dropFutureNavPoints(
+    j.d.map((date, i) => ({ date, nav: j.v[i] })),
+    todayIso
+  )
+  return points.length > 0 ? points : null
 }
 
 /**

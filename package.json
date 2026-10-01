@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/gen-og-images.mjs && node scripts/gen-unfurls.mjs && node scripts/gen-sitemap.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/run-regressions.mjs",
+    "test:browser": "node tests/run-browser-regressions.mjs",
+    "test:browser:built": "node tests/run-browser-regressions.mjs --built",
+    "check:release": "node scripts/check_release.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

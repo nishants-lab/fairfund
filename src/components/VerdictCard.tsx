@@ -3,19 +3,17 @@ import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
 
-// The composite score is a data point, not a buy/avoid rating, so it is never
-// coloured red/green. Instead we use a single blue intensity that deepens with
-// the score, plus a plain descriptive band word - alive, but not a verdict.
+// Blue intensity varies with score without assigning a qualitative rating.
 function scoreBand(score: number): {
-  ring: string; text: string; bar: string; word: string
+  ring: string; text: string; bar: string
 } {
   if (score >= 75)
-    return { ring: 'border-l-blue-600', text: 'text-blue-700 dark:text-blue-300', bar: 'bg-blue-600', word: 'Top-tier data profile' }
+    return { ring: 'border-l-blue-600', text: 'text-blue-700 dark:text-blue-300', bar: 'bg-blue-600' }
   if (score >= 60)
-    return { ring: 'border-l-blue-500', text: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500', word: 'Above-median profile' }
+    return { ring: 'border-l-blue-500', text: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500' }
   if (score >= 45)
-    return { ring: 'border-l-blue-400', text: 'text-blue-500 dark:text-blue-300', bar: 'bg-blue-400', word: 'Middle of the pack' }
-  return { ring: 'border-l-slate-400', text: 'text-slate-500 dark:text-slate-400', bar: 'bg-slate-400', word: 'Below-median profile' }
+    return { ring: 'border-l-blue-400', text: 'text-blue-500 dark:text-blue-300', bar: 'bg-blue-400' }
+  return { ring: 'border-l-slate-400', text: 'text-slate-500 dark:text-slate-400', bar: 'bg-slate-400' }
 }
 
 /**
@@ -45,13 +43,10 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       : null
     return (
       <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
-        <h3 className="font-bold text-fg">Too new for a composite score</h3>
+        <h3 className="font-bold text-fg">Insufficient history for a score</h3>
         <p className="mt-2 text-sm text-muted">
-          This fund launched {sinceTxt ? `on ${sinceTxt}` : 'recently'} and has only{' '}
-          {fund.navPoints ? `${fund.navPoints} trading days` : 'a limited history'}, less than the
-          ~1 year we need to compute peer rank, risk-adjusted return and consistency. We are not
-          hiding it, but we will not
-          compute a composite score from too little data. Here is the read so far:
+          This fund has {fund.navPoints != null ? `${fund.navPoints} NAV observations` : 'limited NAV history'}{sinceTxt ? ` since ${sinceTxt}` : ''}.
+          Its available history does not meet the requirements for a ranked window.
         </p>
         {si && (
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -70,14 +65,9 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
             <div className="rounded-lg border border-line bg-surface2/40 p-3">
               <div className="text-xs uppercase tracking-wide text-faint">Track record</div>
               <div className="mt-1 text-lg font-bold text-fg">{si.days} days</div>
-              <div className="mt-0.5 text-xs text-muted">Use the chart above to see the full history.</div>
             </div>
           </div>
         )}
-        <p className="mt-3 text-xs text-faint">
-          A full risk-adjusted verdict, peer rank and forward signals will appear once this fund
-          builds up a longer track record.
-        </p>
       </div>
     )
   }
@@ -89,7 +79,6 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold text-fg">Composite data score</h3>
         <div className="flex items-baseline gap-2">
-          <span className={`text-xs font-semibold uppercase tracking-wide ${b.text}`}>{b.word}</span>
           <span className={`text-lg font-bold ${b.text}`}>{v.score}<span className="text-xs font-semibold text-faint">/100</span></span>
         </div>
       </div>
@@ -136,10 +125,16 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-faint">
-        A weighted reading of past data (peer rank, alpha, risk-adjusted ratios, consistency,
-        downside capture, manager record), not a rating or recommendation. Past performance does
-        not indicate future returns.
+      <details className="mt-4 text-xs text-faint">
+        <summary className="cursor-pointer font-semibold text-muted">How this score is calculated</summary>
+        <p className="mt-2">
+          A weighted summary of past data: peer rank, alpha, Sharpe, consistency, downside capture and manager record.
+          The stored rounded (1-p) × 100 monthly-test statistic remains a 12% score input;
+          it is not a probability of skill.
+        </p>
+      </details>
+      <p className="mt-3 text-xs text-faint">
+        This score is not an investment recommendation. Past performance does not guarantee future returns.
       </p>
     </div>
   )

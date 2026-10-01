@@ -1,11 +1,3 @@
-/**
- * Portfolio changes section: shows what the manager ADDED and EXITED between
- * two monthly portfolio snapshots, and how those stocks performed AFTER the move.
- *
- * Designed to grow more useful over time: with only 1-month of post-move data it
- * shows honest caveats; with 3+ months it shows confident verdicts. The data
- * pipeline (build_stock_moves.py) runs monthly and accumulates longer windows.
- */
 import type { Fund } from '../types'
 import InfoTip from './InfoTip'
 
@@ -33,47 +25,38 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
   const vs = VERDICT_STYLE[moves.verdict ?? ''] ?? VERDICT_STYLE['Insufficient price data']
   const hasScore = moves.smartScore != null && moves.smartBasis != null && moves.smartBasis >= 3
 
-  // Determine how long the post-move window is (from toDate to today, roughly)
-  const toDate = new Date(moves.toDate + 'T00:00:00')
-  const now = new Date()
-  const postMonths = Math.max(1, Math.round((now.getTime() - toDate.getTime()) / (30.4 * 86400000)))
-  const shortWindow = postMonths <= 2
-
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 font-bold text-fg">
-          Portfolio changes
+          Price moves after disclosure
           <InfoTip align="left" width={280} label="About portfolio changes">
-            Between two monthly portfolio disclosures, we identify what stocks the manager
-            <strong> added</strong> (new positions) and <strong>exited</strong> (removed), then track
-            how those stocks performed AFTER the move using NSE price data. A high "smart score" means
-            most adds went up and most exits went down, so the manager's stock-picking added value.
-            {shortWindow && (
-              <><br /><br /><em>Note:</em> only ~{postMonths} month(s) of post-move data so far. The
-              verdict becomes more reliable with 3-6 months of follow-through.</>
-            )}
+            Monthly disclosures identify newly disclosed and removed holdings. Price changes use monthly
+            price points around the disclosure month. Actual trade dates and execution prices are unavailable.
+            Coverage is capped at ten additions and ten exits; up to seven of each are displayed below.
+            Favourable means a newly disclosed holding rose, or a removed holding fell or stayed flat.
+            This is an unweighted price-direction count.
           </InfoTip>
         </h3>
         {hasScore && (
           <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${vs.tone} ${vs.bg}`}>
-            {moves.verdict} ({moves.smartScore}%)
+            {moves.smartScore}% favourable price moves
           </span>
         )}
       </div>
 
       <p className="mt-1 text-xs text-muted">
         Changes between {fmtMonth(moves.fromDate)} and {fmtMonth(moves.toDate)} disclosures.
-        {hasScore && ` Post-move returns tracked for ~${postMonths} month${postMonths > 1 ? 's' : ''} since.`}
-        {!hasScore && ' Post-move returns not yet available for enough stocks to score.'}
+        {!hasScore && ' Price data is unavailable for enough positions to calculate the summary.'}
       </p>
-
-      {shortWindow && hasScore && (
-        <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-          Only ~{postMonths} month{postMonths > 1 ? 's' : ''} of post-move data so far, so treat this as a
-          preliminary read, not a final verdict. It becomes more meaningful after 3+ months.
-        </p>
-      )}
+      <p className="mt-1 text-xs text-muted">
+        {hasScore && `Based on ${moves.smartBasis} positions with price data. `}
+        Price direction does not measure the contribution to the fund's return.
+      </p>
+      <p className="mt-1 text-xs text-faint">
+        Price-period endpoints and the last price date are unavailable in the current dataset.
+        Disclosure dates do not establish price coverage or actual trade dates.
+      </p>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Stocks ADDED */}
@@ -132,8 +115,8 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
       </div>
 
       <p className="mt-3 text-xs text-faint">
-        Post-move returns from NSE daily close prices (Yahoo Finance). "Smart score" = % of moves where
-        adds went up and exits went down. Not a guarantee of future stock-picking ability.
+        Price changes use monthly stock-price data from Yahoo Finance.
+        Past price movements do not guarantee future returns.
       </p>
     </div>
   )

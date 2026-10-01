@@ -17,13 +17,15 @@ Usage:
 import json
 import sys
 import os
-from math import sqrt, pow as mpow
+from math import sqrt, pow as mpow, isfinite
 from datetime import datetime, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from market_date import ist_today, is_usable_nav_date
 
 RF_ANNUAL = 0.07  # risk-free rate (India 10Y ~7%)
 RF_DAILY = RF_ANNUAL / 252
@@ -39,7 +41,15 @@ def load_nav(code):
             j = json.load(f)
         if not j.get("d") or not j.get("v") or len(j["d"]) != len(j["v"]):
             return None
-        return list(zip(j["d"], j["v"]))
+        today = ist_today()
+        points = {}
+        for day, value in zip(j["d"], j["v"]):
+            if not is_usable_nav_date(day, today):
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value <= 0:
+                continue
+            points[day] = value
+        return sorted(points.items()) or None
     except Exception:
         return None
 
@@ -64,6 +74,23 @@ def slice_nav(points, years):
     return sliced
 
 
+def actual_duration_cagr(points):
+    """Annualized percentage return using the NAV endpoints' actual elapsed days.
+
+    This is shared by the displayed fund return, its peer returns and alpha.
+    A nominal horizon label is never the annualization denominator.
+    Window selection / eligibility remain the responsibility of slice_nav.
+    """
+    if not points or len(points) < 2:
+        return None
+    start_date, start_nav = points[0]
+    end_date, end_nav = points[-1]
+    days = (datetime.strptime(end_date, "%Y-%m-%d") - datetime.strptime(start_date, "%Y-%m-%d")).days
+    if days <= 0 or start_nav <= 0 or end_nav <= 0:
+        return None
+    return (mpow(end_nav / start_nav, 365.25 / days) - 1) * 100
+
+
 def compute_metrics(points):
     """Compute full metrics from a NAV slice. Returns dict or None if insufficient data."""
     if not points or len(points) < 60:
@@ -85,7 +112,9 @@ def compute_metrics(points):
 
     # Total return and CAGR
     total_return = (end_nav / start_nav - 1) * 100
-    cagr = (mpow(end_nav / start_nav, 1 / years) - 1) * 100
+    cagr = actual_duration_cagr(points)
+    if cagr is None:
+        return None
 
     # Daily returns (filter out obvious data errors > 50% daily move)
     daily_returns = []
@@ -141,15 +170,17 @@ def compute_metrics(points):
 
 
 def compute_alpha(fund_points, category_funds_cagrs, years):
-    """Alpha = fund CAGR - category median CAGR for the same window."""
+    """Alpha = actual-duration fund CAGR minus the supplied category median.
+
+    `years` is retained for call compatibility and labels only. All supplied
+    category CAGRs must use actual_duration_cagr on their selected NAV slices.
+    Common dated-window eligibility is a separate contract from annualization.
+    """
     if not fund_points or len(fund_points) < 60:
         return None, None
-    navs = [v for _, v in fund_points]
-    start_nav = navs[0]
-    end_nav = navs[-1]
-    if start_nav <= 0:
+    fund_cagr = actual_duration_cagr(fund_points)
+    if fund_cagr is None:
         return None, None
-    fund_cagr = (mpow(end_nav / start_nav, 1 / years) - 1) * 100
     if not category_funds_cagrs:
         return None, None
     sorted_cagrs = sorted(category_funds_cagrs)
@@ -189,6 +220,15 @@ def main():
             by_cat[cat] = []
         by_cat[cat].append(f)
 
+    # One validated NAV read per fund per run, including category-peer lookups.
+    # Date validation must not turn the existing peer loop into repeated full
+    # history parsing. Local cache is discarded after each run.
+    nav_cache = {}
+    def cached_nav(code):
+        if code not in nav_cache:
+            nav_cache[code] = load_nav(code)
+        return nav_cache[code]
+
     horizons = {"1Y": 1, "3Y": 3, "5Y": 5}
     updated = 0
     skipped = 0
@@ -199,7 +239,7 @@ def main():
         if single_fund and code != single_fund:
             continue
 
-        nav_points = load_nav(code)
+        nav_points = cached_nav(code)
         if not nav_points:
             no_nav += 1
             continue
@@ -240,16 +280,19 @@ def main():
             for peer in cat_funds:
                 if peer["code"] == code:
                     continue
-                peer_nav = load_nav(peer["code"])
+                peer_nav = cached_nav(peer["code"])
                 if peer_nav:
                     peer_sliced = slice_nav(peer_nav, years)
                     if peer_sliced and len(peer_sliced) >= 60:
-                        peer_navs = [v for _, v in peer_sliced]
-                        if peer_navs[0] > 0:
-                            peer_cagr = (mpow(peer_navs[-1] / peer_navs[0], 1 / years) - 1) * 100
+                        peer_cagr = actual_duration_cagr(peer_sliced)
+                        if peer_cagr is not None:
                             cat_cagrs.append(peer_cagr)
 
-            alpha, cat_median = compute_alpha(sliced, cat_cagrs + [metrics["cagr"]], years)
+            # Include this fund using the same unrounded calculation as peers.
+            # Mixing a rounded own CAGR with nominal-duration peers made each
+            # fund see a different median for the same category and horizon.
+            own_cagr = actual_duration_cagr(sliced)
+            alpha, cat_median = compute_alpha(sliced, cat_cagrs + [own_cagr], years)
 
             # Merge into existing metrics (preserve catRank, catSize, score - those come from compute_rankings)
             if horizon_key not in f["metrics"]:

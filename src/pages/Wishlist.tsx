@@ -109,7 +109,7 @@ export default function Wishlist() {
       </div>
 
       <p className="mt-6 text-center text-xs text-faint">
-        Saved locally on this device. Sign-in to sync across devices coming soon.
+        Saved in this browser. Clearing site data removes your saved funds.
       </p>
     </div>
   )

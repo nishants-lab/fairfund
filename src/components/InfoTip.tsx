@@ -1,39 +1,26 @@
-import { useState, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useId, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
-/**
- * Accessible "ⓘ" info button with a tooltip that works on pointer AND touch and
- * is ALWAYS kept inside the viewport.
- *
- * Positioning: rendered, measured, then nudged horizontally AND vertically so the
- * full tooltip stays within an 8px margin of the viewport. If it would overflow
- * below, it flips above the button instead.
- */
-export default function InfoTip({
-  children,
-  label = 'More information',
-  width = 250,
-}: {
+/** Focus, hover or tap for help. Portal keeps explanations outside clipped tables. */
+export default function InfoTip({ children, label = 'More information', width = 250 }: {
   children: ReactNode
   label?: string
   width?: number
-  /** @deprecated alignment is now computed automatically to stay on-screen */
+  /** @deprecated Position is clamped to the viewport. */
   align?: 'center' | 'left' | 'right'
 }) {
   const [open, setOpen] = useState(false)
-  const [shift, setShift] = useState(0)
-  const [flipUp, setFlipUp] = useState(false)
-  const wrapRef = useRef<HTMLSpanElement>(null)
+  const [position, setPosition] = useState({ left: 8, top: 8 })
+  const tooltipId = useId()
   const btnRef = useRef<HTMLButtonElement>(null)
   const tipRef = useRef<HTMLSpanElement>(null)
+  const contains = (target: EventTarget | null) => target instanceof Node &&
+    (!!btnRef.current?.contains(target) || !!tipRef.current?.contains(target))
 
   useEffect(() => {
     if (!open) return
-    const onDown = (e: PointerEvent | MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
+    const onDown = (event: PointerEvent) => { if (!contains(event.target)) setOpen(false) }
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey)
     return () => {
@@ -42,72 +29,43 @@ export default function InfoTip({
     }
   }, [open])
 
-  // Measure after paint: nudge horizontally and flip vertically if needed.
   useLayoutEffect(() => {
-    if (!open || !tipRef.current) return
-    const M = 8
-    const r = tipRef.current.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    // Horizontal nudge
-    let dx = 0
-    if (r.left < M) dx = M - r.left
-    else if (r.right > vw - M) dx = vw - M - r.right
-    if (dx !== 0) setShift((s) => s + dx)
-
-    // Vertical flip: if bottom overflows viewport, show above the button
-    if (r.bottom > vh - M && !flipUp) {
-      setFlipUp(true)
+    if (!open) return
+    const positionTip = () => {
+      if (!btnRef.current || !tipRef.current) return
+      const button = btnRef.current.getBoundingClientRect()
+      const tip = tipRef.current.getBoundingClientRect()
+      const margin = 8
+      const left = Math.max(margin, Math.min(button.left + button.width / 2 - tip.width / 2, innerWidth - tip.width - margin))
+      const below = button.bottom + 6
+      const preferred = below + tip.height <= innerHeight - margin ? below : button.top - tip.height - 6
+      const top = Math.max(margin, Math.min(preferred, innerHeight - tip.height - margin))
+      setPosition({ left, top })
     }
-  }, [open, flipUp])
-
-  // Reset positioning state on close
-  useEffect(() => {
-    if (!open) {
-      setShift(0)
-      setFlipUp(false)
+    positionTip()
+    window.addEventListener('resize', positionTip)
+    window.addEventListener('scroll', positionTip, true)
+    return () => {
+      window.removeEventListener('resize', positionTip)
+      window.removeEventListener('scroll', positionTip, true)
     }
-  }, [open])
+  }, [open, width, children])
 
-  const effWidth = `min(${width}px, calc(100vw - 16px))`
-
-  return (
-    <span ref={wrapRef} className="relative inline-flex align-middle">
-      <button
-        ref={btnRef}
-        type="button"
-        aria-label={label}
-        aria-expanded={open}
-        className={`relative inline-flex h-4 w-4 items-center justify-center rounded-full border text-xs font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 before:absolute before:-inset-[14px] before:content-[''] ${
-          open ? 'border-brand-400 text-brand-600' : 'border-line text-faint hover:border-brand-400 hover:text-brand-600'
-        }`}
-        onPointerEnter={(e) => {
-          if (e.pointerType === 'mouse') setOpen(true)
-        }}
-        onPointerLeave={(e) => {
-          if (e.pointerType === 'mouse') setOpen(false)
-        }}
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setOpen((o) => !o)
-        }}
-      >
-        i
-      </button>
-      {open && (
-        <span
-          ref={tipRef}
-          role="tooltip"
-          className={`absolute left-1/2 z-50 rounded-lg border border-line bg-surface p-2.5 text-left text-xs font-normal normal-case leading-relaxed text-muted shadow-lg ${
-            flipUp ? 'bottom-6' : 'top-6'
-          }`}
-          style={{ width: effWidth, transform: `translateX(calc(-50% + ${shift}px))` }}
-        >
-          {children}
-        </span>
-      )}
-    </span>
-  )
+  return <span className="inline-flex align-middle">
+    <button ref={btnRef} type="button" aria-label={label} aria-expanded={open}
+      aria-describedby={open ? tooltipId : undefined}
+      className={`relative inline-flex h-4 w-4 items-center justify-center rounded-full border text-xs font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 before:absolute before:-inset-[14px] before:content-[''] ${open ? 'border-brand-400 text-brand-600' : 'border-line text-faint hover:border-brand-400 hover:text-brand-600'}`}
+      onFocus={() => setOpen(true)}
+      onBlur={event => { if (!contains(event.relatedTarget)) setOpen(false) }}
+      onPointerEnter={event => { if (event.pointerType === 'mouse') setOpen(true) }}
+      onPointerLeave={event => { if (event.pointerType === 'mouse' && document.activeElement !== btnRef.current && !contains(event.relatedTarget)) setOpen(false) }}
+      onClick={event => { event.preventDefault(); event.stopPropagation(); setOpen(true) }}
+    >i</button>
+    {open && createPortal(<span ref={tipRef} id={tooltipId} role="tooltip"
+      className="fixed z-[100] overflow-y-auto rounded-lg border border-line bg-surface p-2.5 text-left text-xs font-normal normal-case leading-relaxed text-muted shadow-lg"
+      style={{ ...position, width: `min(${width}px, calc(100vw - 16px))`, maxHeight: 'calc(100vh - 16px)' }}
+      onPointerEnter={event => { if (event.pointerType === 'mouse') setOpen(true) }}
+      onPointerLeave={event => { if (event.pointerType === 'mouse' && document.activeElement !== btnRef.current && !contains(event.relatedTarget)) setOpen(false) }}
+    >{children}</span>, document.body)}
+  </span>
 }
