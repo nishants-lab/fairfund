@@ -15,7 +15,7 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
  try {
   const errors=[];
   for (const [name,width,height,theme] of [['desktop',1440,1024,'light'],['mobile',360,800,'light'],['narrow',320,760,'light'],['tablet',768,1024,'light'],['dark',1440,1024,'dark']]) {
-   const context=await browser.newContext({viewport:{width,height},colorScheme:theme,reducedMotion:'reduce'});
+   const context=await browser.newContext({viewport:{width,height},colorScheme:theme,reducedMotion:'reduce',serviceWorkers:'block'});
    await context.route('https://api.mfapi.in/**',r=>r.abort());
    await context.route('**/gc.zgo.at/**',r=>r.abort());
    const page=await context.newPage();
@@ -26,13 +26,36 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${name}: overflow`);
    const text=await page.locator('main').innerText();
    assert.doesNotMatch(text,/skill|luck|superpower|batting average|scientific|identical dates|stored CAGR|stored \dY/i);
-   assert.equal(await page.getByText('5Y median: top 3',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Top 3 by 5Y return',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Lower NAV volatility',{exact:true}).count(),3);
+   assert.equal(await page.getByText('Broader fund choice',{exact:true}).count(),3);
+   assert.equal(await page.locator('[data-category-card]').count(),20);
+   assert.equal(await page.locator('[data-category-badge]').count(),9);
+   for(const [category, label, expected] of [
+     ['Index - Mid Cap','Top 3 by 5Y return',/3 eligible funds \(small sample\)/],
+     ['Liquid','Lower NAV volatility',/credit or liquidity risk/],
+     ['Sectoral \/ Thematic','Broader fund choice',/244 funds/],
+   ]) {
+     const button=page.getByRole('button',{name:`About ${category}: ${label}`,exact:true});
+     await button.scrollIntoViewIfNeeded();
+     if(width<=360) await button.click(); else await button.focus();
+     const tooltip=page.getByRole('tooltip');await tooltip.waitFor();
+     assert.match(await tooltip.innerText(),expected);
+     assert.equal(await button.getAttribute('aria-describedby'),await tooltip.getAttribute('id'));
+     const box=await tooltip.boundingBox();assert(box.x>=0&&box.x+box.width<=width&&box.y>=0&&box.y+box.height<=height);
+     assert.equal(new URL(page.url()).hash,'','badge explanation must not navigate');
+     await page.keyboard.press('Escape');assert.equal(await tooltip.count(),0);
+   }
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   if(capture){fs.mkdirSync(capture,{recursive:true});}
+   if(capture)await page.locator('[aria-labelledby="categories-title"]').screenshot({path:path.join(capture,`category-badges-${name}.png`)});
    assert.equal(await page.getByRole('article',{name:'Fund spotlight'}).count(),1);
    const facts=page.locator('[aria-label="Research facts"] > article');
    assert.equal(await facts.count(),2);
    assert.doesNotMatch(text,/The periods overlap|These periods overlap|analysis coverage|year-labelled/);
    assert.equal(await page.locator('a button').count(),0,'tooltip controls must not nest inside links');
    if(capture){fs.mkdirSync(capture,{recursive:true});await page.screenshot({path:path.join(capture,`fairfund-home-${name}.png`),fullPage:true,timeout:12000,animations:'disabled'});}
+   await page.evaluate(()=>scrollTo(0,0));
    const search=page.getByRole('combobox',{name:'Search mutual funds',exact:true});
    assert.equal(await search.getAttribute('placeholder'),'Fund name, AMC or category');
    const inputBox=await search.boundingBox();
@@ -86,7 +109,7 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
   await periods.getByRole('button',{name:'1Y'}).click();
   assert.equal(await periods.getByRole('button',{name:'1Y'}).getAttribute('aria-pressed'),'true');
   await page.getByRole('list',{name:'Small Cap 1Y annualised returns'}).waitFor();
-  await page.getByRole('link',{name:/Small Cap.*5Y median: top 3/i}).click();
+  await page.locator('[data-category-card="Small Cap"] a').click();
   await page.waitForURL(/#\/explore\?cat=Small(?:%20|\+)Cap/);
   await page.goto(base,{waitUntil:'networkidle'});
   const priorSpotlight = await page.getByRole('article',{name:'Fund spotlight'}).getAttribute('data-fund-code');
