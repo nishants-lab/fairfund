@@ -12,6 +12,7 @@
  */
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import { data } from './data'
+import { isFutureOrInvalidNavDate, isIsoDate, istToday } from './marketDate'
 
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
 const manifestUrl = `${BASE.endsWith('/') ? BASE : BASE + '/'}nav/_manifest.json?v=${__DATA_VERSION__}`
@@ -29,16 +30,11 @@ function subscribe(cb: () => void) {
   return () => { listeners.delete(cb) }
 }
 
-/** Local calendar date (matches the pipeline's date.today()), YYYY-MM-DD. */
-function localToday(): string {
-  const n = new Date()
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
-}
-
 function updateDate(iso: string) {
-  // Invariant: never advance the displayed NAV date into the future. A liquid
-  // fund's AMFI NAV is sometimes forward-dated; it must not move the site date.
-  if (iso > localToday()) return
+  // Invariant: never advance the displayed NAV date into the future, and never
+  // accept a malformed date. A liquid fund's AMFI NAV is sometimes forward-dated;
+  // it must not move the site date.
+  if (isFutureOrInvalidNavDate(iso)) return
   if (iso > latestKnown) {
     latestKnown = iso
     listeners.forEach((cb) => cb())
@@ -63,14 +59,12 @@ function fetchManifest() {
     .then((r) => (r.ok ? r.json() : null))
     .then((manifest) => {
       if (!manifest || typeof manifest !== 'object') return
-      const dates = Object.values(manifest).filter(
-        (d): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
-      )
+      const dates = Object.values(manifest).filter(isIsoDate)
       if (!dates.length) return
       // Robust: newest date shared by >= MIN_ANCHOR_FUNDS funds and not in the
       // future. Mirrors config.robust_latest_nav_date so a few forward-dated
       // liquid funds cannot move the site's headline date past the market date.
-      const today = localToday()
+      const today = istToday()
       const counts = new Map<string, number>()
       for (const d of dates) if (d <= today) counts.set(d, (counts.get(d) ?? 0) + 1)
       const MIN_ANCHOR_FUNDS = 20

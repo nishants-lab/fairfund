@@ -106,11 +106,15 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
   return (
     <div className={`mt-6 card border-l-4 ${s.ring} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-bold text-fg">Management quality</h3>
+        <h3 className="font-bold text-fg">Manager record</h3>
         <span className={`text-sm font-bold ${s.tone}`}>{mgmt.signal}</span>
       </div>
 
-      <p className="mt-1 text-sm text-muted">{mgmt.note}</p>
+      <p className="mt-1 text-sm text-muted">
+        {tr
+          ? `Across ${tr.funds} ${tr.usedOtherFunds ? 'other ' : ''}fund${tr.funds === 1 ? '' : 's'} managed: median return difference versus category peers ${Math.round(tr.medianAlpha * 100)} bps per year${tr.basis ? ` on a ${tr.basis} basis` : ''}.`
+          : 'Comparable fund records are unavailable in the current dataset.'}
+      </p>
 
       {/* Managers: one compact row each; background lives in a modal */}
       {managers.length > 0 && (
@@ -202,8 +206,9 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
       )}
 
       <p className="mt-3 text-xs text-faint">
-        Forward-looking context, not a guarantee. We judge managers by how their <em>other</em> funds have
-        done versus peers, but past performance doesn't assure future results.
+        The comparison uses funds covered by FairFund and their category peers.
+        Coverage and tenure dates can limit the comparison. Funds managed by the same team can share
+        holdings and investment styles, so their results are related. Past performance does not guarantee future returns.
       </p>
 
       {openMgr && <ManagerModal m={openMgr} onClose={() => setOpenMgr(null)} />}

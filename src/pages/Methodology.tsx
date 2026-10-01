@@ -5,15 +5,14 @@ import { REGIMES } from "../lib/regimes"
 export default function Methodology() {
   usePageMeta(
     "How FairFund Works",
-    "How FairFund ranks mutual funds: identical time windows, within-category comparison, peer-relative alpha, forward-looking signals, and regime stress testing."
+    "How FairFund calculates returns, compares funds within categories and handles data limitations."
   )
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-3xl font-bold text-fg">How FairFund works</h1>
       <p className="mt-2 max-w-prose text-muted leading-relaxed">
-        Most fund screeners rank funds in a way that quietly flatters them. FairFund is built to
-        avoid that. This page explains the full method, in plain terms, for the {data.totalFunds} active
-        funds we cover.
+        FairFund compares mutual funds within their categories using NAV history and published portfolio data.
+        This page explains the calculations, ranking rules and data limitations for the {data.totalFunds} funds we cover.
       </p>
 
       {/* TL;DR box */}
@@ -23,93 +22,75 @@ export default function Methodology() {
           <div className="font-bold text-fg">The short version</div>
         </div>
         <p className="text-muted leading-relaxed text-sm">
-          We check every fund over the exact same dates, only compare it to similar funds (small-cap vs
-          small-cap, never small-cap vs large-cap), and measure whether the manager genuinely did better
-          than the average fund of its type. On top of that, we stress-test each fund across {REGIMES.length} real market
-          regimes (crashes, rallies, corrections) and compute forward-looking probability signals. The goal: show
-          you the data-backed picture, not a flattering one.
+          Compare funds within their categories, review returns and risk over available history, and examine
+          performance during {REGIMES.length} defined market phases. Rolling-history statistics, selected-range
+          metrics and monthly disclosures use different reporting periods.
         </p>
       </div>
 
       <h2 className="mt-10 text-xl font-bold text-fg">Part 1: The fair ranking</h2>
 
-      <Section title="The problem with most rankings">
+      <Section title="Why the period matters">
         <p>
-          Popular sites rank funds by their returns since <em>their own</em> inception. But funds
-          launch at different times. A fund that started at a market bottom (March 2020) shows
-          spectacular returns not because it is well-managed, but because its measurement window
-          skips the bad years. Comparing a fund measured over 2020-2026 against one measured over
-          2015-2026 is apples to oranges.
+          Returns measured over different periods include different market conditions. A since-launch return can
+          therefore give a different picture from a trailing 3-year return. Check the dates and available history
+          before comparing results.
         </p>
       </Section>
 
-      <Section title="Fix 1: Identical time windows">
+      <Section title="Available history and horizons">
         <p>
-          We measure <strong>every fund over the exact same calendar dates</strong>: trailing 1-year,
-          3-year, and 5-year windows. A fund must have complete data for a window to be ranked in it.
-          Same start, same end, same market conditions, for everyone.
+          Trailing 1-year, 3-year and 5-year metrics use available NAV data. Coverage and actual observation dates
+          can differ across funds. A horizon label does not establish identical start dates, end dates or complete history.
         </p>
       </Section>
 
-      <Section title="Fix 2: Within-category ranking only">
+      <Section title="Category comparisons">
         <p>
-          We never rank a small-cap fund against a large-cap fund. Small-caps <em>should</em> return
-          more because they carry more risk; ranking them together just tells you which asset class
-          was hot, not which fund was well-managed. You choose the risk level; we find the best fund
-          inside it.
+          Rankings compare funds within the same category. Categories can differ substantially in risk and investment
+          strategy, so their ranks should be read separately.
         </p>
       </Section>
 
-      <Section title="Fix 3: Peer-relative alpha">
+      <Section title="Return above or below the category median">
         <p>
-          A key number on every fund page: how much the fund beat (or trailed) the <em>median fund
-          in its own category</em>, per year, over the same window. A mid-cap returning 22% sounds
-          great, but if the median mid-cap returned 25%, it actually underperformed. Positive alpha
-          is real outperformance, not just riding a rising tide.
+          Peer-relative alpha describes a fund's return difference against its category comparison.
+          Fixed-horizon figures and selected-range calculations can use different available observations and
+          category baselines. These differences do not establish the cause of outperformance or a manager's ability.
         </p>
       </Section>
 
-      <Section title="Fix 4: Authoritative universe">
+      <Section title="Fund coverage">
         <p>
           Which funds to include matters as much as how we rank them. We build the universe from
           <strong> AMFI's published scheme category</strong> for every fund, validated against
           the official taxonomy. If AMFI classifies it as an equity or eligible debt scheme (liquid, money market) and it is an active Direct-Growth
-          plan, it is in. No silent misses.
+          plan, it is eligible for coverage. Data availability can limit inclusion.
         </p>
         <p className="mt-2">
-          <strong>Liquid, money market and arbitrage funds</strong> are scored using a separate,
-          category-appropriate model. Equity signals (Sharpe, alpha, drawdown, forward analytics) are
-          hidden because they are not meaningful for cash-equivalent or fully-hedged portfolios. Instead,
-          we rank within the SEBI sub-category peer set on three factors: expense ratio (45%),
-          return-vs-peers (35%), and AUM as a stability proxy (20%). Arbitrage uses equal 40/40/20
-          weights. The rank label always names the peer set so nothing looks cross-comparable (a liquid
-          fund is never ranked against a gilt fund).
+          <strong>Liquid, money market and arbitrage funds</strong> use separate peer-set scores based on cost,
+          returns and AUM. Weights differ between ranking and fund-page summary scores; these are separate formulas.
         </p>
       </Section>
 
-      <Section title="The composite score">
+      <Section title="Ranking score">
         <p>
-          For equity funds, each fund's within-category score is the <strong>geometric mean of its percentile
-          ranks</strong> across Sharpe, Sortino, Calmar, drawdown protection, alpha, and CAGR. The geometric mean
-          (not a simple average) means a fund cannot hide a terrible weakness behind one strong number. There
-          are <strong>no arbitrary weights</strong>: every metric contributes equally through its rank.
+          The equity ranking score combines within-category percentile ranks for Sharpe, Sortino, Calmar,
+          drawdown protection, peer-relative alpha and CAGR using a geometric mean. Each metric has equal weight.
+          A low percentile in one metric reduces the combined score.
         </p>
         <p className="mt-2">
-          For <strong>Tier 1 debt and arbitrage funds</strong> (liquid, overnight, money market, ultra-short
-          duration), the equity composite would be noise. A separate cost-and-return model ranks each fund
-          within its own SEBI sub-category: <strong>expense ratio (45%)</strong>,{' '}
-          <strong>return-vs-category-median (35%)</strong>, and <strong>AUM (20%)</strong>. Rate-sensitive
-          and credit-sensitive categories (gilt, credit risk, long/medium duration, dynamic bond) are not
-          scored at all. Duration and YTM drive their returns and we do not have that data; we surface what
-          we have and point to the AMC factsheet.
+          This ranking score is separate from the weighted equity fund-page composite score described below.
+          Debt and arbitrage funds use their own peer-set models. Some rate-sensitive and credit-sensitive categories
+          are unscored because duration, yield-to-maturity and credit-quality data are unavailable.
         </p>
       </Section>
 
       <Section title="The metrics">
         <ul className="ml-5 list-disc space-y-1.5">
           <li><strong>CAGR</strong>: annualized return. Absolute return is the cumulative point-to-point return.</li>
-          <li><strong>Alpha vs peers</strong>: excess CAGR over the category median.</li>
-          <li><strong>Sharpe / Sortino</strong>: return per unit of total / downside risk. Above 1 is strong.</li>
+          <li><strong>Alpha vs peers</strong>: return difference against the category comparison for the stated calculation.</li>
+          <li><strong>Sharpe / Sortino</strong>: return per unit of total / downside risk.</li>
           <li><strong>Calmar</strong>: return relative to the worst drawdown.</li>
           <li><strong>Max drawdown</strong>: the worst peak-to-trough fall (shallower is better).</li>
           <li><strong>Volatility</strong>: annualized standard deviation of daily returns.</li>
@@ -120,24 +101,33 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <h2 className="mt-10 text-xl font-bold text-fg">Part 2: Forward-looking signals</h2>
+      <h2 className="mt-10 text-xl font-bold text-fg">Part 2: Performance history and scenarios</h2>
       <p className="mt-2 max-w-prose text-muted leading-relaxed">
-        Trailing returns are a rear-view mirror. These signals estimate how repeatable and sustainable
-        a fund's edge looks. Every signal is based on actual history, confidence, or probability.
+        These analyses describe past returns across different periods and market conditions. Simulations reuse
+        past monthly returns to illustrate outcomes under a specified model.
       </p>
 
-      <Section title="Consistency (batting average)">
+      <Section title="Consistency">
         <p>
-          The share of rolling 36-month windows in which the fund beat its category median.
-          72% means it outperformed in 72 of every 100 such windows. Higher = more repeatable skill.
+          The share of measured rolling 36-month periods in which the fund beat its category median.
+          Endpoints move forward one month at a time. The periods overlap, so the observations are related.
+          A higher value means the fund beat its category median more often in this history.
+          The current limited-history threshold is 24 rolling periods.
         </p>
       </Section>
 
-      <Section title="Skill vs luck">
+      <Section title="Monthly excess-return test">
         <p>
-          A one-sided t-test on the fund's monthly excess returns over its category median,
-          converted to a confidence %. We only call it skill above <strong>90%</strong>. Below that,
-          we say so plainly (e.g., "70% chance its edge is luck"). Needs at least 36 months of data.
+          A one-sided t-test tests whether the fund's average monthly return above its category median is positive.
+          It requires at least 36 paired monthly returns and non-zero variation in excess returns.
+          The fund page shows the existing t-statistic and sample count. Raw p-values and observation dates are
+          unavailable in the current dataset; we do not recover a p-value from the rounded score input.
+        </p>
+        <p className="mt-2">
+          A p-value measures how unusual a test statistic at least this large would be if the true mean monthly
+          excess return were zero, under the test's assumptions. It does not measure the probability of manager
+          skill or future outperformance. The test assumes independent monthly observations and does not adjust
+          for testing many funds.
         </p>
       </Section>
 
@@ -151,15 +141,16 @@ export default function Methodology() {
       <Section title="Up / down capture">
         <p>
           In months the category rose, the fund's cumulative return divided by the category's
-          (up-capture); same for down months (down-capture). Below 100% on down-capture = better
-          downside protection.
+          (up-capture); same for down months (down-capture). Returns are compounded within each group.
+          Below 100% down-capture indicates a smaller compounded loss over those down months.
         </p>
       </Section>
 
-      <Section title="Running hot or cold">
+      <Section title="Recent return versus history">
         <p>
-          The z-score of the fund's most recent 1-year return against its own rolling 1-year history.
-          Above +1 = "hot" (reversion risk), below -1 = "cold". A caution against chasing, not a prediction.
+          The z-score compares the fund's most recent 1-year return with its own rolling 1-year history.
+          Positive values indicate returns above the historical average; negative values indicate returns below it.
+          Future returns may differ.
         </p>
       </Section>
 
@@ -193,16 +184,15 @@ export default function Methodology() {
         </ul>
         <p className="mt-2">
           You can compare any fund against another using the "+ Compare" picker. The better performer
-          in each regime is highlighted green. This reveals character: who protects in crashes and who
-          leads in rallies.
+          in each regime is highlighted green. These comparisons describe results during the defined events.
         </p>
       </Section>
 
       <Section title="Worst fall and recovery">
         <p>
           The deepest peak-to-trough drawdown across the fund's full history, recovery time, and
-          comparison against the category median. If the fund fell significantly more than peers (more
-          than 1.2x the median drawdown), it is flagged as weak downside protection.
+          comparison against the category's 3-year median drawdown. The periods differ, so these figures are
+          historical context rather than a matched-period comparison.
         </p>
       </Section>
 
@@ -210,18 +200,17 @@ export default function Methodology() {
         <p>
           A block-bootstrap Monte Carlo simulation (10,000 runs, 6-month blocks) models the range of
           possible outcomes for a lumpsum or SIP investment over 1-10 years. Reports the 10th, 50th,
-          and 90th percentile. Assumes the future resembles the past, which it may not.
+          and 90th percentile. These are simulated outcomes under the stated assumptions. Actual returns can fall outside the displayed range.
         </p>
       </Section>
 
       <h2 className="mt-10 text-xl font-bold text-fg">Part 3: Management, holdings, and verdict</h2>
 
-      <Section title="Management quality">
+      <Section title="Manager record">
         <p>
-          We assess the people running the money by their <strong>track record across the other funds
-          they manage</strong>. If a manager beats peers across several different funds, that is evidence
-          of repeatable skill. We compute median peer-relative alpha, win rate, and top-quartile rate
-          across their portfolio.
+          We summarize the results of covered funds run by these managers, including return differences against
+          each fund's category median. Other funds are used where coverage permits. Funds managed by the same
+          team can share holdings and investment styles, so their results are related.
         </p>
       </Section>
 
@@ -233,34 +222,35 @@ export default function Methodology() {
         </p>
       </Section>
 
-      <Section title="The overall verdict">
+      <Section title="Fund-page composite score">
         <p>
-          Each fund page ends with a <strong>conviction score (0-100)</strong> and label. It is a
-          rule-based blend: within-category rank, alpha, and Sharpe (backward pillars) plus consistency,
-          skill confidence, downside capture and management quality (forward pillars), with a momentum
-          caution if the fund is running hot. The card lists what worked and what to watch.
-          It is a weighted reading of the data, not a recommendation.
+          The equity fund-page composite score (0-100) uses category rank (22%), peer-relative alpha (18%),
+          Sharpe (12%), consistency (16%), the stored rounded (1-p) × 100 monthly-test statistic (12%),
+          downside capture (10%) and manager record (10%). Missing inputs generally use neutral points;
+          limited consistency history and an unavailable monthly test also use neutral points.
+          The monthly-test input remains part of the score and is not a probability of manager skill.
+        </p>
+        <p className="mt-2">
+          Reasons describe inputs that raised or lowered the score. The recent-return note is not scored.
+          This is a summary of historical metrics, not an investment recommendation.
         </p>
       </Section>
 
       <Section title="Chart benchmarks: index, peer, and category median">
         <p>
           The NAV Growth chart overlays a dashed comparison line, rebased with your fund to a common
-          start of 100 so only relative growth is compared, never rupee price levels. What the dashed
-          line shows depends on the fund, and where more than one option exists you can switch between
-          them above the chart.
+          start of 100 to compare relative growth. Available benchmarks depend on the fund and can be
+          selected above the chart.
         </p>
         <ul className="ml-5 mt-2 list-disc space-y-1.5">
           <li>
             <strong>Benchmark index</strong> (broad-market equity: Large, Mid, Small, Large &amp; Mid,
-            Flexi, Multi Cap and ELSS). There is no free daily raw-index feed that matches our NAV
-            pipeline, so we proxy the SEBI category index with a low-cost passive index fund tracking
-            it (Direct-Growth plan, so tracking drag is minimal): Nifty 100 for Large Cap, Nifty Midcap
+            Flexi, Multi Cap and ELSS). We use a low-cost passive index fund (Direct-Growth)
+            as a proxy for the category index: Nifty 100 for Large Cap, Nifty Midcap
             150 for Mid Cap, Nifty Smallcap 250 for Small Cap, Nifty LargeMidcap 250 for Large &amp; Mid,
             and Nifty 500 for Flexi, Multi Cap and ELSS. Multi Cap uses Nifty 500 as a deep-history
             broad-market stand-in because the exact Nifty 500 Multicap 50:25:25 index fund is still too
-            new for a meaningful chart. Each proxy is pinned and re-checked at build time for freshness
-            and depth, so a delisted fund cannot silently break the line.
+            new for a meaningful chart.
           </li>
           <li>
             <strong>Category median</strong> (cash-like categories: Liquid, Money Market, Arbitrage).
@@ -273,8 +263,8 @@ export default function Methodology() {
           <li>
             <strong>Category leader / top peer</strong> (everything else, and always available as a base).
             The category's rank-1 fund by 3-year risk-adjusted rank, or the next best if this fund is
-            itself the leader. An honest "vs the best in class" reference where a clean index proxy does
-            not exist (sectoral / thematic, international, and index funds).
+            itself the leader. Used for sectoral / thematic, international and index funds where a
+            suitable index proxy is unavailable.
           </li>
         </ul>
       </Section>
@@ -285,7 +275,7 @@ export default function Methodology() {
           <li>Benchmark-index lines use a passive <strong>index-fund proxy</strong>, not the raw index, and only for broad-market equity categories with enough index-fund history; cash-like categories fall back to a category median and sectoral / international funds to the category leader.</li>
           <li>Funds that closed or merged are not in our active set (survivorship bias).</li>
           <li>We do not model forward catalysts: valuations, manager changes, or fund flows.</li>
-          <li>The skill t-test assumes independent monthly excess returns; the modeled cone assumes the past distribution repeats. Both are simplifications.</li>
+          <li>The monthly t-test assumes independent observations and does not adjust for testing many funds. Simulations reuse the past return distribution, which may not represent future returns.</li>
         </ul>
       </Section>
 
@@ -293,7 +283,7 @@ export default function Methodology() {
         <p>
           Fund universe and categories from AMFI's published classification. Metrics computed from
           daily NAV published by AMFI (via mfapi.in). NAV charts fetched live. Holdings from the latest
-          monthly disclosure. Forward analytics (regime returns, skill, capture ratios) recomputed from
+          monthly disclosure. Historical analytics (regime returns, monthly tests, capture ratios) recomputed from
           self-hosted NAV cache. The footer shows the actual latest NAV date.
         </p>
       </Section>

@@ -19,14 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      # Guard the fund-code matcher: fails the build if a matcher edit
-      # regresses the portfolio golden fixture or the self-match rate.
-      - run: node scripts/check_fund_matching.mjs
+      - name: Validate research contracts
+        uses: ./.github/actions/validate
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

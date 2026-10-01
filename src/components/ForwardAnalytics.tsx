@@ -81,7 +81,6 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
       .filter((f) => f.code !== fund.code && f.category === fund.category)
       .sort((a, b) => (a.metrics['3Y']?.catRank ?? 999) - (b.metrics['3Y']?.catRank ?? 999))
     return {
-      skill: same.filter((f) => f.analytics?.alpha?.confidence != null).slice(0, 2),
       capture: same.filter((f) => f.analytics?.capture?.down != null).slice(0, 2),
     }
   }, [fund])
@@ -99,10 +98,9 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
     return target
   }, [fund, a])
 
-  // Category context for the skill/consistency spectrums (median + best peer).
+  // Category context for the consistency spectrum (median + best peer).
   const catSignals = useMemo(() => {
     const same = funds.filter((f) => f.category === fund.category)
-    const conf = same.map((f) => f.analytics?.alpha?.confidence).filter((v): v is number => v != null)
     const bat = same.map((f) => f.analytics?.battingAverage?.pct).filter((v): v is number => v != null)
     const med = (xs: number[]) => {
       if (!xs.length) return null
@@ -111,7 +109,6 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
       return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
     }
     return {
-      skill: conf.length >= 3 ? { median: med(conf), best: Math.max(...conf) } : undefined,
       consistency: bat.length >= 3 ? { median: med(bat), best: Math.max(...bat) } : undefined,
     }
   }, [fund.category])
@@ -126,12 +123,12 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
   return (
     <div className="mt-6">
       <div className="mb-1 flex items-center gap-2">
-        <h3 className="text-base font-bold text-fg">Forward-looking signals</h3>
+        <h3 className="text-base font-bold text-fg">Performance history and scenarios</h3>
         <span className="rounded-full bg-surface2 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-faint">beta</span>
       </div>
       <p className="mb-4 text-xs text-muted">
-        Beyond past returns: how consistent, skilled and sustainable this fund looks, framed as
-        past data, not a prediction.
+        Review performance across rolling periods and past market conditions.
+        Scenario results depend on their stated assumptions.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -142,12 +139,13 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               <h4 className="flex items-center gap-1.5 font-semibold text-fg">
                 Rank trajectory
                 <InfoTip width={280}>
-                  <strong>This is a RANK chart, not a returns chart.</strong> The line is the fund's
-                  position within its category over time, as a percentile (100 = top of category,
+                  The line shows the fund's category rank percentile over time (100 = top of category,
                   0 = bottom). It is recomputed on a rolling 3-year-return basis, one step per month.
                   <br /><br /><span className="text-emerald-600 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
                   <br /><span className="text-rose-600 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
                   <br /><span className="text-muted">Steady</span>: roughly holding position.
+                  <br /><br />A higher line is a better return rank. The headline category rank uses a
+                  risk-adjusted score, so the two can differ.
                 </InfoTip>
               </h4>
               <span className={`text-sm font-bold ${(DIR_STYLE[a.rankTrajectory.direction] ?? DIR_FALLBACK).tone}`}>
@@ -179,8 +177,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             </div>
             <p className="mt-2 text-xs text-muted">
               By 3-year return, was #{a.rankTrajectory.priorRank}/{a.rankTrajectory.priorPeers}, now #
-              {a.rankTrajectory.currentRank}/{a.rankTrajectory.currentPeers} in its category (a higher line is a better rank).
-              {' '}This is a return-rank lens; the headline "Rank #" at the top uses our risk-adjusted composite score, so the two can differ.
+              {a.rankTrajectory.currentRank}/{a.rankTrajectory.currentPeers} in its category.
             </p>
             {a.rankTrajectory.limited && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Limited evidence: small category ({a.rankTrajectory.currentPeers} peers).</p>}
           </div>
@@ -192,108 +189,59 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             <h4 className="flex items-center gap-1.5 font-semibold text-fg">
               Consistency
               <InfoTip width={285}>
-                <strong>How often this fund has been a top-half performer, not a one-hit wonder.</strong>
-                <br /><br />We look at every rolling 3-year window in its history and count the share
-                where it beat the median fund in its category. {a.battingAverage.pct}% means it finished
-                in the better half in {a.battingAverage.pct} of every 100 such windows.
-                <br /><br />Higher means more repeatable skill, less luck. We use 3-year windows because
-                short windows are mostly noise.
+                We calculate returns over rolling 36-month periods, moving the endpoint forward one month at a time.
+                This percentage shows how often the fund's return exceeded its category median.
+                The periods overlap, so the observations are related.
               </InfoTip>
             </h4>
             <div className="mt-1 flex items-baseline gap-2">
               <span className={`text-2xl font-extrabold ${a.battingAverage.pct >= 65 ? 'text-emerald-600 dark:text-emerald-400' : a.battingAverage.pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>{a.battingAverage.pct}%</span>
-              <span className="text-xs text-faint">of 3Y windows beat the category median</span>
+              <span className="text-xs text-faint">of measured 3-year periods beat the category median</span>
             </div>
             <Spectrum
               model={bandSpectrum({
                 value: a.battingAverage.pct,
                 lowMid: 50,
                 midHigh: 65,
-                leftLabel: 'Inconsistent',
-                rightLabel: 'Very consistent',
+                leftLabel: 'Beat median less often',
+                rightLabel: 'Beat median more often',
                 cat: catSignals.consistency,
               })}
             />
             <p className="mt-2 text-xs text-muted">
-              Across {a.battingAverage.n} rolling 3-year windows. Higher means more repeatable skill, less luck.
+              Based on {a.battingAverage.n} overlapping 3-year periods.
             </p>
             {a.battingAverage.limited && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                Limited evidence: only {a.battingAverage.n} three-year windows of history so far
-                (we like to see at least 24).
+                Limited history: {a.battingAverage.n} rolling periods available; the current history threshold is 24 periods.
               </p>
             )}
           </div>
         )}
 
-        {/* Skill vs luck (#12 reframe when luck-heavy) */}
         {a?.alpha && (
-          <div className="card p-4">
-            <h4 className="flex items-center gap-1.5 font-semibold text-fg">
-              Skill vs luck
-              <InfoTip width={290}>
-                <strong>Is the fund's edge over its peers real, or could it be chance?</strong>
-                <br /><br />We take each month's return, subtract the category-median fund's return,
-                and run a one-sided t-test on whether that excess is reliably positive. The % is our
-                confidence it is genuine skill.
-                <br /><br />We set a high bar: below 95% confidence we say it could be luck. Below 36
-                months of data we do not judge at all.
-              </InfoTip>
-            </h4>
-            {a.alpha.insufficient || a.alpha.confidence == null ? (
-              <p className="mt-1 text-sm text-muted">Not enough data to assess skill ({a.alpha.n} months).</p>
+          <details className="card p-4">
+            <summary className="cursor-pointer font-semibold text-fg">Monthly excess-return test</summary>
+            <p className="mt-2 text-xs text-muted">
+              Tests whether the fund's average monthly return above its category median is positive.
+              Based on {a.alpha.n} paired monthly returns.
+            </p>
+            {a.alpha.insufficient || a.alpha.tStat == null ? (
+              <p className="mt-2 text-sm text-muted">
+                Test unavailable. At least 36 paired monthly returns and non-zero variation in excess returns are required.
+              </p>
             ) : (
-              <>
-                {/* When the read leans LUCK, lead with the honest framing instead
-                    of "X% confident it's skill" which reads odd at low values (#12). */}
-                {a.alpha.confidence < 50 ? (
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">{Math.round(100 - a.alpha.confidence)}%</span>
-                    <span className="text-xs text-faint">chance its edge is just luck</span>
-                  </div>
-                ) : (
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className={`text-2xl font-extrabold ${a.alpha.confidence >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {Math.round(a.alpha.confidence)}%
-                    </span>
-                    <span className="text-xs text-faint">confident it's skill, not chance</span>
-                  </div>
-                )}
-                <Spectrum
-                  model={bandSpectrum({
-                    value: a.alpha.confidence,
-                    lowMid: 70,
-                    midHigh: 90,
-                    leftLabel: 'Likely luck',
-                    rightLabel: 'Likely skill',
-                    cat: catSignals.skill,
-                  })}
-                />
-                <p className="mt-2 text-xs text-muted">
-                  {a.alpha.confidence >= 90
-                    ? 'High confidence this edge is genuine skill.'
-                    : a.alpha.confidence >= 70
-                      ? 'Moderate confidence: leans skill, but not conclusive.'
-                      : a.alpha.confidence >= 50
-                        ? 'Weak evidence: the edge is unproven.'
-                        : 'The evidence leans toward luck, not a durable edge.'}{' '}
-                  Based on {a.alpha.n} monthly excess returns. (We call it skill only above 90%.)
-                </p>
-                {peers.skill.length > 0 && (
-                  <p className="mt-2 border-t border-line pt-2 text-xs text-faint">
-                    For context, same-category peers:{' '}
-                    {peers.skill.map((p, i) => (
-                      <span key={p.code}>
-                        {i > 0 && ', '}
-                        <a href={`#/fund/${p.code}/${fundSlug(p.name)}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
-                        {Math.round(p.analytics!.alpha!.confidence!)}%
-                      </span>
-                    ))}.
-                  </p>
-                )}
-              </>
+              <p className="mt-2 text-sm text-fg">t-statistic: {num(a.alpha.tStat)}</p>
             )}
-          </div>
+            <p className="mt-2 text-xs text-muted">
+              This one-sided t-test assumes independent monthly observations and does not adjust for testing many funds.
+              It does not measure the probability of manager skill or future outperformance.
+            </p>
+            <p className="mt-2 text-xs text-faint">
+              Raw p-value and observation dates are unavailable in the current dataset.
+              The stored rounded (1-p) × 100 statistic remains a 12% input to the equity fund-page composite score.
+            </p>
+          </details>
         )}
 
         {/* Capture ratios — suppress when values are misleading (negative, near-zero,
@@ -306,13 +254,10 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             <h4 className="flex items-center gap-1.5 font-semibold text-fg">
               Up / down capture
               <InfoTip width={290}>
-                <strong>How much of the category's moves this fund rides, up and down.</strong>
-                <br /><br /><strong>Up-capture {a.capture.up ?? '—'}%:</strong> in months its category
-                rose, it captured {a.capture.up ?? '—'}% of that gain.
-                <br /><strong>Down-capture {a.capture.down ?? '—'}%:</strong> in months the category
-                fell, it took {a.capture.down ?? '—'}% of that fall.
-                <br /><br />90% up / 70% down is the sweet spot: keeps most of the upside but cushions
-                the downside. Over 100% down-capture means it falls harder than peers.
+                The fund's compounded return divided by the category comparison's compounded return,
+                calculated separately for months when the category median rose or fell.
+                These ratios describe the measured history; they are not a share of months.
+                Down-capture below 100% indicates a smaller compounded loss over those down months.
               </InfoTip>
             </h4>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -328,12 +273,11 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               />
             </div>
             <p className="mt-2 text-xs text-muted">
-              Captured {a.capture.up ?? '—'}% of its category's gains and {a.capture.down ?? '—'}% of its losses.
-              {' '}Up-capture: higher is better. Down-capture: lower is better (below 100% means it falls less than peers).
+              Compounded return ratios across {a.capture.upMonths} category up months and {a.capture.downMonths} down months.
             </p>
             {peers.capture.length > 0 && (
               <p className="mt-2 border-t border-line pt-2 text-xs text-faint">
-                For context, same-category peers (down-capture):{' '}
+                Peer down-capture:{' '}
                 {peers.capture.map((p, i) => (
                   <span key={p.code}>
                     {i > 0 && ', '}
@@ -350,35 +294,34 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
         {a?.meanReversion && (
           <div className="card p-4">
             <h4 className="flex items-center gap-1.5 font-semibold text-fg">
-              Running hot?
+              Recent return versus history
               <InfoTip width={290}>
                 <strong>Is the fund's recent year unusually strong (or weak) versus its own normal?</strong>
                 <br /><br />This compares the fund only to itself. We take its last-1-year return and
                 measure how far it sits from its own typical 1-year return, in standard deviations (a
                 z-score). 0 = normal, +1/-1 = notably hot/cold, beyond ±2 is extreme.
                 <br /><br />This fund: recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its usual{' '}
-                {signedPct(a.meanReversion.norm1Y)} (z = {num(a.meanReversion.z)}). Hot streaks tend to
-                cool off, so it is a caution against chasing, not a prediction.
+                {signedPct(a.meanReversion.norm1Y)} (z = {num(a.meanReversion.z)}). Future returns may differ.
               </InfoTip>
             </h4>
             <div className="mt-1">
-              {a.meanReversion.state === 'hot' && <span className="text-lg font-bold text-amber-600 dark:text-amber-400">🔥 Running hot</span>}
-              {a.meanReversion.state === 'cold' && <span className="text-lg font-bold text-sky-600 dark:text-sky-400">❄️ Running cold</span>}
-              {a.meanReversion.state === 'normal' && <span className="text-lg font-bold text-muted">In line with its norm</span>}
+              {a.meanReversion.state === 'hot' && <span className="text-lg font-bold text-amber-600 dark:text-amber-400">Above historical average</span>}
+              {a.meanReversion.state === 'cold' && <span className="text-lg font-bold text-sky-600 dark:text-sky-400">Below historical average</span>}
+              {a.meanReversion.state === 'normal' && <span className="text-lg font-bold text-muted">Near historical average</span>}
             </div>
             <Spectrum
               value={Math.max(0, Math.min(1, (a.meanReversion.z + 3) / 6))}
-              leftLabel="❄️ Cold"
-              rightLabel="🔥 Hot"
+              leftLabel="Below average"
+              rightLabel="Above average"
               gradient="emerald-amber-rose"
               markerLabel={`z = ${num(a.meanReversion.z)}`}
             />
             <p className="mt-2 text-xs text-muted">
               Recent 1Y {signedPct(a.meanReversion.recent1Y)} vs its typical {signedPct(a.meanReversion.norm1Y)}{' '}
               (z = {num(a.meanReversion.z)}, {zWords(a.meanReversion.z)}).
-              {a.meanReversion.state === 'hot' && ' Far above norm; be cautious chasing it, returns tend to revert.'}
-              {a.meanReversion.state === 'cold' && ' Below its norm; not a guarantee, but mean-reversion can cut both ways.'}
-              {a.meanReversion.state === 'normal' && ' Neither stretched nor depressed vs its own history.'}
+              {a.meanReversion.z > 0 && ' The latest 1-year return is above this fund’s historical average.'}
+              {a.meanReversion.z < 0 && ' The latest 1-year return is below this fund’s historical average.'}
+              {' '}Future returns may differ.
             </p>
           </div>
         )}
@@ -389,10 +332,9 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
       {/* ---- "If you stay invested" outcomes (horizon + SIP/lumpsum driven) ---- */}
       {(rollDist || cone) && (
         <div className="mt-6">
-          <h3 className="text-base font-bold text-fg">If you stay invested for…</h3>
+          <h3 className="text-base font-bold text-fg">Historical returns and simulated outcomes</h3>
           <p className="mt-1 text-xs text-muted">
-            Pick a holding period and how you invest. The cards below show what this fund actually
-            delivered over every such stretch in its history, and a simulated range for the period ahead.
+            Historical returns and simulations based on past monthly returns.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center gap-2">
@@ -472,7 +414,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}–${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <p className="mt-2 text-xs text-muted">
-                  Annualized return for any {horizon}-year stretch in its history, across {rollDist.n}{' '}
+                  Annualized returns over measured {horizon}-year periods, across {rollDist.n}{' '}
                   windows. {rollDist.negPct > 0 ? `${rollDist.negPct.toFixed(0)}% of those windows lost money.` : 'No window lost money.'}
                 </p>
               </div>
@@ -487,13 +429,14 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                     We run {cone.sims.toLocaleString('en-IN')} simulations that re-shuffle this fund's
                     own past monthly returns in 6-month blocks, then see where your money lands after{' '}
                     {horizon} years. Pessimistic / Median / Optimistic are the 10th, 50th and 90th
-                    percentiles. It assumes the future resembles the past: a model, not a promise.
+                    percentiles of the simulations. The model uses {cone.history} monthly returns and a fixed seed.
+                    "×" is the multiple of money invested.
                   </InfoTip>
                 </h4>
                 <p className="mt-1 text-xs text-muted">
                   {cone.mode === 'sip'
-                    ? `Investing ${inr(clampSip(sipAmount))}/mo (${inr(cone.invested)} total over ${horizon}y) could become:`
-                    : `Where ${inr(cone.invested)} invested today could land:`}
+                    ? `Investing ${inr(clampSip(sipAmount))}/mo (${inr(cone.invested)} total over ${horizon}y) simulated outcomes:`
+                    : `Simulated outcomes for ${inr(cone.invested)} invested:`}
                 </p>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <Stat label="Pessimistic" value={inr(cone.endP10)} sub={`${cone.p10.toFixed(2)}× · 10th %ile`} tone="text-rose-600 dark:text-rose-400" />
@@ -501,9 +444,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   <Stat label="Optimistic" value={inr(cone.endP90)} sub={`${cone.p90.toFixed(2)}× · 90th %ile`} tone="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <p className="mt-2 text-xs text-faint">
-                  {cone.sims.toLocaleString('en-IN')} simulations (block bootstrap of {cone.history} monthly
-                  returns, fixed seed). "×" is the multiple of money invested. Assumes the future
-                  resembles the past, which it may not. Not a guarantee.
+                  Assumes the future resembles the past, which it may not.
+                  Actual returns can fall outside the displayed range. Not a guarantee.
                 </p>
               </div>
             )}
@@ -677,17 +619,17 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   </div>
                   {catMedianDD != null && dd.depthPct > catMedianDD && (
                     <div className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                      This fund fell less than the category median, suggesting better downside protection.
+                      The full-history fall shown is smaller than the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2 && (
                     <div className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">
-                      This fund fell significantly more than its category median, a sign of weak downside protection.
+                      The full-history fall shown exceeds 1.2 times the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && !(catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2) && (
                     <div className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                      This fund fell roughly in line with or slightly more than the category median.
+                      The full-history fall shown is at least as large as the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
                 </div>

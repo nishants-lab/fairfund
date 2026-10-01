@@ -9,6 +9,9 @@ import os, json, sys
 import urllib.request
 from datetime import datetime, timedelta
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from market_date import IST, ist_today, is_usable_nav_date
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 # repo root = parent of this scripts/ dir; nav lives in public/nav
 NAV_DIR = os.path.abspath(os.path.join(HERE, "..", "public", "nav"))
@@ -97,8 +100,9 @@ def main():
         print("ERROR: AMFI data incomplete; aborting.")
         sys.exit(1)
 
-    today = datetime.now().strftime("%Y-%m-%d")
-    stale_gap_cutoff = (datetime.now() - timedelta(days=DAILY_STALE_GAP_DAYS)).strftime("%Y-%m-%d")
+    # CI runners are UTC; the bound that matters is the Indian market date.
+    today = ist_today()
+    stale_gap_cutoff = (datetime.now(IST) - timedelta(days=DAILY_STALE_GAP_DAYS)).strftime("%Y-%m-%d")
     prev_ledger = load_ledger()
     ledger = {}
 
@@ -134,7 +138,8 @@ def main():
                 hist = fetch_mfapi_history(code)
                 have = set(j["d"])
                 for dt in sorted(dt for dt in hist
-                                 if last_have < dt <= new_date and dt <= today and dt not in have):
+                                 if last_have < dt <= new_date and dt not in have
+                                 and is_usable_nav_date(dt, today)):
                     j["d"].append(dt)
                     j["v"].append(hist[dt])
                 if len(j["d"]) > len(have):
@@ -142,7 +147,7 @@ def main():
             # Always ensure AMFI's latest date is present (mfapi can lag intraday).
             # Invariant: never store a NAV dated in the future. AMFI forward-dates
             # liquid-fund NAV (next-day stamp); it must not leak into the series.
-            if new_date <= today and new_date not in j["d"]:
+            if is_usable_nav_date(new_date, today) and new_date not in j["d"]:
                 j["d"].append(new_date)
                 j["v"].append(new_nav)
             j["u"] = j["d"][-1]

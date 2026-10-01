@@ -19,6 +19,9 @@ Usage:
 import os, json, sys, time
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from market_date import ist_today, is_usable_nav_date
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 NAV_DIR = os.path.abspath(os.path.join(HERE, "..", "public", "nav"))
 MFAPI = "https://api.mfapi.in/mf/"
@@ -29,8 +32,12 @@ if "--code" in sys.argv:
     ONE_CODE = sys.argv[sys.argv.index("--code") + 1]
 
 
-def fetch_history(code):
-    """Full NAV history from mfapi.in as {date_iso: nav}, with retries."""
+def fetch_history(code, today=None):
+    """Full NAV history from mfapi.in as {date_iso: nav}, with retries.
+
+    Dates after `today` (default: the Indian market date) and malformed dates are
+    dropped, so healing a hole can never append a future point."""
+    today = today or ist_today()
     for attempt in range(4):
         try:
             req = urllib.request.Request(f"{MFAPI}{code}", headers=H)
@@ -45,8 +52,12 @@ def fetch_history(code):
                     nav = round(float(p["nav"]), 4)
                 except Exception:
                     continue
-                if nav > 0:
-                    out[f"{yyyy}-{mm}-{dd}"] = nav
+                iso = f"{yyyy}-{mm}-{dd}"
+                # Upper bound: never ingest a date past the Indian market date,
+                # and never a malformed one. mfapi mirrors AMFI, which stamps
+                # some liquid-fund NAVs with the next business day.
+                if nav > 0 and is_usable_nav_date(iso, today):
+                    out[iso] = nav
             return out
         except Exception:
             time.sleep(1 * (2 ** attempt))
@@ -58,6 +69,7 @@ def main():
         print(f"ERROR: {NAV_DIR} not found")
         sys.exit(1)
 
+    today = ist_today()
     files = sorted(f for f in os.listdir(NAV_DIR)
                    if f.endswith(".json") and f != "_manifest.json")
     if ONE_CODE:
@@ -79,13 +91,17 @@ def main():
         have = dict(zip(d, v))
         first = d[0]
 
-        hist = fetch_history(code)
+        hist = fetch_history(code, today)
         if hist is None:
             failed += 1
             continue
 
         # dates mfapi has, at/after our earliest, that we are missing
-        missing = sorted(dt for dt in hist if dt >= first and dt not in have)
+        # fetch_history already bounds dates; re-checking here keeps the write
+        # path itself the place the invariant is enforced.
+        missing = sorted(dt for dt in hist
+                         if dt >= first and dt not in have
+                         and is_usable_nav_date(dt, today))
         if not missing:
             time.sleep(0.15)
             continue

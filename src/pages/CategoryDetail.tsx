@@ -6,6 +6,7 @@ import { pct, signedPct, alphaColor, fundSlug } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import { REGIMES } from '../lib/regimes'
 import ShareButton from '../components/ShareButton'
+import InfoTip from '../components/InfoTip'
 import type { Fund } from '../types'
 
 /* ---------- helpers ---------- */
@@ -100,7 +101,7 @@ export default function CategoryDetail() {
 
   usePageMeta(
     catInfo ? `${catInfo.display} Funds` : 'Category not found',
-    catInfo ? `${catInfo.fundCount} ${catInfo.display} mutual funds compared by risk-adjusted return, regime performance, consistency and cost. Evidence, not advice.` : undefined
+    catInfo ? `Explore ${catInfo.fundCount} ${catInfo.display} funds, their historical returns and category comparisons.` : undefined
   )
 
   const catFunds = useMemo(() =>
@@ -151,20 +152,16 @@ export default function CategoryDetail() {
     }).filter(r => r.fundCount >= 3)
   }, [catFunds])
 
-  // Skill metrics
-  const skillStats = useMemo(() => {
+  // Historical category metrics
+  const performanceStats = useMemo(() => {
     const battingPcts = catFunds.map(f => f.analytics?.battingAverage?.pct).filter((v): v is number => v != null)
     const captures = catFunds.map(f => f.analytics?.capture).filter(c => c?.down != null)
-    const alphaConfs = catFunds.map(f => f.analytics?.alpha?.confidence).filter((v): v is number => v != null)
-    const highConf = alphaConfs.filter(c => c >= 90).length
     return {
       medianBatting: battingPcts.length >= 3 ? median(battingPcts) : null,
       battingAbove60: battingPcts.filter(p => p >= 60).length,
       battingTotal: battingPcts.length,
       medianUpCapture: captures.length >= 3 ? median(captures.map(c => c!.up!).filter((v): v is number => v != null)) : null,
       medianDownCapture: captures.length >= 3 ? median(captures.map(c => c!.down!).filter((v): v is number => v != null)) : null,
-      highConfAlpha: highConf,
-      alphaTotal: alphaConfs.length,
     }
   }, [catFunds])
 
@@ -276,7 +273,7 @@ export default function CategoryDetail() {
       {/* Return distribution strips */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-fg">Return distribution</h2>
-        <p className="mt-1 text-sm text-muted">Every fund in the category, same window. Blue box = middle 50%. Line = median.</p>
+        <p className="mt-1 text-sm text-muted">Available fund returns for the selected horizon. NAV coverage can differ. Blue box = middle 50%. Line = median.</p>
         <div className="mt-4 space-y-5">
           {HORIZONS.map(h => (
             <div key={h}>
@@ -289,8 +286,7 @@ export default function CategoryDetail() {
 
       {/* Window decides the winner */}
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-fg">The window decides the winner</h2>
-        <p className="mt-1 text-sm text-muted">Who ranks #1 depends on the period you measure.</p>
+        <h2 className="text-xl font-semibold text-fg">Top-ranked funds by period</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {windowLeaders.map(w => (
             <div key={w.horizon} className="rounded-xl border border-line bg-surface p-4">
@@ -355,23 +351,25 @@ export default function CategoryDetail() {
         </section>
       )}
 
-      {/* Skill distribution */}
-      {!isDebt && (skillStats.medianBatting != null || skillStats.highConfAlpha > 0) && (
+      {/* Historical category distribution */}
+      {!isDebt && (performanceStats.medianBatting != null || performanceStats.battingTotal > 0 || performanceStats.medianDownCapture != null) && (
         <section className="mt-10">
-          <h2 className="text-xl font-semibold text-fg">Skill vs luck</h2>
-          <p className="mt-1 text-sm text-muted">How consistently funds in this category outperform their own median peer.</p>
+          <h2 className="flex items-center gap-1.5 text-xl font-semibold text-fg">
+            Performance within the category
+            <InfoTip label="About category consistency" align="left" width={290}>
+              Consistency is the share of measured rolling 3-year periods in which a fund beat its category median.
+              The periods overlap, so the observations are related.
+            </InfoTip>
+          </h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {skillStats.medianBatting != null && (
-              <StatChip label="Median consistency" value={`${Math.round(skillStats.medianBatting)}%`} sub={`of rolling 3Y windows beat median`} />
+            {performanceStats.medianBatting != null && (
+              <StatChip label="Median consistency" value={`${Math.round(performanceStats.medianBatting)}%`} sub={`of measured rolling 3Y periods beat median`} />
             )}
-            {skillStats.battingTotal > 0 && (
-              <StatChip label="Consistent funds" value={`${skillStats.battingAbove60}`} sub={`of ${skillStats.battingTotal} beat median 60%+ of the time`} />
+            {performanceStats.battingTotal > 0 && (
+              <StatChip label="Consistency ≥60%" value={`${performanceStats.battingAbove60}`} sub={`of ${performanceStats.battingTotal} beat median in 60%+ of measured periods`} />
             )}
-            {skillStats.medianDownCapture != null && (
-              <StatChip label="Median down-capture" value={`${Math.round(skillStats.medianDownCapture)}%`} sub="of category's bad months absorbed" />
-            )}
-            {skillStats.alphaTotal > 0 && (
-              <StatChip label="Statistically skilled" value={`${skillStats.highConfAlpha}`} sub={`of ${skillStats.alphaTotal} have ≥90% alpha confidence`} />
+            {performanceStats.medianDownCapture != null && (
+              <StatChip label="Median down-capture" value={`${Math.round(performanceStats.medianDownCapture)}%`} sub="compounded return ratio during category down months" />
             )}
           </div>
         </section>
@@ -380,19 +378,19 @@ export default function CategoryDetail() {
       {/* Hot / cold */}
       {!isDebt && (hotCold.hot > 0 || hotCold.cold > 0) && (
         <section className="mt-10">
-          <h2 className="text-xl font-semibold text-fg">Mean reversion signal</h2>
-          <p className="mt-1 text-sm text-muted">Funds running well above or below their own long-run pace (1Y return vs historical norm).</p>
+          <h2 className="text-xl font-semibold text-fg">Recent returns versus history</h2>
+          <p className="mt-1 text-sm text-muted">Latest 1-year returns compared with each fund's historical average.</p>
           <div className="mt-4 flex gap-4">
             {hotCold.hot > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-900/10">
                 <span className="font-display text-2xl font-semibold text-amber-700 dark:text-amber-400">{hotCold.hot}</span>
-                <span className="ml-2 text-sm text-muted">running hot</span>
+                <span className="ml-2 text-sm text-muted">above historical average</span>
               </div>
             )}
             {hotCold.cold > 0 && (
               <div className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-900/40 dark:bg-blue-900/10">
                 <span className="font-display text-2xl font-semibold text-blue-700 dark:text-blue-400">{hotCold.cold}</span>
-                <span className="ml-2 text-sm text-muted">running cold</span>
+                <span className="ml-2 text-sm text-muted">below historical average</span>
               </div>
             )}
           </div>
