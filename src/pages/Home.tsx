@@ -1,3 +1,4 @@
+import { categoryBadges } from '../lib/categoryBadges'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { makeEdition, validConsistency, CONSISTENCY_EXPLANATION, type Edition } from '../lib/edition'
 import type { Fund } from '../types'
@@ -72,9 +73,12 @@ function WindowBoard({ initialCategory }: { initialCategory: string }) {
 
 function CategoryIndex() {
   const categories = categoryKeys.map((key) => ({ key, ...data.categories[key] }))
-  const topThree = new Set([...categories].filter((c) => c.medianCagr5Y != null)
-    .sort((a, b) => (b.medianCagr5Y ?? -Infinity) - (a.medianCagr5Y ?? -Infinity))
-    .slice(0, 3).map((c) => c.key))
+  const badges = categoryBadges(data, categoryKeys)
+  const badgeColors = {
+    return: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200',
+    volatility: 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200',
+    choice: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200',
+  }
   return <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16" aria-labelledby="categories-title">
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -87,13 +91,14 @@ function CategoryIndex() {
     <div className="mt-7 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((c) => {
         const color = getCategoryColor(c.key)
-        return <Link key={c.key} to={`/explore?cat=${encodeURIComponent(c.key)}`}
-          className="group flex min-h-[76px] items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-brand-300 hover:bg-surface2/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600 dark:hover:border-brand-500">
+        const badge = badges.get(c.key)
+        return <div key={c.key} className="rounded-xl border border-line bg-surface transition-colors hover:border-brand-300 dark:hover:border-brand-500" data-category-card={c.key}>
+          <Link to={`/explore?cat=${encodeURIComponent(c.key)}`}
+          className="group flex min-h-[76px] items-center justify-between gap-3 rounded-xl px-4 py-3 transition-colors hover:bg-surface2/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${color.bg} border ${color.border}`} aria-hidden="true" />
               <span className="font-semibold text-fg group-hover:text-brand-700 dark:group-hover:text-brand-300">{c.display ?? c.key}</span>
-              {topThree.has(c.key) && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">5Y median: top 3</span>}
             </div>
             <p className="mt-1 pl-4 text-xs text-muted">{c.fundCount} funds</p>
           </div>
@@ -101,7 +106,12 @@ function CategoryIndex() {
             <p className="font-display text-xl font-semibold tabular-nums text-fg">{c.medianCagr5Y == null ? '—' : `${c.medianCagr5Y.toFixed(1)}%`}</p>
             <p className="text-[11px] text-muted">median 5Y</p>
           </div>
-        </Link>
+          </Link>
+          {badge && <div className="flex items-center gap-3 px-4 pb-3" data-category-badge={badge.kind}>
+            <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeColors[badge.kind]}`}>{badge.label}</span>
+            <InfoTip label={`About ${c.display ?? c.key}: ${badge.label}`} width={290}>{badge.explanation}</InfoTip>
+          </div>}
+        </div>
       })}
     </div>
   </section>
