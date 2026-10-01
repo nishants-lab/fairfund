@@ -39,9 +39,9 @@ class MetricReconciliationTests(unittest.TestCase):
                          metrics.compute_alpha(points, [10, 14], 5))
 
     def test_peer_median_is_same_for_every_fund_in_category(self):
-        histories = {1: series("2021-04-01", 1650, 0.24),
-                     2: series("2021-04-01", 1650, 0.12),
-                     3: series("2021-04-01", 1650, 0.08)}
+        histories = {1: series("2020-04-01", 2000, 0.24),
+                     2: series("2020-04-01", 2000, 0.12),
+                     3: series("2020-04-01", 2000, 0.08)}
         data = {"funds": [{"code": code, "category": "Synthetic", "metrics": {}} for code in histories]}
         with tempfile.TemporaryDirectory(prefix="ff-metrics-", dir=ROOT.parent) as tmp:
             path = Path(tmp) / "funds.json"

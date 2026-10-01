@@ -1,4 +1,6 @@
 import type { NavPoint } from '../types'
+import { getFund } from './data'
+import { navQualityIssue, NavQualityError } from './navQuality'
 import { reportLiveNavDate } from './navFreshness'
 import { dropFutureNavPoints, istToday } from './marketDate'
 
@@ -65,7 +67,11 @@ export function parseSelfHosted(j: SelfHostedNav, todayIso: string = istToday())
  * Returns chronological (oldest -> newest) array of {date, nav}.
  */
 export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
+  if (getFund(code)?.dataQuality?.status === 'quarantined') {
+    throw new NavQualityError('NAV history is held for source verification; a clean live response cannot release this hold.')
+  }
   if (cache.has(code)) return cache.get(code)!
+  let liveIssue: string | null = null
 
   // 1) LIVE first (freshest), bounded by timeout
   try {
@@ -73,7 +79,8 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
     if (res.ok) {
       const json = (await res.json()) as MfApiResponse
       const points = parseLive(json)
-      if (points.length > 0) {
+      liveIssue = navQualityIssue(points)
+      if (points.length > 0 && !liveIssue) {
         cache.set(code, points)
         // Report the freshest NAV date to the global tracker
         reportLiveNavDate(points[points.length - 1].date)
@@ -86,10 +93,12 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
 
   // 2) Self-hosted cache fallback (same origin, rock solid)
   const res = await fetch(selfHostedUrl(code))
-  if (!res.ok) throw new Error(`No NAV available for ${code}`)
+  if (!res.ok) { if (liveIssue) throw new NavQualityError(liveIssue); throw new Error(`No NAV available for ${code}`) }
   const j = (await res.json()) as SelfHostedNav
   const points = parseSelfHosted(j)
   if (!points) throw new Error(`Invalid self-hosted NAV for ${code}`)
+  const issue = navQualityIssue(points)
+  if (issue || liveIssue) throw new NavQualityError(issue || liveIssue || "NAV needs verification")
   cache.set(code, points)
   return points
 }

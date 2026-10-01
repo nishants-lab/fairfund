@@ -90,15 +90,7 @@ export function buildVerdict(fund: Fund): Verdict {
     else if (a.battingAverage.pct < 45) negatives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'overlapping rolling 3-year periods finishing above the category median', tone: 'bad' })
   }
 
-  // ---- Pillar 5: skill vs luck (forward) ----
-  let skillPts = 50
-  if (a?.alpha?.confidence != null && !a.alpha.insufficient) {
-    skillPts = a.alpha.confidence
-    if (a.alpha.confidence >= 90) positives.push({ label: 'Monthly-test score input', detail: 'stored rounded (1-p) × 100 statistic; 12% score weight, not a probability of skill', tone: 'good' })
-    else if (a.alpha.confidence < 50) negatives.push({ label: 'Monthly-test score input', detail: 'stored rounded (1-p) × 100 statistic; 12% score weight, not a probability of skill', tone: 'bad' })
-  }
-
-  // ---- Pillar 6: downside capture (forward, risk character) ----
+  // ---- Pillar 5: downside capture (forward, risk character) ----
   let capturePts = 50
   if (a?.capture?.down != null) {
     capturePts = clamp(150 - a.capture.down, 0, 100) // 100 down-cap -> 50, 50 -> 100
@@ -106,7 +98,7 @@ export function buildVerdict(fund: Fund): Verdict {
     else if (a.capture.down > 110) negatives.push({ label: `Down-capture ${a.capture.down}%`, detail: 'moved down more than the category median in down months', tone: 'bad' })
   }
 
-  // ---- Pillar 7: management quality (forward) ----
+  // ---- Pillar 6: management quality (forward) ----
   let mgmtPts = 50
   const sig = fund.management?.signal
   if (sig === 'Strong') { mgmtPts = 90; positives.push({ label: 'Manager track record', detail: `managers' other funds rank above their category median across most periods`, tone: 'neutral' }) }
@@ -118,17 +110,14 @@ export function buildVerdict(fund: Fund): Verdict {
     negatives.push({ label: 'Recent 1Y above own norm', detail: `latest 1Y is well above this fund's historical rolling 1-year average`, tone: 'neutral' })
   }
 
-  // Weighted blend. Backward pillars (rank/alpha/sharpe) and forward pillars
-  // (consistency/skill/capture/management) each carry meaningful weight so the
-  // verdict reflects BOTH what happened and how repeatable it looks.
+  // Renormalize the six remaining weights after removing the monthly-test input.
   const score = Math.round(
-    rankPts * 0.22 +
+    (rankPts * 0.22 +
       alphaPts * 0.18 +
       sharpePts * 0.12 +
       consistencyPts * 0.16 +
-      skillPts * 0.12 +
       capturePts * 0.1 +
-      mgmtPts * 0.1,
+      mgmtPts * 0.1) / 0.88,
   )
 
   // No qualitative rating: the label is a fixed, neutral caption for the number,

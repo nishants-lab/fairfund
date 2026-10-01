@@ -1,4 +1,5 @@
 import type { NavPoint } from '../types'
+import { navQualityIssue } from './navQuality'
 
 const RF_ANNUAL = 0.07
 const RF_DAILY = RF_ANNUAL / 252
@@ -8,7 +9,7 @@ export interface ComputedMetrics {
   totalReturn: number // %
   volatility: number // %
   sharpe: number
-  sortino: number
+  sortino: number | null
   maxDrawdown: number // % (negative)
   maxDrawdownStart: string // ISO date of the peak before the worst fall
   maxDrawdownEnd: string // ISO date of the trough
@@ -63,7 +64,7 @@ function mean(arr: number[]): number {
  * Returns null if the slice is too small to be meaningful.
  */
 export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
-  if (slice.length < 10) return null
+  if (slice.length < 10 || navQualityIssue(slice)) return null
 
   const startNav = slice[0].nav
   const endNav = slice[slice.length - 1].nav
@@ -83,9 +84,10 @@ export function computeMetrics(slice: NavPoint[]): ComputedMetrics | null {
 
   const sharpe = dvol > 0 ? ((mean(rets) - RF_DAILY) / dvol) * Math.sqrt(252) : 0
 
-  const downside = rets.filter((r) => r < RF_DAILY)
-  const dDev = downside.length > 5 ? std(downside) * Math.sqrt(252) : 0.0001
-  const sortino = dDev > 0 ? (cagr / 100 - RF_ANNUAL) / dDev : 0
+  // RMS shortfall over all observations, matching the producer definition.
+  const downsideVariance = rets.length ? rets.reduce((sum, r) => sum + Math.min(r - RF_DAILY, 0) ** 2, 0) / rets.length : 0
+  const dDev = Math.sqrt(downsideVariance * 252)
+  const sortino = dDev > 0 ? (cagr / 100 - RF_ANNUAL) / dDev : null
 
   // Max drawdown - track the peak (start) and trough (end) dates of the worst fall.
   // cumSeries[i] corresponds to slice[i] (cumSeries[0] = 1 at slice[0]; each

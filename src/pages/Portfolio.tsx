@@ -1,12 +1,15 @@
 /**
  * /my/portfolio - CAMS upload + portfolio analysis.
- * Upload → parse in browser → show analysis. No server round-trip.
+ * Upload → parse in browser → review → save and analyze. No server round-trip.
  */
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import { parseCAMSText, parseCAMSPdf, MATCHER_VERSION } from '../lib/camsParser'
 import { usePortfolio, savePortfolio, clearPortfolio, analyzePortfolio, type PortfolioAnalysis, type ParsedPortfolio } from '../lib/portfolio'
+import PortfolioImportReview from '../components/PortfolioImportReview'
+import PortfolioBackup from '../components/PortfolioBackup'
+import { trackUsageEvent } from '../lib/usage'
 import { getCategoryColor } from '../lib/categoryColors'
 import { pct, signedPct, fundSlug } from '../lib/format'
 
@@ -20,14 +23,24 @@ function UploadPanel({ onParsed }: { onParsed: (p: ParsedPortfolio) => void }) {
   const [parsing, setParsing] = useState(false)
   const fileRef = useRef<File | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const active = useRef(true)
+  const reading = useRef(false)
+
+  useEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
 
   const handleFile = useCallback(async (file: File, pwd?: string) => {
+    if (reading.current) return
+    reading.current = true
     setError('')
     setParsing(true)
 
     try {
       if (file.name.endsWith('.pdf')) {
         const result = await parseCAMSPdf(file, pwd)
+        if (!active.current) return
         if (result.needsPassword) {
           fileRef.current = file
           setNeedsPassword(true)
@@ -36,8 +49,8 @@ function UploadPanel({ onParsed }: { onParsed: (p: ParsedPortfolio) => void }) {
         }
         if (result.error) { setError(result.error); setParsing(false); return }
         if (result.portfolio) {
-          if (result.portfolio.transactions.length === 0) {
-            setError('No transactions found. Make sure this is a CAMS CAS (Consolidated Account Statement).')
+          if (result.portfolio.fundSummaries.length === 0) {
+            setError('No scheme holdings found. Make sure this is a CAMS CAS (Consolidated Account Statement).')
             setParsing(false)
             return
           }
@@ -46,18 +59,21 @@ function UploadPanel({ onParsed }: { onParsed: (p: ParsedPortfolio) => void }) {
       } else {
         // Text/CSV
         const text = await file.text()
+        if (!active.current) return
         const portfolio = parseCAMSText(text)
-        if (portfolio.transactions.length === 0) {
-          setError('No transactions found. Make sure this is a CAMS statement in text or PDF format.')
+        if (portfolio.fundSummaries.length === 0) {
+          setError('No scheme holdings found. Make sure this is a CAMS statement in text or PDF format.')
           setParsing(false)
           return
         }
         onParsed(portfolio)
       }
     } catch (err) {
-      setError(`Failed to parse: ${err}`)
+      if (active.current) setError(`Failed to parse: ${err}`)
+    } finally {
+      reading.current = false
+      if (active.current) setParsing(false)
     }
-    setParsing(false)
   }, [onParsed])
 
   const handlePasswordSubmit = useCallback(async () => {
@@ -132,7 +148,7 @@ function UploadPanel({ onParsed }: { onParsed: (p: ParsedPortfolio) => void }) {
                 </svg>
               </div>
               <p className="font-semibold text-fg">Drop your CAMS statement here</p>
-              <p className="mt-1 text-sm text-muted">PDF or text format. Everything is read and saved right here in your browser. Nothing is ever uploaded to a server.</p>
+              <p className="mt-1 text-sm text-muted">PDF or text format. Read and reviewed in your browser before you choose to save. Nothing is ever uploaded to a server.</p>
               <p className="mt-3 text-xs text-faint">Supports password-protected PDFs (PAN as password)</p>
             </>
           )}
@@ -564,16 +580,39 @@ export default function Portfolio() {
   const [analysis, setAnalysis] = useState<PortfolioAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
+  const [pending, setPending] = useState<ParsedPortfolio | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
 
   useEffect(() => {
-    if (!portfolio) { setAnalysis(null); return }
+    let cancelled = false
+    setAnalysis(null)
+    setAnalysisError('')
+    if (!portfolio) { setLoading(false); return }
     setLoading(true)
-    analyzePortfolio(portfolio).then(a => { setAnalysis(a); setLoading(false) })
+    analyzePortfolio(portfolio).then(a => {
+      if (!cancelled) { setAnalysis(a); setLoading(false) }
+    }).catch(() => {
+      if (!cancelled) { setAnalysisError('Analysis could not be loaded. Your saved statement is unchanged. Reload to try again.'); setLoading(false) }
+    })
+    return () => { cancelled = true }
   }, [portfolio])
 
   const handleParsed = useCallback((p: ParsedPortfolio) => {
-    savePortfolio(p)
+    setPending(p)
+    setImporting(false)
   }, [])
+
+  const restorePortfolio = useCallback((p: ParsedPortfolio) => {
+    savePortfolio(p)
+    setPending(null)
+    setImporting(false)
+  }, [])
+
+  const confirmImport = useCallback((p: ParsedPortfolio) => {
+    restorePortfolio(p)
+    trackUsageEvent('portfolio_import_completed')
+  }, [restorePortfolio])
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -589,7 +628,13 @@ export default function Portfolio() {
           </p>
         </div>
         {portfolio && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => { setPending(null); setImporting(true) }}
+              className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-brand-300 hover:text-brand-600"
+            >
+              Import new statement
+            </button>
             <button
               onClick={() => setShowDebug(d => !d)}
               className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-brand-300 hover:text-brand-600"
@@ -597,7 +642,7 @@ export default function Portfolio() {
               {showDebug ? 'Hide' : 'Debug'} parse
             </button>
             <button
-              onClick={() => { clearPortfolio(); setAnalysis(null) }}
+              onClick={() => { clearPortfolio(); setAnalysis(null); setPending(null); setImporting(false) }}
               className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-red-300 hover:text-red-600"
             >
               Clear data
@@ -607,19 +652,22 @@ export default function Portfolio() {
       </div>
 
       <div className="mt-6">
-        {!portfolio && <UploadPanel onParsed={handleParsed} />}
+        {pending && <PortfolioImportReview key={pending.id} portfolio={pending} replacing={!!portfolio} onConfirm={confirmImport} onCancel={() => { setPending(null); setImporting(false) }} />}
+        {!pending && (!portfolio || importing) && <UploadPanel onParsed={handleParsed} />}
+        {portfolio && importing && !pending && <button onClick={() => setImporting(false)} className="mt-3 text-sm font-semibold text-brand-600">Cancel import</button>}
+        {analysisError && <p role="alert" className="mt-4 text-sm text-red-600">{analysisError}</p>}
 
         {portfolio && portfolio.matcherVersion !== MATCHER_VERSION && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-900/20">
             <div>
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund matching has improved since this analysis was saved</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400">Some funds may be mislabeled. Clear and re-upload your CAMS statement to refresh.</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">Some funds may be mislabeled. Import your CAMS statement again and review it before replacing the saved portfolio.</p>
             </div>
             <button
-              onClick={() => { clearPortfolio(); setAnalysis(null) }}
+              onClick={() => { setPending(null); setImporting(true) }}
               className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
             >
-              Clear & re-upload
+              Import and review
             </button>
           </div>
         )}
@@ -636,6 +684,7 @@ export default function Portfolio() {
         )}
 
         {portfolio && analysis && <AnalysisView analysis={analysis} portfolio={portfolio} />}
+        <PortfolioBackup portfolio={portfolio} onRestore={restorePortfolio} />
       </div>
     </div>
   )

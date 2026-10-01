@@ -6,6 +6,7 @@ import { getFund } from '../lib/data'
 import { pct, signedPct, alphaColor, fundSlug } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import WishlistButton from '../components/WishlistButton'
+import FundChanges from '../components/FundChanges'
 import type { Fund } from '../types'
 
 export default function Wishlist() {
@@ -33,6 +34,7 @@ export default function Wishlist() {
         <Link to="/explore" className="mt-6 inline-block rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
           Explore Funds
         </Link>
+        <FundChanges funds={funds} savedCodes={codes} />
       </div>
     )
   }
@@ -55,6 +57,8 @@ export default function Wishlist() {
           </Link>
         )}
       </div>
+
+      <FundChanges funds={funds} savedCodes={codes} />
 
       {/* Fund cards - mobile-first stacked layout */}
       <div className="mt-6 space-y-3">

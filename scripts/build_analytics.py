@@ -55,7 +55,10 @@ def _clean(o):
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
+sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "pipeline"))
+from market_date import ist_today, is_usable_nav_date
+from nav_quality import nav_quality_issues, sticky_nav_holds
 from config import is_debt_category, uses_reduced_surface  # noqa: E402
 NAV_DIR = os.path.join(ROOT, "public", "nav")
 
@@ -90,7 +93,8 @@ else:
 def load_universe():
     fpath = os.path.join(ROOT, "src", "data", "funds.json")
     u = json.load(open(fpath, encoding="utf-8"))
-    return u["funds"]
+    holds = sticky_nav_holds(ROOT, u["funds"])
+    return [fund for fund in u["funds"] if str(fund["code"]) not in holds]
 
 
 def month_end_series(code):
@@ -107,11 +111,13 @@ def month_end_series(code):
     values = raw.get("v", [])
     if len(dates) < 60 or len(dates) != len(values):
         return None
-    df = pd.DataFrame({"date": dates, "nav": values})
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df["nav"] = pd.to_numeric(df["nav"], errors="coerce")
-    df = df.dropna(subset=["date", "nav"])
-    df = df[df["nav"] > 0].sort_values("date")
+    today = ist_today()
+    points = [(day, value) for day, value in zip(dates, values)
+              if is_usable_nav_date(day, today)]
+    if nav_quality_issues(points):
+        return None
+    df = pd.DataFrame(points, columns=["date", "nav"])
+    df["date"] = pd.to_datetime(df["date"])
     if len(df) < 60:
         return None
     s = df.set_index("date")["nav"]

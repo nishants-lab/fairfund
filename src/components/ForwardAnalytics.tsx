@@ -239,7 +239,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
             </p>
             <p className="mt-2 text-xs text-faint">
               Raw p-value and observation dates are unavailable in the current dataset.
-              The stored rounded (1-p) × 100 statistic remains a 12% input to the equity fund-page composite score.
+              The monthly excess-return test is excluded from the equity fund-page composite score.
             </p>
           </details>
         )}

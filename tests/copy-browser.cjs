@@ -2,6 +2,9 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const base=process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190';
+const data=require('../src/data/funds.json');
+const scored=data.funds.find(f=>!f.isDebt&&!f.isArbitrage&&!f.dataQuality&&Object.keys(f.metrics).length);
+assert(scored,'An eligible equity fund is required for score disclosure verification');
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
@@ -22,13 +25,13 @@ const base=process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190';
      [[.1,.1],[.5,.5],[.9,.9]].every(([x,y])=>el.contains(document.elementFromPoint(r.x+r.width*x,r.y+r.height*y)));
    }),true,'tooltip must be visible, not clipped by scroll containers');
    await page.keyboard.press('Escape');assert.equal(await tip.count(),0);
-   await page.goto(base+'/#/fund/122639');
+   await page.goto(base+'/#/fund/'+scored.code);
    const summary=page.locator('summary').filter({hasText:'How this score is calculated'});
    await summary.waitFor();const details=summary.locator('..');
    assert.equal(await details.getAttribute('open'),null);
    await summary.click();
-   assert.match(await details.innerText(),/12% score input/);
-   assert.match(await details.innerText(),/not a probability of skill/);
+   assert.match(await details.innerText(),/monthly excess-return test is excluded/);
+   assert.match(await details.innerText(),/peer rank \(25%\)/);
    assert.match(await page.locator('main').innerText(),/This score is not an investment recommendation/);
    await page.goto(base+'/#/signin');
    await page.getByRole('heading',{name:'Sign-in is unavailable',exact:true}).waitFor();

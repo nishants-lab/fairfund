@@ -45,6 +45,9 @@ def compute_rolling_alpha():
         me_nav[code] = me
         cat_of[code] = fobj.get("category") or fobj.get("cat", "")
 
+    if not me_nav:
+        return {}
+
     all_months = pd.date_range(
         start=min(s.index.min() for s in me_nav.values()),
         end=max(s.index.max() for s in me_nav.values()),
@@ -93,10 +96,12 @@ def merge_into(path, result):
     n = 0
     for fund in data["funds"]:
         cs = str(fund["code"])
-        if cs in result:
+        if cs in result and (fund.get("dataQuality") or {}).get("status") != "quarantined":
             fund.setdefault("analytics", {})
             fund["analytics"]["rollingAlpha"] = result[cs]
             n += 1
+        else:
+            fund.get("analytics", {}).pop("rollingAlpha", None)
     tmp = path + ".tmp"
     json.dump(data, open(tmp, "w", encoding="utf-8"), separators=(",", ":"), ensure_ascii=False)
     os.replace(tmp, path)
@@ -106,17 +111,26 @@ def merge_into(path, result):
 def merge_into_details(detail_dir, result):
     """Inject analytics.rollingAlpha into each per-fund detail file."""
     n = 0
-    for cs, ra in result.items():
-        fpath = os.path.join(detail_dir, f"{cs}.json")
-        if not os.path.exists(fpath):
+    for filename in sorted(os.listdir(detail_dir)):
+        if not filename.endswith(".json"):
             continue
-        d = json.load(open(fpath, encoding="utf-8"))
-        d.setdefault("analytics", {})
-        d["analytics"]["rollingAlpha"] = ra
+        cs = filename[:-5]
+        fpath = os.path.join(detail_dir, filename)
+        with open(fpath, encoding="utf-8") as source:
+            d = json.load(source)
+        analytics = d.get("analytics") or {}
+        if cs in result and (d.get("dataQuality") or {}).get("status") != "quarantined":
+            analytics["rollingAlpha"] = result[cs]
+            n += 1
+        elif "rollingAlpha" in analytics:
+            analytics.pop("rollingAlpha")
+        else:
+            continue
+        d["analytics"] = analytics
         tmp = fpath + ".tmp"
-        json.dump(d, open(tmp, "w", encoding="utf-8"), separators=(",", ":"), ensure_ascii=False)
+        with open(tmp, "w", encoding="utf-8") as target:
+            json.dump(d, target, separators=(",", ":"), ensure_ascii=False)
         os.replace(tmp, fpath)
-        n += 1
     return n
 
 

@@ -1,3 +1,7 @@
+import { trackUsageEvent } from '../lib/usage'
+import SavedComparisons from '../components/SavedComparisons'
+import {summarizeMaterialDifferences} from '../lib/savedComparisons'
+import { NavQualityError } from "../lib/navQuality"
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
@@ -23,6 +27,7 @@ const MAX_FUNDS = 5
 export default function Compare() {
   const [params, setParams] = useSearchParams()
   const [funds, setFunds] = useState<Fund[]>([])
+  const [navIssues, setNavIssues] = useState<Record<number, string>>({})
   const [navData, setNavData] = useState<Record<number, NavPoint[]>>({})
   const [loadingCodes, setLoadingCodes] = useState<Set<number>>(new Set())
   // Overlap holdings load (Compare owns this; no dependency on visiting detail pages).
@@ -58,11 +63,11 @@ export default function Compare() {
   // Fetch NAV for any newly added fund
   useEffect(() => {
     funds.forEach((f) => {
-      if (!navData[f.code] && !loadingCodes.has(f.code)) {
+      if (f.dataQuality?.status !== 'quarantined' && !navIssues[f.code] && !navData[f.code] && !loadingCodes.has(f.code)) {
         setLoadingCodes((prev) => new Set(prev).add(f.code))
         fetchNavHistory(f.code)
           .then((pts) => setNavData((prev) => ({ ...prev, [f.code]: pts })))
-          .catch(() => {})
+          .catch((e) => { if (e instanceof NavQualityError) setNavIssues(prev => ({...prev, [f.code]: e.message})) })
           .finally(() =>
             setLoadingCodes((prev) => {
               const next = new Set(prev)
@@ -133,15 +138,20 @@ export default function Compare() {
   // True while any compared fund's live NAV is still being fetched.
   const navLoading = funds.some((f) => loadingCodes.has(f.code))
 
+  const safeNavData = useMemo(() => Object.fromEntries(
+    funds.filter(f => f.dataQuality?.status !== 'quarantined' && !navIssues[f.code] && navData[f.code])
+      .map(f => [f.code, navData[f.code]]),
+  ), [funds, navData, navIssues])
+
   // Determine the common overlapping date range across all funds
   const { earliest, latest } = useMemo(() => {
-    const series = funds.map((f) => navData[f.code]).filter(Boolean) as NavPoint[][]
+    const series = funds.map((f) => safeNavData[f.code]).filter(Boolean) as NavPoint[][]
     if (series.length === 0) return { earliest: '', latest: '' }
     // Common window = latest start, earliest end (intersection)
     const starts = series.map((s) => s[0].date)
     const ends = series.map((s) => s[s.length - 1].date)
     return { earliest: starts.sort().reverse()[0], latest: ends.sort()[0] }
-  }, [funds, navData])
+  }, [funds, safeNavData])
 
   // Initialize range once we know the common window
   useEffect(() => {
@@ -168,12 +178,12 @@ export default function Compare() {
   const liveMetrics: Record<number, ComputedMetrics | null> = useMemo(() => {
     const out: Record<number, ComputedMetrics | null> = {}
     funds.forEach((f) => {
-      const pts = navData[f.code]
+      const pts = safeNavData[f.code]
       if (pts && start && end) out[f.code] = computeMetrics(sliceByRange(pts, start, end))
       else out[f.code] = null
     })
     return out
-  }, [funds, navData, start, end])
+  }, [funds, safeNavData, start, end])
 
   const categories = new Set(funds.map((f) => f.category))
   const crossCategory = categories.size > 1
@@ -195,6 +205,7 @@ export default function Compare() {
   // otherwise fall back to stored fixed-window metrics. Guarantees the table
   // is never blank just because the live NAV API is slow or down.
   function effective(f: Fund): { m: Partial<ComputedMetrics> | null; live: boolean } {
+    if (navIssues[f.code] || f.dataQuality?.status === "quarantined") return {m:null,live:false}
     const lm = liveMetrics[f.code]
     if (lm) return { m: lm, live: true }
     const sm = f.metrics[storedHorizon]
@@ -267,7 +278,7 @@ export default function Compare() {
       const m = effective(f).m
       if (!m) return
       const v = m[key] as number | undefined
-      if (v === undefined || isNaN(v)) return
+      if (typeof v !== 'number' || !Number.isFinite(v)) return
       if (better === 'high' ? v > bestVal : v < bestVal) {
         bestVal = v
         best = i
@@ -310,8 +321,19 @@ export default function Compare() {
     return best
   }, [verdicts])
 
+  const comparisonSummary = summarizeMaterialDifferences(funds.map(f => navIssues[f.code] || f.dataQuality?.status === 'quarantined' ? null : liveMetrics[f.code]))
+  const completedComparisons = useRef(new Set<string>())
+  const comparisonIdentity = JSON.stringify([funds.map(f => f.code).sort((a, b) => a - b), start, end])
+  const comparisonReady = !comparisonSummary.warning && comparisonSummary.period !== null
+  useEffect(() => {
+    if (!comparisonReady || completedComparisons.current.has(comparisonIdentity)) return
+    completedComparisons.current.add(comparisonIdentity)
+    trackUsageEvent('comparison_completed')
+  }, [comparisonReady, comparisonIdentity])
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      {funds.some(f => navIssues[f.code] || f.dataQuality?.status === 'quarantined') && <p role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">NAV source verification is needed for {funds.filter(f => navIssues[f.code] || f.dataQuality?.status === 'quarantined').map(f => f.name).join(', ')}. Return and risk calculations are withheld for these funds.</p>}
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-3xl font-bold text-fg">Compare Funds</h1>
         <ShareButton title="Fund comparison" text="Compare funds side by side on FairFund" className="mt-1 shrink-0" />
@@ -354,6 +376,22 @@ export default function Compare() {
         </div>
       )}
 
+      <details className="mt-5">
+        <summary className="cursor-pointer text-sm font-semibold text-brand-700 dark:text-brand-300">Save or load a comparison</summary>
+        <div className="mt-3"><SavedComparisons fundCodes={funds.map(f=>f.code)} start={start} end={end} onLoad={record=>{
+          const next=record.fundCodes.map(getFund)
+          if(next.some(f=>!f)) return 'A saved fund is no longer available. The comparison was not loaded.'
+          sync(next as Fund[]);setStart(record.start);setEnd(record.end);setPreset('CUSTOM')
+        }}/></div>
+      </details>
+      {funds.length >= 2 && <section className="mt-5 rounded-xl border border-line bg-surface p-4" aria-label="Differences over the same period">
+        <h2 className="font-semibold text-fg">Differences over the same period</h2>
+        {comparisonSummary.warning ? <p className="mt-2 text-sm text-muted">{comparisonSummary.warning}</p> : <>
+          <p className="mt-1 text-xs text-muted">{comparisonSummary.period?.start} to {comparisonSummary.period?.end}</p>
+          {comparisonSummary.differences.length ? <ul className="mt-2 list-inside list-disc text-sm text-fg">{comparisonSummary.differences.map(text=><li key={text}>{text}</li>)}</ul> : <p className="mt-2 text-sm text-muted">No gaps reach the thresholds below.</p>}
+          <p className="mt-2 text-xs text-muted">{comparisonSummary.basis}</p>
+        </>}
+      </section>}
       {funds.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-12 text-center text-faint">
           Search above to add funds. Try comparing two funds in the same category.
@@ -402,17 +440,17 @@ export default function Compare() {
             </div>
           ) : (
             <div className="mt-5 rounded-xl border border-line bg-surface2/50 p-3 text-xs text-muted">
-              Showing our <strong>{storedHorizon} fixed-window</strong> metrics. Live NAV (for a custom
-              date range) is loading - if it doesn't appear, the NAV source is temporarily unavailable
-              and these baseline numbers still stand.
+              Available <strong>{storedHorizon} fixed-window</strong> metrics are shown below. Live NAV for a custom
+              date range may be loading or unavailable. Funds held for source verification have no return metrics;
+              other baseline figures use the published snapshot.
             </div>
           )}
 
           {/* Basis note when live metrics aren't fully loaded */}
           {earliest && !allLive && (
             <p className="mt-3 text-xs text-faint">
-              Showing baseline <strong>{storedHorizon}</strong> metrics; recomputing live for your
-              selected range…
+              Showing baseline <strong>{storedHorizon}</strong> metrics where available. Live metrics require valid observations for your
+              selected range.
             </p>
           )}
 
@@ -461,7 +499,7 @@ export default function Compare() {
                           <td key={f.code} className="px-4 py-3 text-right align-top">
                             {debtNA ? (
                               <span className="text-faint">n/a</span>
-                            ) : v === undefined || isNaN(v as number) ? (
+                            ) : typeof v !== 'number' || !Number.isFinite(v) ? (
                               <span className="text-faint">—</span>
                             ) : (
                               <>
@@ -474,7 +512,7 @@ export default function Compare() {
                                 </span>
                                 {!isWinner &&
                                   funds.length > 1 &&
-                                  leaderV !== undefined &&
+                                  typeof leaderV === 'number' &&
                                   !isNaN(leaderV as number) && (
                                     <div className="mt-0.5 text-xs leading-tight text-faint">
                                       {fmtDelta(
@@ -603,6 +641,7 @@ export default function Compare() {
                     Composite score
                   </td>
                   {funds.map((f, i) => {
+                    if (navIssues[f.code] || f.dataQuality?.status === 'quarantined') return <td key={f.code} className="px-4 py-3 text-right text-faint">No score</td>
                     if (usesReducedSurface(f)) {
                       const dv = buildDebtVerdict(f, ALL_FUNDS)
                       return (
@@ -613,11 +652,12 @@ export default function Compare() {
                               <span className="text-xs text-faint">{dv.peerSet}</span>
                             </div>
                           ) : (
-                            <span className="text-sm text-faint">No score<span className="block text-xs">rate/credit fund</span></span>
+                            <span className="text-sm text-faint">No score<span className="block text-xs">{dv.tier === 3 ? 'rate/credit data unavailable' : 'full-period return unavailable'}</span></span>
                           )}
                         </td>
                       )
                     }
+                    if (!f.metrics['3Y'] && !f.metrics['5Y'] && !f.metrics['1Y']) return <td key={f.code} className="px-4 py-3 text-right text-faint">No score</td>
                     const v = verdicts[i]
                     const isWin = i === verdictWinner && funds.length > 1
                     return (
@@ -643,7 +683,7 @@ export default function Compare() {
               Each series is rebased to ₹100 using its available NAV observations within the selected period.
               Available dates can differ between funds.
             </p>
-            <CompareChart funds={funds} navData={navData} start={start} end={end} colors={COLORS} loading={navLoading} />
+            <CompareChart funds={funds} navData={safeNavData} start={start} end={end} colors={COLORS} loading={navLoading} />
           </div>
 
           {/* Holdings overlap */}

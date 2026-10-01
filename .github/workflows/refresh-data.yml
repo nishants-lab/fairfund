@@ -47,8 +47,14 @@ jobs:
       - name: Recompute rankings
         run: python pipeline/compute_rankings.py
 
+      - name: Rebuild peer analytics from current NAV
+        run: python scripts/build_analytics.py
+
       - name: Split fund data for serving
         run: python migrations/split-analytics/split_funds.py
+
+      - name: Quarantine unverified NAV-derived values
+        run: python scripts/quarantine_nav.py --apply
 
       - name: Synchronize shared analytics and verify parity
         run: |
@@ -121,12 +127,6 @@ jobs:
       - name: Pull latest
         run: git pull --rebase origin main
 
-      - name: Recompute metrics
-        run: python pipeline/compute_metrics.py
-
-      - name: Recompute rankings
-        run: python pipeline/compute_rankings.py
-
       - name: Capture holdings snapshots
         run: python scripts/capture_holdings_snapshot.py
         env:
@@ -149,10 +149,25 @@ jobs:
         run: python scripts/build_manager_signals.py
         continue-on-error: true
 
+      - name: Recompute metrics
+        run: python pipeline/compute_metrics.py
+
+      - name: Recompute rankings
+        run: python pipeline/compute_rankings.py
+
+      - name: Rebuild peer analytics from current NAV
+        run: python scripts/build_analytics.py
+
+      - name: Quarantine unverified NAV-derived values
+        run: python scripts/quarantine_nav.py --apply
+
       - name: Synchronize shared analytics and verify parity
         run: |
           python scripts/sync_analytics_to_shells.py
           python scripts/sync_analytics_to_shells.py --check
+
+      - name: Rebuild rolling-alpha series
+        run: python scripts/build_rolling_alpha.py
 
       - name: Rebuild category benchmarks from current NAV
         run: python scripts/build_category_median.py
