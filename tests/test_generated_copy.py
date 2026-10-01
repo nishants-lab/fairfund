@@ -74,7 +74,10 @@ class GeneratedCopyTests(unittest.TestCase):
             self.assertIn('Indian mutual fund research', text)
             self.assertIn('not investment advice', text)
             self.assertIn('Past performance does not indicate future returns.', text)
-            self.assertIn('location.replace', text)
+            self.assertNotIn('location.replace', text)
+            self.assertNotRegex(text, r'(?i)http-equiv=[\"\']refresh')
+            self.assertIn('rel="canonical"', text)
+            self.assertIn('<main>', text)
             structured = json.loads(re.search(
                 r'<script type="application/ld\+json">(.*?)</script>', text).group(1))
             self.assertIn('description', structured)

@@ -1,13 +1,12 @@
 // Prerender static "unfurl shells" for GitHub Pages.
 //
-// The app uses HashRouter, so social crawlers and search engines never see
-// per-route content: everything after '#' is invisible to them. This script
+// Hash routes do not provide reliable separate indexing URLs. This script
 // emits one crawlable HTML shell per fund and per key page. Each shell carries:
 //   - route-specific Open Graph / Twitter tags (rich social unfurls)
 //   - real indexable content in <body> (fund name, rank, metrics table)
 //   - JSON-LD FinancialProduct structured data (rich search snippets)
-//   - a short-delay client redirect into the real SPA hash route
-// Crawlers read the tags + content; humans get bounced into the app.
+//   - an explicit link to the interactive app, with no automatic navigation
+// Humans and crawlers receive the same stable, self-canonical public page.
 //
 // Runs after `vite build`; writes into dist/ (the deployed artifact).
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
@@ -26,6 +25,8 @@ if (!existsSync(DIST)) {
 
 const data = JSON.parse(readFileSync(join(ROOT, 'src/data/funds.json'), 'utf-8'))
 const funds = data.funds ?? []
+const asOf = /^\d{4}-\d{2}-\d{2}$/.test(data.anchor ?? '')
+  ? `<p style="font-size:13px;color:#475569">Analysis snapshot through <time datetime="${data.anchor}">${data.anchor}</time>. Reporting periods can differ.</p>` : ''
 
 // Mirror src/lib/format.ts fundSlug exactly so shell paths match ShareButton.
 function fundSlug(name) {
@@ -33,6 +34,10 @@ function fundSlug(name) {
 }
 function catSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+function structuredData(value) {
+  // External fund names must not close the JSON-LD script element.
+  return JSON.stringify(value).replace(/</g, '\\u003c')
 }
 function esc(s) {
   return String(s)
@@ -67,35 +72,26 @@ function head(title, desc, url, image, jsonld) {
 <link rel="canonical" href="${esc(url)}"/>${jsonld ? `\n<script type="application/ld+json">${jsonld}</script>` : ''}`
 }
 
-// Client redirect: strip /f/... or /s/... back to the app root, then hash-route.
-// Delayed so pre-rendered content paints and JS-executing crawlers can read it.
-function redirectScript(hash, delayMs) {
-  return `<script>
-  setTimeout(function(){
-    var root = location.pathname.replace(/\\/(f|s|c)\\/.*$/, '/');
-    location.replace(location.origin + root + '#${hash}');
-  }, ${delayMs});
-</script>`
-}
-
-// Write a shell. `bodyHtml` is the visible/crawlable content (empty for the
-// thin page shells). `delayMs` controls how long content shows before redirect.
-function writeShell({ dir, hash, title, desc, canonicalPath, image = COVER_IMAGE, jsonld = '', bodyHtml = '', delayMs = 0 }) {
+// Keep the public URL and its content stable even when JavaScript executes.
+// The interactive view remains available through an explicit ordinary link.
+function writeShell({ dir, hash, title, desc, canonicalPath, image = COVER_IMAGE, jsonld = '', bodyHtml = '' }) {
   const outDir = join(DIST, dir)
   mkdirSync(outDir, { recursive: true })
   const url = `${SITE}/${canonicalPath}`
   const fallback = bodyHtml
     ? bodyHtml
-    : `Redirecting to <a href="${SHELL_UP}#${hash}">FairFund</a>...`
+    : `<a href="${SHELL_UP}#${hash}">Open the interactive analysis on FairFund</a>`
   const html = `<!doctype html>
 <html lang="en">
 <head>
 ${head(title, desc, url, image, jsonld)}
-${redirectScript(hash, delayMs)}
-${delayMs === 0 ? `<meta http-equiv="refresh" content="0;url=${SHELL_UP}#${hash}"/>` : ''}
+<style>
+*{box-sizing:border-box}body{overflow-wrap:anywhere}a{color:#1d4ed8}a:focus-visible{outline:2px solid #1e293b;outline-offset:4px}nav{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}table{max-width:100%}.metrics-scroll{overflow-x:auto}.metrics-scroll th,.metrics-scroll td{white-space:nowrap;overflow-wrap:normal}img{max-width:100%;height:auto}
+</style>
 </head>
 <body style="font-family:system-ui,-apple-system,sans-serif;max-width:760px;margin:0 auto;padding:2rem 1.25rem;color:#1e293b;line-height:1.6">
-${fallback}
+<nav aria-label="Research pages"><a href="${SITE}/">FairFund home</a><a href="${SITE}/s/explore/">Browse categories</a><a href="${SITE}/s/methodology/">Methodology</a></nav>
+<main>${fallback}${asOf}</main>
 </body>
 </html>
 `
@@ -126,7 +122,7 @@ for (const f of funds) {
   const url = `${SITE}/f/${f.code}/`
 
   // JSON-LD structured data.
-  const jsonld = JSON.stringify({
+  const jsonld = structuredData({
     '@context': 'https://schema.org',
     '@type': 'FinancialProduct',
     name: f.name,
@@ -156,7 +152,7 @@ for (const f of funds) {
   }
   const table = rows.length
     ? `<h2 style="font-size:18px;margin:24px 0 8px">Key metrics</h2>
-<table style="border-collapse:collapse;font-size:14px"><tbody>${rows.join('')}</tbody></table>`
+<div class="metrics-scroll" role="region" aria-label="Fund metrics" tabindex="0"><table style="border-collapse:collapse;font-size:14px"><tbody>${rows.join('')}</tbody></table></div>`
     : ''
 
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
@@ -165,9 +161,9 @@ for (const f of funds) {
 <p style="font-size:16px">${leadSentence}</p>
 ${table}
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the full interactive analysis &rarr;</a></p>
-<p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
+<p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 
-  writeShell({ dir: `f/${f.code}`, hash, title, desc, canonicalPath: `f/${f.code}/`, image, jsonld, bodyHtml, delayMs: 1200 })
+  writeShell({ dir: `f/${f.code}`, hash, title, desc, canonicalPath: `f/${f.code}/`, image, jsonld, bodyHtml })
   n++
 }
 
@@ -188,20 +184,20 @@ const exploreBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">Fair
 <h1 style="font-size:28px;margin:0 0 6px">Explore ${total} Indian mutual funds</h1>
 <p style="font-size:16px;margin:0 0 20px">Browse Indian mutual funds by category and compare historical returns, risk and costs. Check the dates and available history before comparing results.${stockCov ? ` Stock-level holdings disclosed for ${stockCov} funds.` : ''}</p>
 <h2 style="font-size:18px;margin:24px 0 8px">Categories</h2>
-<table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Category</th><th style="text-align:right;padding:0 16px 6px 0">Funds</th><th style="text-align:right;padding:0 16px 6px 0">Median 5Y CAGR</th><th style="text-align:right;padding:0 0 6px 0">Best 5Y</th></tr></thead><tbody>${catRows}</tbody></table>
+<div class="metrics-scroll" role="region" aria-label="Category metrics" tabindex="0"><table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Category</th><th style="text-align:right;padding:0 16px 6px 0">Funds</th><th style="text-align:right;padding:0 16px 6px 0">Median 5Y CAGR</th><th style="text-align:right;padding:0 0 6px 0">Best 5Y</th></tr></thead><tbody>${catRows}</tbody></table></div>
 <p style="margin-top:24px"><a href="${SHELL_UP}#/explore" style="color:#2563eb;font-weight:600">Open the full explorer &rarr;</a></p>
-<p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
+<p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 
 function pageBody(h1, paras, hash) {
   return `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 12px">${esc(h1)}</h1>
 ${paras.map(p => `<p style="font-size:16px;margin:0 0 14px">${p}</p>`).join('\n')}
 <p style="margin-top:20px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open it on FairFund &rarr;</a></p>
-<p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
+<p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 }
 
 function pageJsonld(name, desc, path) {
-  return JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name, description: desc, url: `${SITE}/${path}` })
+  return structuredData({ '@context': 'https://schema.org', '@type': 'WebPage', name, description: desc, url: `${SITE}/${path}` })
 }
 
 const moversBody = pageBody("Mutual fund movers", [
@@ -237,7 +233,7 @@ const pages = [
     pageJsonld('FairFund methodology', 'How FairFund calculates returns, compares funds within categories and handles data limitations.', 's/methodology/')],
 ]
 for (const [dir, hash, title, desc, bodyHtml, jsonld] of pages) {
-  writeShell({ dir, hash, title, desc, canonicalPath: `${dir}/`, bodyHtml, jsonld, delayMs: 1200 })
+  writeShell({ dir, hash, title, desc, canonicalPath: `${dir}/`, bodyHtml, jsonld })
 }
 
 
@@ -251,21 +247,25 @@ for (const c of categories) {
   const hash = `/category/${slug}`
   const title = `${c.display} funds - deep dive | FairFund`
   const desc = `Explore ${c.count} ${c.display} funds, their historical returns and category comparisons.`
-  const jsonld = JSON.stringify({
+  const jsonld = structuredData({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${c.display} funds - category deep dive`,
     description: desc,
     url: `${SITE}/c/${slug}/`,
   })
+  const fundLinks = funds.filter(f => f.category === c.key)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(f => `<li style="margin:.5rem 0"><a href="${SITE}/f/${f.code}/">${esc(f.name)}</a></li>`).join('')
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(c.display)} funds</h1>
 <p style="font-size:15px;color:#475569;margin:0 0 20px">${c.count} funds &middot; ${c.risk || 'Moderate'} risk${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
 <p style="font-size:16px">Explore the ${esc(c.display)} category: historical return distributions, category comparisons and performance during past market falls. Check the dates and available history before comparing results.</p>
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the interactive deep dive &rarr;</a></p>
-<p style="font-size:12px;color:#94a3b8;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
+<h2 style="font-size:20px">Fund reports in this category</h2><ul>${fundLinks}</ul>
+<p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 
-  writeShell({ dir: `c/${slug}`, hash, title, desc, canonicalPath: `c/${slug}/`, jsonld, bodyHtml, delayMs: 1200 })
+  writeShell({ dir: `c/${slug}`, hash, title, desc, canonicalPath: `c/${slug}/`, jsonld, bodyHtml })
   catN++
 }
 

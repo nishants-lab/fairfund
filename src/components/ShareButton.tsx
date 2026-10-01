@@ -39,7 +39,7 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
 
   if (fund) {
     // Point to the prerendered unfurl shell (/f/<code>/) so crawlers read a
-    // fund-specific OG card. The shell redirects humans into the hash route.
+    // fund-specific OG card. Its explicit link opens the interactive analysis.
     url = `${appOrigin()}f/${fund.code}/`
     const rank = fund.metrics['3Y']?.catRank
     shareTitle = fund.name
