@@ -33,11 +33,12 @@ class PipelineDateBoundariesTests(unittest.TestCase):
                 self.assertEqual(config.robust_latest_nav_date(tmp, min_funds=1), TODAY)
                 clock.assert_called_once()
 
-    def test_metric_reader_filters_future_invalid_and_nonfinite_nav(self):
+    def test_metric_reader_quarantines_nonfinite_nav_after_date_filter(self):
         with tempfile.TemporaryDirectory(dir=ROOT.parent, prefix='ff-metric-date-') as tmp:
             Path(tmp, '1.json').write_text(json.dumps({'d': ['2026-09-29','2026-09-30',TODAY,'2026-10-02','2026-02-30'], 'v':[100, float('inf'), 110, 120, 90]}))
             with patch.object(metrics, 'NAV_DIR', tmp), patch.object(metrics, 'ist_today', return_value=TODAY):
-                self.assertEqual(metrics.load_nav(1), [('2026-09-29',100),(TODAY,110)])
+                self.assertIsNone(metrics.load_nav(1))
+                self.assertEqual(metrics.NAV_QUALITY_BY_CODE[1][0]["reason"], "invalid_nav")
 
     def test_sync_compact_validates_sorts_and_deduplicates(self):
         payload = [{'date': d, 'nav': v} for d,v in [('02-10-2026','12'),('30-09-2026','10'),('01-10-2026','11'),('30-02-2026','9'),('30-09-2026','10'),('29-09-2026','NaN'),('28-09-2026','Infinity')]]

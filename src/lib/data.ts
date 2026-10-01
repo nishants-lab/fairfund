@@ -48,22 +48,19 @@ export function fetchFundDetail(code: number): Promise<Partial<Fund>> {
  * component state) - there is no in-place hydration any more, because the object
  * handed in is the shared, frozen index entry.
  *
- * Field precedence is preserved exactly as it was, pending the separate snapshot
- * repair: the shell wins for analytics, holdings, holdingsMeta, management and
- * stockMoves, and for aum / expenseRatio / investInfo only when it carries a
- * real value (`!= null` skips undefined and null) so a stale or placeholder
- * shell cannot blank out a bundled value. Which artifact should actually own
- * these fields is still unresolved and is not decided here.
+ * The index owns AUM and expense ratio, including missing values, so detail
+ * hydration cannot change the inputs used by category rankings. The shell owns
+ * analytics, holdings, holdingsMeta, management and stockMoves. A non-null
+ * shell investInfo still overrides the bundled value.
  */
 export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
   const merged: Fund = { ...fund }
   if (detail.analytics) merged.analytics = detail.analytics
+  if (fund.dataQuality?.status === 'quarantined') { merged.analytics = {}; merged.metrics = {}; delete merged.si }
   if (detail.holdings) merged.holdings = detail.holdings
   if (detail.holdingsMeta) merged.holdingsMeta = detail.holdingsMeta
   if (detail.management) merged.management = detail.management
   if (detail.stockMoves !== undefined) merged.stockMoves = detail.stockMoves
-  if (detail.aum != null) merged.aum = detail.aum
-  if (detail.expenseRatio != null) merged.expenseRatio = detail.expenseRatio
   if (detail.investInfo != null) merged.investInfo = detail.investInfo
   return merged
 }

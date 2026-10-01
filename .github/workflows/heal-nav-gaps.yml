@@ -55,15 +55,27 @@ jobs:
         if: ${{ inputs.check_only != true }}
         run: python pipeline/compute_rankings.py
 
+      - name: Rebuild peer analytics from healed NAV
+        if: ${{ inputs.check_only != true }}
+        run: python scripts/build_analytics.py
+
       - name: Split fund data for serving
         if: ${{ inputs.check_only != true }}
         run: python migrations/split-analytics/split_funds.py
+
+      - name: Quarantine unverified NAV-derived values
+        if: ${{ inputs.check_only != true }}
+        run: python scripts/quarantine_nav.py --apply
 
       - name: Synchronize shared analytics and verify parity
         if: ${{ inputs.check_only != true }}
         run: |
           python scripts/sync_analytics_to_shells.py
           python scripts/sync_analytics_to_shells.py --check
+
+      - name: Rebuild rolling-alpha series
+        if: ${{ inputs.check_only != true }}
+        run: python scripts/build_rolling_alpha.py
 
       - name: Rebuild category benchmarks from current NAV
         if: ${{ inputs.check_only != true }}

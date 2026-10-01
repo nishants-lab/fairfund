@@ -107,6 +107,7 @@ for (const f of funds) {
 
   // Pick the fund's best available long window to lead with (3Y preferred, then
   // 5Y), so search snippets show the fund's strongest honest read, not its 1Y.
+  const qualityWarning = f.dataQuality?.status === 'quarantined' ? '<p role="status">NAV history needs source verification. Returns and rankings are withheld. Raw observations have not been adjusted.</p>' : ''
   const m3 = f.metrics?.['3Y'] || null
   const m5 = f.metrics?.['5Y'] || null
   const lead = m3 || m5 || f.metrics?.['1Y'] || null
@@ -158,7 +159,7 @@ for (const f of funds) {
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(f.name)}</h1>
 <p style="font-size:15px;color:#475569;margin:0 0 20px">${subline}</p>
-<p style="font-size:16px">${leadSentence}</p>
+${qualityWarning}<p style="font-size:16px">${leadSentence}</p>
 ${table}
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the full interactive analysis &rarr;</a></p>
 <p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`

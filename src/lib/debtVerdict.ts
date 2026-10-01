@@ -91,10 +91,15 @@ function cagrOf(f: Fund): number | null {
   return m?.cagr ?? null
 }
 function aumOf(f: Fund): number | null {
-  return f.aum?.current ?? null
+  const value = f.aum?.current ?? null
+  if (!ALIGNED_CATEGORIES.has(f.category)) return value
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
 }
 function terOf(f: Fund): number | null {
-  return typeof f.expenseRatio === 'number' ? f.expenseRatio : null
+  if (!ALIGNED_CATEGORIES.has(f.category)) return typeof f.expenseRatio === 'number' ? f.expenseRatio : null
+  const raw: unknown = f.expenseRatio
+  const value = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
 }
 
 // Fraction of peers this fund is at-least-as-good-as (0..1). dir 'low' = lower better.
@@ -104,11 +109,8 @@ function percentile(val: number, vals: number[], dir: 'low' | 'high'): number {
   return worseOrEqual / vals.length
 }
 
-/**
- * Composite debt score for one fund within its sub-category peer set.
- * Weights: cost 45%, return-vs-peers 35%, size/stability 20% (arbitrage: 40/40/20).
- */
-function compositeScore(f: Fund, peers: Fund[], isArb: boolean, horizon?: Horizon): number | null {
+// Preserve the existing product model for categories outside the active cash peer sets.
+function legacyCompositeScore(f: Fund, peers: Fund[], isArb: boolean, horizon?: Horizon): number | null {
   const retOf = (x: Fund) => (horizon ? (x.metrics?.[horizon]?.cagr ?? null) : cagrOf(x))
   const ter = terOf(f), ret = retOf(f), aum = aumOf(f)
   // In horizon mode a fund with no return for the selected window is not rankable
@@ -127,12 +129,48 @@ function compositeScore(f: Fund, peers: Fund[], isArb: boolean, horizon?: Horizo
   return Math.round((s / wSum) * 100)
 }
 
+const ALIGNED_CATEGORIES = new Set(['Liquid', 'Money Market', 'Arbitrage'])
+const HORIZONS: Horizon[] = ['1Y', '3Y', '5Y']
+
+function returnAt(fund: Fund, horizon: Horizon): number | null {
+  const value = fund.metrics?.[horizon]?.cagr
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function commonHorizon(peers: Fund[]): Horizon {
+  return HORIZONS.find((horizon) => peers.some((fund) => returnAt(fund, horizon) != null)) ?? '1Y'
+}
+
+function strictPercentile(value: number | null, values: number[], direction: 'low' | 'high'): number {
+  if (value == null || values.length <= 1) return 0.5
+  return values.filter((peer) => direction === 'low' ? peer > value : peer < value).length / (values.length - 1)
+}
+
+function compositeScore(fund: Fund, peers: Fund[], isArb: boolean, horizon?: Horizon): number | null {
+  if (!ALIGNED_CATEGORIES.has(fund.category)) {
+    const score = legacyCompositeScore(fund, peers, isArb, horizon)
+    return score == null ? null : score / 100
+  }
+  const selected = horizon ?? commonHorizon(peers)
+  const ret = returnAt(fund, selected)
+  if (ret == null) return null
+  const eligible = peers.filter((peer) => returnAt(peer, selected) != null)
+  const ters = eligible.map(terOf).filter((value): value is number => value != null)
+  const aums = eligible.map(aumOf).filter((value): value is number => value != null)
+  const returns = eligible.map((peer) => returnAt(peer, selected)!)
+  const arbitrage = fund.category === 'Arbitrage'
+  // Match producer addition order; round only for display, never before ranking.
+  return (arbitrage ? 0.45 : 0.70) * strictPercentile(terOf(fund), ters, 'low')
+    + 0.20 * strictPercentile(aumOf(fund), aums, 'high')
+    + (arbitrage ? 0.35 : 0.10) * strictPercentile(ret, returns, 'high')
+}
+
 /**
  * Build the debt/arbitrage verdict. `allFunds` is the full universe; peers are
  * derived as same-category funds. Tier 3 returns scored:false (data-limitations).
  */
 export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
-  const isArb = !!fund.isArbitrage
+  const isArb = !!fund.isArbitrage || fund.category === 'Arbitrage'
   const tier = isArb ? 'arbitrage' : debtTier(fund)
   const peerSet = fund.categoryDisplay || fund.category || 'debt'
   const peers = allFunds.filter((f) => f.category === fund.category)
@@ -146,8 +184,10 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     }
   }
 
-  const ter = terOf(fund), ret = cagrOf(fund), aum = aumOf(fund)
-  const base = bestWindow(fund)
+  const aligned = ALIGNED_CATEGORIES.has(fund.category)
+  const horizon = aligned ? commonHorizon(peers) : undefined
+  const ter = terOf(fund), ret = horizon ? returnAt(fund, horizon) : cagrOf(fund), aum = aumOf(fund)
+  const base = horizon ? fund.metrics?.[horizon] : bestWindow(fund)
   const catMedian = base?.catMedianCagr ?? null
 
   const pillars: DebtPillar[] = []
@@ -171,7 +211,7 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
       tone: bps >= 15 ? 'good' : bps <= -15 ? 'bad' : 'neutral',
     })
   } else if (ret != null) {
-    pillars.push({ label: `${ret.toFixed(2)}% return`, detail: 'annualised, latest window', tone: 'neutral' })
+    pillars.push({ label: `${ret.toFixed(2)}% return`, detail: horizon ? `annualised, ${horizon} window` : 'annualised, latest window', tone: 'neutral' })
   }
   // Size pillar
   if (aum != null) {
@@ -182,17 +222,11 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     })
   }
 
-  const score = compositeScore(fund, peers, isArb)
-  // Rank within peer set by composite score.
-  let rankLabel: string | undefined
-  if (score != null && peerCount > 1) {
-    const scored = peers
-      .map((p) => ({ code: p.code, s: compositeScore(p, peers, isArb) }))
-      .filter((x) => x.s != null)
-      .sort((a, b) => (b.s! - a.s!))
-    const pos = scored.findIndex((x) => x.code === fund.code)
-    if (pos >= 0) rankLabel = `Ranked #${pos + 1} of ${scored.length} ${peerSet} funds`
-  }
+  const ranking = computeDebtRanks(peers, isArb, horizon).get(fund.code)
+  const score = ranking?.score ?? null
+  const rankLabel = ranking && peerCount > 1
+    ? `Ranked #${ranking.rank} of ${ranking.count} ${peerSet} funds`
+    : undefined
 
   // No qualitative rating: neutral caption for the number; the score itself is
   // shown in a neutral colour. tone kept neutral (no good/bad characterisation).
@@ -205,11 +239,13 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
 
   const rankTxt = rankLabel ? rankLabel.replace(/^Ranked /, 'ranks ') : ''
   const scoreTxt = score != null ? `Composite score ${score}/100` : ''
-  const oneLiner = isArb
+  const oneLiner = aligned && score == null
+    ? `No ${horizon} return is available to score this fund against ${peerSet.toLowerCase()} peers.`
+    : isArb
     ? `${peerSet} fund scored on cost, return-vs-peers and size (not equity metrics)${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
     : `Scored within ${peerSet.toLowerCase()} funds on cost, return-vs-peers and size${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
 
-  return { tier: tier as DebtTier | 'arbitrage', scored: true, score: score ?? undefined, label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
+  return { tier: tier as DebtTier | 'arbitrage', scored: aligned ? score != null : true, score: score ?? undefined, label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
 }
 
 /**
@@ -222,14 +258,12 @@ export function computeDebtRanks(
   isArb: boolean,
   horizon?: Horizon,
 ): Map<number, { rank: number; count: number; score: number | null }> {
-  // Only rank funds that produced a non-null composite score (same logic as buildDebtVerdict).
-  // Funds with no TER / return / AUM data are excluded so counts match the verdict card.
-  // When a horizon is passed, ranking uses that window's return and a fund lacking
-  // data for it is left unranked (sinks to the bottom of the table).
-  const all = peers.map((f) => ({ code: f.code, s: compositeScore(f, peers, isArb, horizon) }))
+  const selected = horizon ?? commonHorizon(peers)
+  const all = peers.map((f) => ({ code: f.code, s: compositeScore(f, peers, isArb,
+    ALIGNED_CATEGORIES.has(f.category) ? selected : horizon) }))
   const scored = all.filter((x): x is { code: number; s: number } => x.s != null)
-  scored.sort((a, b) => b.s - a.s)
+  scored.sort((a, b) => b.s - a.s || a.code - b.code)
   const result = new Map<number, { rank: number; count: number; score: number | null }>()
-  scored.forEach(({ code, s }, idx) => result.set(code, { rank: idx + 1, count: scored.length, score: s }))
+  scored.forEach(({ code, s }, idx) => result.set(code, { rank: idx + 1, count: scored.length, score: Math.round(s * 100) }))
   return result
 }

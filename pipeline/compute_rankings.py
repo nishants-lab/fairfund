@@ -19,21 +19,14 @@ Usage:
 import json
 import sys
 import os
-from math import log, exp
-from datetime import date
+from math import log, exp, isfinite
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
-NAV_DIR = os.path.join(ROOT, "public", "nav")
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from market_date import ist_today
 
-
-def _latest_nav_date(nav_dir):
-    """Robust site anchor: newest NAV date that is not in the future and is
-    shared by at least MIN_ANCHOR_FUNDS funds (config.robust_latest_nav_date).
-    Guards against liquid funds whose AMFI NAV is forward-dated a day ahead."""
-    from config import robust_latest_nav_date
-    return robust_latest_nav_date(nav_dir)
 
 # The 6 metrics used in the composite score (all higher = better).
 # maxDrawdown is negative, so higher (less negative) = less loss = better.
@@ -76,20 +69,34 @@ def percentile_rank_lower(val, all_vals):
     return above / (n - 1)
 
 
+def finite_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+
+
+def ter_of(fund):
+    value = fund.get("expenseRatio")
+    if isinstance(value, str):
+        try:
+            value = float(value)
+        except ValueError:
+            return None
+    return value if finite_number(value) and value >= 0 else None
+
+
+def aum_of(fund):
+    value = fund.get("aum")
+    value = value.get("current") if isinstance(value, dict) else None
+    return value if finite_number(value) and value > 0 else None
+
+
 def debt_score(fund, m, ter_vals, aum_vals, cagr_vals, weights=DEBT_WEIGHTS):
-    """Cost-anchored score for cash-equivalent funds. Weighted arithmetic mean of
-    percentile ranks: cheaper TER, larger AUM, higher return. Missing TER/AUM
-    fall back to a neutral 0.5 percentile so they neither help nor hurt."""
-    ter = fund.get("expenseRatio")
-    if isinstance(ter, str):
-        try: ter = float(ter)
-        except: ter = None
-    aum = (fund.get("aum") or {}).get("current") if isinstance(fund.get("aum"), dict) else None
-    p_ter = percentile_rank_lower(ter, ter_vals) if (ter is not None and ter_vals) else 0.5
-    p_aum = percentile_rank_higher(aum, aum_vals) if (aum is not None and aum_vals) else 0.5
+    """Missing or invalid TER/AUM receive a neutral 0.5 percentile."""
+    ter = ter_of(fund)
+    aum = aum_of(fund)
+    p_ter = percentile_rank_lower(ter, ter_vals) if ter is not None and ter_vals else 0.5
+    p_aum = percentile_rank_higher(aum, aum_vals) if aum is not None and aum_vals else 0.5
     p_cagr = percentile_rank_higher(m["cagr"], cagr_vals) if cagr_vals else 0.5
-    w = weights
-    return w["ter"] * p_ter + w["aum"] * p_aum + w["cagr"] * p_cagr
+    return weights["ter"] * p_ter + weights["aum"] * p_aum + weights["cagr"] * p_cagr
 
 
 def geometric_mean_score(ranks):
@@ -110,42 +117,33 @@ def recompute_rankings(data, dry_run=False):
     for horizon in HORIZONS:
         # Group funds by category (only those with this horizon's metrics)
         by_cat = {}
+        previous = {}
         for f in funds:
             if horizon not in f.get("metrics", {}):
                 continue
             m = f["metrics"][horizon]
-            # Need all 6 score metrics present
-            if not all(k in m and m[k] is not None for k in SCORE_METRICS):
+            if not isinstance(m, dict):
                 continue
+            previous[f["code"]] = (m.get("catRank"), m.get("score"))
+            for key in ("catRank", "catSize", "score"):
+                m.pop(key, None)
             cat = f["category"]
+            required = ["cagr"] if cat in DEBT_CATS | ARBITRAGE_CATS else SCORE_METRICS
+            if not all(finite_number(m.get(key)) for key in required):
+                continue
             if cat not in by_cat:
                 by_cat[cat] = []
             by_cat[cat].append(f)
 
         for cat, cat_funds in by_cat.items():
             n = len(cat_funds)
-            if n < 2:
-                # Single fund in category: rank 1, score 1.0
-                for f in cat_funds:
-                    f["metrics"][horizon]["catRank"] = 1
-                    f["metrics"][horizon]["catSize"] = 1
-                    f["metrics"][horizon]["score"] = 1.0
-                continue
-
             # Compute composite score for each fund
             scored = []
             if cat in DEBT_CATS or cat in ARBITRAGE_CATS:
                 # Cost-anchored ranking for cash-equivalent AND arbitrage funds.
                 _w = ARBITRAGE_WEIGHTS if cat in ARBITRAGE_CATS else DEBT_WEIGHTS
-                def _ter_of(f):
-                    t = f.get("expenseRatio")
-                    if isinstance(t, str):
-                        try: return float(t)
-                        except: return None
-                    return t
-                ter_vals = [t for t in (_ter_of(f) for f in cat_funds) if t is not None]
-                aum_vals = [ (f.get("aum") or {}).get("current") for f in cat_funds
-                             if isinstance(f.get("aum"), dict) and (f.get("aum") or {}).get("current") is not None ]
+                ter_vals = [t for t in (ter_of(f) for f in cat_funds) if t is not None]
+                aum_vals = [a for a in (aum_of(f) for f in cat_funds) if a is not None]
                 cagr_vals = [f["metrics"][horizon]["cagr"] for f in cat_funds]
                 for f in cat_funds:
                     m = f["metrics"][horizon]
@@ -166,11 +164,10 @@ def recompute_rankings(data, dry_run=False):
                     scored.append((score, f))
 
             # Sort descending by score -> assign ranks
-            scored.sort(key=lambda x: -x[0])
+            scored.sort(key=lambda x: (-x[0], int(x[1]["code"])))
             for i, (score, f) in enumerate(scored):
                 new_rank = i + 1
-                old_rank = f["metrics"][horizon].get("catRank")
-                old_score = f["metrics"][horizon].get("score")
+                old_rank, old_score = previous[f["code"]]
                 new_score = round(score, 3)
 
                 if old_rank != new_rank:
@@ -182,18 +179,6 @@ def recompute_rankings(data, dry_run=False):
                 f["metrics"][horizon]["catSize"] = n
                 f["metrics"][horizon]["score"] = new_score
                 changes["funds_ranked"] += 1
-
-            # Also update the category-level stats in the top-level categories block
-            cagrs = [f["metrics"][horizon]["cagr"] for f in cat_funds]
-            cagrs.sort()
-            median_idx = len(cagrs) // 2
-            median_cagr = cagrs[median_idx] if len(cagrs) % 2 else (cagrs[median_idx-1] + cagrs[median_idx]) / 2
-
-            if horizon == "3Y" and cat in data.get("categories", {}):
-                f["metrics"][horizon]["catMedianCagr"] = round(median_cagr, 2)
-                # Update each fund's catMedianCagr
-                for f2 in cat_funds:
-                    f2["metrics"][horizon]["catMedianCagr"] = round(median_cagr, 2)
 
     return changes
 
@@ -215,7 +200,9 @@ def update_category_metadata(data):
 
         # 5Y stats
         cagrs_5y = [f["metrics"]["5Y"]["cagr"] for f in cat_funds
-                    if "5Y" in f.get("metrics", {}) and "cagr" in f["metrics"]["5Y"]]
+                    if finite_number(f.get("metrics", {}).get("5Y", {}).get("cagr"))]
+        cat_info.pop("medianCagr5Y", None)
+        cat_info.pop("topCagr5Y", None)
         if cagrs_5y:
             cagrs_5y.sort()
             mid = len(cagrs_5y) // 2
@@ -250,12 +237,10 @@ def main():
         print("\n--dry-run: no file written.")
         return
 
-    # Anchor = actual latest NAV date, not the run date
-    actual_nav_date = _latest_nav_date(NAV_DIR)
-    data["anchor"] = actual_nav_date or date.today().isoformat()
-    data["generatedAt"] = date.today().isoformat()
-    # Invariant: the site data date can never be in the future.
-    if data["anchor"] > data["generatedAt"]:
+    # Metric recomputation owns the validated snapshot anchor. Ranking must not
+    # move it to an unvalidated NAV tail or invent a date when no data survived.
+    data["generatedAt"] = ist_today()
+    if data.get("anchor") and data["anchor"] > data["generatedAt"]:
         raise SystemExit(
             f"FATAL: anchor {data['anchor']} in the future "
             f"(today {data['generatedAt']}). Aborting."
@@ -265,7 +250,7 @@ def main():
         json.dump(data, f, separators=(",", ":"))
 
     print(f"\nWrote updated {FUNDS_JSON}")
-    print(f"New anchor: {data['anchor']}")
+    print(f"Snapshot anchor: {data.get('anchor')}")
 
 
 if __name__ == "__main__":

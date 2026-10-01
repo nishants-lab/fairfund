@@ -1,8 +1,14 @@
 export interface WindowMetrics {
+  windowStart?: string
+  windowEnd?: string
+  targetStart?: string
+  targetHorizon?: '1Y' | '3Y' | '5Y'
+  startOffsetDays?: number
+  endOffsetDays?: number
   cagr: number
   alpha: number
   sharpe: number
-  sortino: number
+  sortino: number | null
   maxDrawdown: number
   calmar: number
   volatility: number
@@ -41,6 +47,7 @@ export interface Fund {
   // is orthogonal to isDebt/isArbitrage (it is about history depth, not asset class).
   isYoung?: boolean
   navPoints?: number
+  dataQuality?: { status: 'quarantined'; issues: { reason: string; date: string; previousDate?: string; changePct?: number }[] }
   inceptionDate?: string
   // Since-inception performance. Stamped for every fund that has a NAV history
   // (compute_metrics), so present in practice, but kept optional and guarded at
