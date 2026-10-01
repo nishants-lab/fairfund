@@ -193,7 +193,7 @@ export default function Home() {
     setCategory(boardCategories[Math.floor(Math.random() * boardCategories.length)] ?? 'Flexi Cap')
   }
   return <div className="overflow-x-hidden">
-    <section className="border-b border-line bg-gradient-to-b from-brand-50/70 via-canvas to-canvas dark:from-brand-900/20 dark:via-canvas dark:to-canvas" aria-labelledby="home-title">
+    <section className="border-b border-line bg-wash" aria-labelledby="home-title">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-12 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-14 lg:pb-16">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-700 dark:text-brand-300">FairFund · Indian mutual fund research</p>
