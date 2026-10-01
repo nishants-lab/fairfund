@@ -9,9 +9,10 @@ assert(scored,'An eligible equity fund is required for score disclosure verifica
  const browser=await chromium.launch({headless:true});
  try {
   for(const width of [320,360,1280]) {
-   const ctx=await browser.newContext({viewport:{width,height:900},isMobile:width<640,hasTouch:width<640});
+   const ctx=await browser.newContext({viewport:{width,height:900},isMobile:width<640,hasTouch:width<640,serviceWorkers:'block'});
    const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route('https://api.mfapi.in/**',r=>r.abort());
+    await page.route('**/gc.zgo.at/**',r=>r.abort());
    const anchor=new Date(data.anchor+'T00:00:00Z');
    const dates=Array.from({length:181},(_,i)=>new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth()-181+i,1)).toISOString().slice(0,10));
    await page.route('**/nav/*.json*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({d:dates,v:dates.map((_,i)=>100*1.005**i)})}));
