@@ -22,7 +22,7 @@ try {
   const address = server.httpServer.address()
   if (!address || typeof address === 'string') throw new Error('No loopback listen address')
   const env = { ...process.env, FF_TEST_BASE_URL: `http://127.0.0.1:${address.port}`, FF_TEST_BUILT: built ? '1' : '0' }
-  for (const file of ['hydration-browser.cjs', 'homepage-browser.cjs', 'portfolio-browser.cjs', 'copy-browser.cjs', 'palette-browser.cjs', ...(built ? ['seo-browser.cjs'] : [])]) {
+  for (const file of ['hydration-browser.cjs', 'homepage-browser.cjs', 'portfolio-browser.cjs', 'copy-browser.cjs', 'palette-browser.cjs', ...(built ? ['seo-browser.cjs', 'phase2-built-browser.mjs'] : [])]) {
     console.log(`${built ? 'PRODUCTION' : 'DEVELOPMENT'} BROWSER ${file}`)
     await new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [join(root, 'tests', file)], { cwd: root, env, stdio: 'inherit' })
