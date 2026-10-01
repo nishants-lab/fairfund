@@ -1,3 +1,4 @@
+import RankingPeriod from '../components/RankingPeriod'
 import { NavQualityError } from "../lib/navQuality"
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
@@ -135,7 +136,7 @@ export default function FundDetail() {
       if (!b) { setPeerNav([]); return }
       fetchNavHistory(b.code).then(done).catch(() => done([]))
     } else {
-      const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+      const ranked = fundsByCategory(fund.category).filter((f) => f.dataQuality?.status !== 'quarantined' && f.metrics['3Y']?.catRank != null)
       const top = ranked[0]
       const peer = top && top.code !== fund.code ? top : ranked[1]
       if (!peer) { setPeerNav([]); return }
@@ -173,7 +174,7 @@ export default function FundDetail() {
   // gates its body on `fund` being present. ---
   const benchmarkPeer = useMemo(() => {
     if (!fund) return null
-    const ranked = fundsByCategory(fund.category).filter((f) => f.metrics['3Y']?.catRank != null)
+    const ranked = fundsByCategory(fund.category).filter((f) => f.dataQuality?.status !== 'quarantined' && f.metrics['3Y']?.catRank != null)
     if (!ranked.length) return null
     const top = ranked[0]
     if (top.code !== fund.code) return top
@@ -226,7 +227,7 @@ export default function FundDetail() {
     )
   }
 
-  const peers = fundsByCategory(fund.category).filter((f) => f.code !== fund.code).slice(0, 4)
+  const peers = fundsByCategory(fund.category).filter((f) => f.code !== fund.code && f.dataQuality?.status !== 'quarantined' && f.metrics['3Y']?.catRank != null).slice(0, 4)
   const catDisplay = fund.categoryDisplay // captured (narrowed) for use inside helpers below
   const catMedianVol = catStats.volatility?.median ?? null
 
@@ -321,11 +322,7 @@ export default function FundDetail() {
                 SEBI: {fund.sebiRisk}
               </span>
             )}
-            {fund.metrics['3Y'] && (
-              <span className="pill bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-                Rank #{fund.metrics['3Y'].catRank} of {fund.metrics['3Y'].catSize ?? fund.categorySize} (3Y)
-              </span>
-            )}
+            <RankingPeriod fund={fund} horizon="3Y" compact withheld={navHeld} />
             {fund.isYoung && fund.inceptionDate && !fund.isDebt && !fund.isArbitrage && (
               <span
                 className="pill bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
@@ -508,7 +505,10 @@ export default function FundDetail() {
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />
             )}
             <MetricCard label={usesReducedSurface(fund) ? 'NAV Variability' : 'Volatility'} value={pct(baseline.volatility)} hint="Annualized standard deviation of daily returns." />
-            <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
+            <div className="card p-4">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-faint">Category rank</div>
+              <RankingPeriod fund={fund} horizon={baselineHorizon} withheld={navHeld} />
+            </div>
           </div>
           <p className="mt-2 text-xs text-faint">
             Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics{baseline.windowStart && baseline.windowEnd ? ` from ${baseline.windowStart} to ${baseline.windowEnd}` : ` (anchor ${data.anchor})`}.{' '}
@@ -741,7 +741,7 @@ export default function FundDetail() {
               const pm = p.metrics['3Y']
               return (
                 <button key={p.code} onClick={() => navigate(`/fund/${p.code}/${fundSlug(p.name)}`)} className="card p-4 text-left transition hover:shadow-md">
-                  <div className="text-xs text-faint">#{pm?.catRank} in category</div>
+                  <RankingPeriod fund={p} horizon="3Y" compact />
                   <div className="mt-1 font-semibold text-fg line-clamp-2">{p.name}</div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-muted">{pct(pm?.cagr)}</span>

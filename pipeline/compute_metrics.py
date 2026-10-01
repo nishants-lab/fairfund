@@ -31,11 +31,13 @@ from market_date import ist_today, is_usable_nav_date
 from nav_quality import nav_quality_issues, sticky_nav_holds
 sys.path.insert(0, HERE)
 from config import MIN_ANCHOR_FUNDS
+from compute_rankings import retain_previous_rankings
 
 RF_ANNUAL = 0.07  # risk-free rate (India 10Y ~7%)
 RF_DAILY = RF_ANNUAL / 252
 HORIZONS = {"1Y": 1, "3Y": 3, "5Y": 5}
 NAV_QUALITY_BY_CODE = {}
+MAX_CATEGORY_NAV_LAG = 3
 
 
 def load_nav(code):
@@ -114,6 +116,42 @@ def shared_observation(histories, target):
     return max(majority) if majority else max(counts, key=lambda day: (counts[day], day))
 
 
+def category_endpoint(histories, global_anchor):
+    recent = (date.fromisoformat(global_anchor) - timedelta(days=7)).isoformat()
+    current = {code: points for code, points in histories.items()
+               if points and points[-1][0] >= recent}
+    if not current:
+        return None, {}
+    full_histories = [points for points in current.values()
+                      if points[0][0] <= calendar_start(global_anchor, 1) and len(points) >= 60]
+    counts = Counter()
+    for points in full_histories:
+        counts.update(day for day, _ in points if recent <= day <= global_anchor)
+    if not counts:
+        return None, {}
+    minimum = len(full_histories) // 2 + 1
+    published = sorted(day for day, count in counts.items() if count >= minimum)
+    if not published:
+        published = sorted(day for day, count in counts.items() if count == max(counts.values()))
+    anchor = published[-1]
+    allowed = set(published[-MAX_CATEGORY_NAV_LAG - 1:])
+    earliest = min(allowed)
+    eligible = {code: points for code, points in current.items()
+                if points[-1][0] >= earliest}
+    # Histories too short for any ranked horizon must not move the category end.
+    endpoint_histories = [points for points in eligible.values()
+                          if points[0][0] <= calendar_start(anchor, 1) and len(points) >= 60]
+    if not endpoint_histories:
+        return None, {}
+    coverage = Counter()
+    for points in endpoint_histories:
+        coverage.update(day for day, _ in points if day in allowed)
+    # Maximum coverage finds the latest intersection first. If none exists,
+    # one interior gap cannot erase every other fund: ties prefer the newest date.
+    end = max(coverage, key=lambda day: (coverage[day], day), default=None)
+    return end, eligible
+
+
 def category_windows(funds, nav_cache):
     anchor = observed_anchor(nav_cache)
     if anchor is None:
@@ -122,18 +160,14 @@ def category_windows(funds, nav_cache):
     for fund in funds:
         by_cat.setdefault(fund["category"], []).append(fund["code"])
     windows = {}
-    recent = (date.fromisoformat(anchor) - timedelta(days=7)).isoformat()
     for codes in by_cat.values():
-        current = [nav_cache[code] for code in codes
-                   if nav_cache[code] and nav_cache[code][-1][0] >= recent]
-        end = shared_observation(current, anchor)
+        end, eligible = category_endpoint({code: nav_cache.get(code) for code in codes}, anchor)
         if end is None:
             continue
         for horizon, years in HORIZONS.items():
             candidates = {}
             target = calendar_start(end, years)
-            for code in codes:
-                points = nav_cache[code]
+            for code, points in eligible.items():
                 if not points:
                     continue
                 stop = bisect_left(points, (end,))
@@ -330,7 +364,10 @@ def main():
             continue
 
         nav_points = nav_cache[code]
-        f["metrics"] = {}
+        current_metrics = {horizon: windows[(code, horizon)] for horizon in HORIZONS
+                           if (code, horizon) in windows}
+        retain_previous_rankings(f, current_metrics)
+        f["metrics"] = current_metrics
         f.pop("si", None)
         previous_quality = f.pop("dataQuality", None)
         if not nav_points:
@@ -343,6 +380,8 @@ def main():
             elif issues:
                 f["dataQuality"] = {"status": "quarantined", "issues": issues}
                 f.pop("analytics", None)
+            if f.get("dataQuality", {}).get("status") == "quarantined":
+                f.pop("previousRankings", None)
             no_nav += 1
             f["navPoints"] = 0
             f["isYoung"] = True

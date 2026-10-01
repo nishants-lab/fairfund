@@ -42,6 +42,7 @@ def source_issues(raw, today):
 def clear_derived(record, issues):
     record["metrics"] = {}
     record.pop("si", None)
+    record.pop("previousRankings", None)
     record["analytics"] = {}
     record["dataQuality"] = {"status": "quarantined", "issues": issues}
 

@@ -1,3 +1,4 @@
+import RankingPeriod from '../components/RankingPeriod'
 import { useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
@@ -194,7 +195,7 @@ export default function CategoryDetail() {
   const windowLeaders = useMemo(() => {
     return HORIZONS.map(h => {
       const ranked = catFunds
-        .filter(f => f.metrics[h]?.catRank != null)
+        .filter(f => f.dataQuality?.status !== 'quarantined' && f.metrics[h]?.catRank != null)
         .sort((a, b) => (a.metrics[h]!.catRank) - (b.metrics[h]!.catRank))
       const leader = ranked[0]
       return { horizon: h, fund: leader ?? null, cagr: leader?.metrics[h]?.cagr ?? null }
@@ -204,7 +205,7 @@ export default function CategoryDetail() {
   // Top 10 by 3Y rank
   const top10 = useMemo(() => {
     return catFunds
-      .filter(f => f.metrics['3Y']?.catRank != null)
+      .filter(f => f.dataQuality?.status !== 'quarantined' && f.metrics['3Y']?.catRank != null)
       .sort((a, b) => (a.metrics['3Y']!.catRank) - (b.metrics['3Y']!.catRank))
       .slice(0, 10)
   }, [catFunds])
@@ -299,6 +300,7 @@ export default function CategoryDetail() {
                   >
                     {w.fund.name}
                   </button>
+                  <div className="mt-2"><RankingPeriod fund={w.fund} horizon={w.horizon} /></div>
                   <div className="mt-1 text-sm text-muted">{w.cagr != null ? `${w.cagr.toFixed(1)}% CAGR` : ''}</div>
                 </>
               ) : (
@@ -464,9 +466,7 @@ export default function CategoryDetail() {
                     className="cursor-pointer border-b border-line/60 last:border-0 transition hover:bg-brand-50/40 dark:hover:bg-brand-900/20"
                   >
                     <td className="px-4 py-2.5">
-                      <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                        m.catRank <= 3 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-surface2 text-muted'
-                      }`}>{m.catRank}</span>
+                      <RankingPeriod fund={f} horizon="3Y" compact />
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="font-semibold text-fg">{f.name}</div>

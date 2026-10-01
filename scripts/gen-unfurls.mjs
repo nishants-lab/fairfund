@@ -149,7 +149,7 @@ for (const f of funds) {
   const rows = []
   for (const [win, mm] of [['3Y', m3], ['5Y', m5]]) {
     if (!mm) continue
-    rows.push(`<tr><th style="text-align:left;padding:6px 12px 6px 0;font-weight:600">${win}</th><td style="padding:6px 16px 6px 0">CAGR ${mm.cagr.toFixed(1)}%</td><td style="padding:6px 16px 6px 0">Alpha ${sign(mm.alpha ?? 0)}%</td><td style="padding:6px 16px 6px 0">Rank #${mm.catRank}/${mm.catSize}</td><td style="padding:6px 16px 6px 0">Sharpe ${mm.sharpe}</td><td style="padding:6px 0">Max DD ${mm.maxDrawdown?.toFixed(1)}%</td></tr>`)
+    rows.push(`<tr><th style="text-align:left;padding:6px 12px 6px 0;font-weight:600">${win}${mm.windowStart && mm.windowEnd ? `<span style="display:block;font-size:12px;font-weight:400">${esc(mm.windowStart)} to ${esc(mm.windowEnd)}</span>` : ''}</th><td style="padding:6px 16px 6px 0">CAGR ${mm.cagr.toFixed(1)}%</td><td style="padding:6px 16px 6px 0">Alpha ${sign(mm.alpha ?? 0)}%</td><td style="padding:6px 16px 6px 0">Rank #${mm.catRank}/${mm.catSize}</td><td style="padding:6px 16px 6px 0">Sharpe ${mm.sharpe}</td><td style="padding:6px 0">Max DD ${mm.maxDrawdown?.toFixed(1)}%</td></tr>`)
   }
   const table = rows.length
     ? `<h2 style="font-size:18px;margin:24px 0 8px">Key metrics</h2>
