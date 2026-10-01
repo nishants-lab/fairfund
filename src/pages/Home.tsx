@@ -77,7 +77,7 @@ function CategoryIndex() {
   const badgeColors = {
     return: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200',
     volatility: 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200',
-    choice: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200',
+    return3Y: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200',
   }
   return <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16" aria-labelledby="categories-title">
     <div className="flex flex-wrap items-end justify-between gap-3">
