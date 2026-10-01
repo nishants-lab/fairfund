@@ -6,19 +6,11 @@ export default {
     extend: {
       colors: {
         ink: '#0f172a',
-        brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          900: '#1e3a8a',
-        },
+        brand: Object.fromEntries([50,100,200,300,400,500,600,700,800,900].map(step => [step, `rgb(var(--brand-${step}) / <alpha-value>)`])),
         accent: '#10b981',
         // Semantic tokens backed by CSS variables (theme-aware)
         canvas: 'rgb(var(--canvas) / <alpha-value>)',
+        wash: 'rgb(var(--wash, var(--surface2)) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         surface2: 'rgb(var(--surface2) / <alpha-value>)',
         fg: 'rgb(var(--text-base) / <alpha-value>)',

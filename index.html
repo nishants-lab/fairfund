@@ -5,6 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="./palette.js"></script>
     <meta name="theme-color" content="#2563eb" />
     <meta name="description" content="Research __FUND_COUNT__ Indian mutual funds, compare funds within their categories and review the holdings in your portfolio." />
 
@@ -36,9 +37,10 @@
     <script>
       // Restore SPA redirect path (from 404.html)
       (function() {
-        var redir = sessionStorage.getItem('spa-redirect');
+        var redir;
+        try { redir = sessionStorage.getItem('spa-redirect'); } catch (_) {}
         if (redir) {
-          sessionStorage.removeItem('spa-redirect');
+          try { sessionStorage.removeItem('spa-redirect'); } catch (_) {}
           history.replaceState(null, '', redir);
         }
       })();

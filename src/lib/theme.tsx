@@ -11,7 +11,8 @@ const Ctx = createContext<ThemeCtx>({ theme: 'light', toggle: () => {} })
 
 function getInitial(): Theme {
   if (typeof window === 'undefined') return 'light'
-  const saved = localStorage.getItem('ff-theme')
+  let saved: string | null = null
+  try { saved = localStorage.getItem('ff-theme') } catch { /* Browser storage can be disabled. */ }
   if (saved === 'light' || saved === 'dark') return saved
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
@@ -23,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement
     if (theme === 'dark') root.classList.add('dark')
     else root.classList.remove('dark')
-    localStorage.setItem('ff-theme', theme)
+    try { localStorage.setItem('ff-theme', theme) } catch { /* Keep the in-memory preference. */ }
   }, [theme])
 
   const toggle = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
