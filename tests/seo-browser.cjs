@@ -3,6 +3,16 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const {funds}=require('../src/data/funds.json');
+const eligible=funds.find(f=>!f.dataQuality&&(f.metrics?.['3Y']||f.metrics?.['5Y']));
+const unavailable=funds.find(f=>!f.dataQuality&&!f.metrics?.['3Y']&&!f.metrics?.['5Y']);
+const held=funds.find(f=>f.dataQuality?.status==='quarantined');
+assert(eligible&&unavailable&&held,'SEO fixtures require eligible, unavailable-period and quarantined fund pages');
+const routes=[
+ ...[eligible,unavailable,held].map(f=>({route:'f/'+f.code+'/',app:'/fund/'+f.code,table:!!(f.metrics?.['3Y']||f.metrics?.['5Y']),held:f===held})),
+ {route:'c/flexi-cap/',app:'/category/flexi-cap',table:false},
+ {route:'s/explore/',app:'/explore',table:true},
+];
 const base=(process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190').replace(/\/$/,'');
 (async()=>{
  const browser=await chromium.launch({headless:true});
@@ -10,7 +20,7 @@ const base=(process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190').replace(/\/$/
   for(const width of [320,1280]) for(const js of [false,true]) {
    const ctx=await browser.newContext({viewport:{width,height:900},javaScriptEnabled:js,serviceWorkers:'block'});
    await ctx.route('https://api.mfapi.in/**',r=>r.abort());await ctx.route('**/gc.zgo.at/**',r=>r.abort());
-   for(const [route,app] of [['f/122639/','/fund/122639'],['c/flexi-cap/','/category/flexi-cap'],['s/explore/','/explore']]) {
+   for(const {route,app,table,held:quarantined} of routes) {
     const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     if(js)await page.clock.install();
     const url=base+'/'+route;
@@ -24,10 +34,15 @@ const base=(process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190').replace(/\/$/
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,route+' page overflow');
     assert.equal(await page.locator('main time').count(),1);
     if(route.startsWith('c/'))assert(await page.locator('main a[href*="/f/"]').count()>0);
-    if(!route.startsWith('c/')) {
-     assert.equal(await page.locator('.metrics-scroll[tabindex="0"]').count(),1);
-     assert.equal(await page.locator('.metrics-scroll td').first().evaluate(e=>getComputedStyle(e).whiteSpace),'nowrap');
-    }
+     assert.equal(await page.locator('.metrics-scroll[tabindex]').count(),table?1:0,route+' only eligible windows render metric tables');
+     if(table) {
+      assert.equal(await page.locator('.metrics-scroll').getAttribute('tabindex'),'0');
+      assert.equal(await page.locator('.metrics-scroll td').first().evaluate(e=>getComputedStyle(e).whiteSpace),'nowrap');
+     }
+     if(quarantined) {
+      assert.match(await page.locator('main [role=status]').innerText(),/NAV history needs source verification/);
+      assert.doesNotMatch(await page.locator('main').innerText(),/ranks #|CAGR [+-]?[0-9]/);
+     }
     if(process.env.FF_SCREENSHOT_DIR&&js){fs.mkdirSync(process.env.FF_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.FF_SCREENSHOT_DIR,route.replaceAll('/','-')+width+'.png'),fullPage:true});}
     const link=page.locator('main a[href*="#/"]').last();
     assert((await link.getAttribute('href')).includes('#'+app));
