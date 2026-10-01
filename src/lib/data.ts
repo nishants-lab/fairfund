@@ -56,7 +56,7 @@ export function fetchFundDetail(code: number): Promise<Partial<Fund>> {
 export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
   const merged: Fund = { ...fund }
   if (detail.analytics) merged.analytics = detail.analytics
-  if (fund.dataQuality?.status === 'quarantined') { merged.analytics = {}; merged.metrics = {}; delete merged.si }
+  if (fund.dataQuality?.status === 'quarantined') { merged.analytics = {}; merged.metrics = {}; delete merged.si; delete merged.previousRankings }
   if (detail.holdings) merged.holdings = detail.holdings
   if (detail.holdingsMeta) merged.holdingsMeta = detail.holdingsMeta
   if (detail.management) merged.management = detail.management

@@ -100,6 +100,16 @@ class SeoTests(unittest.TestCase):
         self.assertEqual(self.run_script('gen-unfurls.mjs').returncode,0)
         self.assertNotIn('<time', (self.base/'dist/c/large-cap/index.html').read_text())
 
+    def test_fund_table_shows_actual_rank_window_not_only_global_anchor(self):
+        self.data['anchor'] = '2026-09-30'
+        self.data['funds'][0]['metrics'] = {'3Y': {'windowStart': '2023-09-29', 'windowEnd': '2026-09-29', 'cagr': 10, 'alpha': 1, 'catRank': 2, 'catSize': 4, 'sharpe': 1, 'maxDrawdown': -10}}
+        self.save_data()
+        result = self.run_script('gen-unfurls.mjs')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (self.base/'dist/f/1/index.html').read_text()
+        self.assertIn('2023-09-29 to 2026-09-29', html)
+        self.assertIn('Rank #2/4', html)
+
     def test_explorer_metrics_have_scroll_region(self):
         html=(self.base/'dist/s/explore/index.html').read_text()
         self.assertIn('class="metrics-scroll" role="region" aria-label="Category metrics" tabindex="0"><table',html)

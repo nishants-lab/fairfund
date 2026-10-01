@@ -161,13 +161,22 @@ test('canonical missing AUM and expense ratio never fall back to a stale shell',
 })
 
 test('quarantine still blocks shell analytics without changing detail-only metadata', () => {
-  const index: Fund = { ...getFund(code(8))!, dataQuality: { status: 'quarantined', issues: [] } }
+  const index: Fund = { ...getFund(code(8))!, previousRankings: { '3Y': {catRank:1, catSize:10} as any }, dataQuality: { status: 'quarantined', issues: [] } }
   const detail = shell({ management: { available: true } as any, holdings: [] })
   const merged = mergeFundDetail(index, detail)
   assert.deepStrictEqual(merged.metrics, {})
   assert.deepStrictEqual(merged.analytics, {})
   assert.strictEqual(merged.si, undefined)
+  assert.strictEqual(merged.previousRankings, undefined)
   assert.strictEqual(merged.management, detail.management)
   assert.strictEqual(merged.holdings, detail.holdings)
   assert.strictEqual(merged.dataQuality, index.dataQuality)
+})
+
+
+test('previous rankings remain canonical and never merge into current metrics', () => {
+  const index = { ...getFund(code(8))!, metrics: {}, previousRankings: { '3Y': { catRank: 2, catSize: 20, windowStart: '2022-09-29', windowEnd: '2025-09-29' } as any } }
+  const merged = mergeFundDetail(index, { previousRankings: { '3Y': { catRank: 1 } as any }, metrics: { '3Y': { catRank: 1 } as any } })
+  assert.deepEqual(merged.metrics, {})
+  assert.deepEqual(merged.previousRankings, index.previousRankings)
 })

@@ -1,3 +1,4 @@
+import RankingPeriod, { PreviousRankings } from './RankingPeriod'
 import type { Fund } from '../types'
 import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
@@ -22,54 +23,16 @@ function scoreBand(score: number): {
  * Spells out the drivers so it's transparent, never a black-box rating.
  */
 export default function VerdictCard({ fund }: { fund: Fund }) {
-  // Debt (liquid / money-market) funds are cash-equivalents: they earn accrual,
-  // not stock-picking alpha. The equity conviction pillars (peer alpha, Sharpe,
-  // downside capture, manager skill) are meaningless at near-zero volatility, so
-  // we show an honest note instead of an inflated "Standout" verdict.
-  // Debt / liquid / arbitrage: category-appropriate tiered verdict (no equity
-  // methodology). Tier 3 shows a data-limitations panel instead of a score.
-  if (fund.isDebt || fund.isArbitrage) {
-    return <DebtVerdictCard fund={fund} />
+  if (fund.dataQuality?.status === 'quarantined') {
+    return <div className="mt-6 card p-5 text-sm text-muted">Ranking and score withheld pending NAV verification.</div>
   }
 
-  // Young funds without a full backward window (< ~1Y history) have no
-  // meaningful rank/alpha/Sharpe yet. Show an honest since-inception read
-  // instead of a fabricated conviction score.
-  const hasWindow = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
+  if (fund.isDebt || fund.isArbitrage) return <DebtVerdictCard fund={fund} />
+
+  const horizon = fund.metrics['3Y'] ? '3Y' : fund.metrics['5Y'] ? '5Y' : '1Y'
+  const hasWindow = fund.metrics[horizon]
   if (!hasWindow) {
-    const si = fund.si
-    const sinceTxt = fund.inceptionDate
-      ? new Date(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      : null
-    return (
-      <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
-        <h3 className="font-bold text-fg">No matched-period score available</h3>
-        <p className="mt-2 text-sm text-muted">
-          This fund has {fund.navPoints != null ? `${fund.navPoints} NAV observations` : 'limited NAV history'}{sinceTxt ? ` since ${sinceTxt}` : ''}.
-          A score requires a full period with the same observed start and end dates as its category peers. Short history or a missing endpoint can make a fund ineligible.
-        </p>
-        {si && (
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-line bg-surface2/40 p-3">
-              <div className="text-xs uppercase tracking-wide text-faint">Return since launch</div>
-              <div className="mt-1 text-lg font-bold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}%</div>
-              <div className="mt-0.5 text-xs text-muted">Absolute, not annualised.</div>
-            </div>
-            {si.cagr != null && (
-              <div className="rounded-lg border border-line bg-surface2/40 p-3">
-                <div className="text-xs uppercase tracking-wide text-faint">Annualised (CAGR)</div>
-                <div className="mt-1 text-lg font-bold text-fg">{si.cagr >= 0 ? '+' : ''}{si.cagr.toFixed(1)}%</div>
-                <div className="mt-0.5 text-xs text-muted">Early, small-sample; treat with caution.</div>
-              </div>
-            )}
-            <div className="rounded-lg border border-line bg-surface2/40 p-3">
-              <div className="text-xs uppercase tracking-wide text-faint">Track record</div>
-              <div className="mt-1 text-lg font-bold text-fg">{si.days} days</div>
-            </div>
-          </div>
-        )}
-      </div>
-    )
+    return <NoMatchedPeriod fund={fund} />
   }
 
   const v = buildVerdict(fund)
@@ -82,6 +45,9 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
           <span className={`text-lg font-bold ${b.text}`}>{v.score}<span className="text-xs font-semibold text-faint">/100</span></span>
         </div>
       </div>
+
+      <div className="mt-3"><RankingPeriod fund={fund} horizon={horizon} /></div>
+      <PreviousRankings fund={fund} />
 
       {/* score bar - blue intensity by band, not a red/green verdict */}
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
@@ -142,6 +108,43 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
 }
 
 
+function NoMatchedPeriod({ fund }: { fund: Fund }) {
+  const si = fund.si
+  const sinceTxt = fund.inceptionDate
+    ? new Date(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+  return (
+    <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
+      <h3 className="font-bold text-fg">No matched-period score available</h3>
+      <p className="mt-2 text-sm text-muted">
+        This fund has {fund.navPoints != null ? `${fund.navPoints} NAV observations` : 'NAV history available'}{sinceTxt ? ` since ${sinceTxt}` : ''}.
+        A score requires a full period with the same observed start and end dates as its category peers. Short history or a missing endpoint can make a fund ineligible.
+      </p>
+      <PreviousRankings fund={fund} />
+      {si && (
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-line bg-surface2/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-faint">Return since launch</div>
+            <div className="mt-1 text-lg font-bold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}%</div>
+            <div className="mt-0.5 text-xs text-muted">Absolute, not annualised.</div>
+          </div>
+          {si.cagr != null && (
+            <div className="rounded-lg border border-line bg-surface2/40 p-3">
+              <div className="text-xs uppercase tracking-wide text-faint">Annualised (CAGR)</div>
+              <div className="mt-1 text-lg font-bold text-fg">{si.cagr >= 0 ? '+' : ''}{si.cagr.toFixed(1)}%</div>
+              <div className="mt-0.5 text-xs text-muted">{si.days < 365 ? 'Less than one year of history; treat with caution.' : 'Annualised over the available since-launch history.'}</div>
+            </div>
+          )}
+          <div className="rounded-lg border border-line bg-surface2/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-faint">Track record</div>
+            <div className="mt-1 text-lg font-bold text-fg">{si.days} days</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const DTONE_RING: Record<string, string> = {
   good: 'border-l-emerald-500',
   warn: 'border-l-amber-500',
@@ -165,16 +168,20 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
   const v = buildDebtVerdict(fund, ALL_FUNDS)
   const info = subcategoryInfo(fund)
   const isArb = !!fund.isArbitrage
+  const horizon = fund.metrics['1Y'] ? '1Y' : fund.metrics['3Y'] ? '3Y' : '5Y'
 
   // Tier 3 (or unscored): data-limitations panel, no score.
-  if (!v.scored) {
+  if (!v.scored || !Object.values(fund.metrics).some(Boolean)) {
     return (
       <div className="mt-6 card border-l-4 border-l-slate-400 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-fg">Why we show no score here</h3>
           <span className="text-xs font-semibold uppercase tracking-wide text-faint">{v.peerSet}</span>
         </div>
-        <p className="mt-2 text-sm text-muted">{v.oneLiner}</p>
+        <p className="mt-2 text-sm text-muted">{v.scored ? 'A current matched period is unavailable for this fund.' : v.oneLiner}</p>
+        {v.tier !== 3 && !Object.values(fund.metrics).some(Boolean)
+          ? <NoMatchedPeriod fund={fund} />
+          : <PreviousRankings fund={fund} />}
         {info && (
           <p className="mt-2 text-sm text-muted">
             <span className="font-semibold text-fg">{v.peerSet}:</span> {info.blurb} Typical holding period {info.horizon}. {info.forWhom}
@@ -200,9 +207,8 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
         )}
       </div>
 
-      {v.rankLabel && (
-        <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-faint">{v.rankLabel}</div>
-      )}
+      <div className="mt-3"><RankingPeriod fund={fund} horizon={horizon} /></div>
+      <PreviousRankings fund={fund} />
 
       {v.score != null && (
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
@@ -210,7 +216,7 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
         </div>
       )}
 
-      <p className="mt-3 text-muted">{v.oneLiner}</p>
+      <p className="mt-3 text-muted">Scored within {v.peerSet.toLowerCase()} funds on cost, return-vs-peers and size.</p>
 
       {v.caveat && (
         <div className="mt-3 flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300">

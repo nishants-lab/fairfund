@@ -119,18 +119,17 @@ test('score disclosures agree on six rounded weights and excluded monthly test',
   assert.match(source('src/pages/Methodology.tsx'), /\(22, 18, 12, 16, 10 and 10\) by their total of 88/)
 })
 
-test('separate monthly-test display retains statistical and provenance caveats', () => {
-  const text = source('src/components/ForwardAnalytics.tsx')
-  const panel = text.slice(text.indexOf('{a?.alpha && ('), text.indexOf('{/* Capture ratios'))
-  for (const copy of ['Monthly excess-return test', 'num(a.alpha.tStat)', 'a.alpha.n',
+test('monthly-test display is removed while methodology retains statistical and provenance caveats', () => {
+  assert.doesNotMatch(source('src/components/ForwardAnalytics.tsx'), /Monthly excess-return test|a\?\.alpha|a\.alpha/)
+  const methodology = source('src/pages/Methodology.tsx').replace(/\s+/g, ' ')
+  for (const copy of ['Monthly excess-return test',
     'independent monthly observations', 'does not adjust for testing many funds',
     'does not measure the probability of manager skill or future outperformance',
-    'Raw p-value and observation dates are unavailable',
+    'Raw p-values and observation dates are unavailable',
     '36 paired monthly returns and non-zero variation',
-    'monthly excess-return test is excluded from the equity fund-page composite score']) {
-    assert.ok(panel.includes(copy), copy)
+    'not displayed on the fund page and is excluded from its composite score']) {
+    assert.ok(methodology.includes(copy), copy)
   }
-  assert.doesNotMatch(panel, /alpha.confidence|12%/)
 })
 
 test('current equity index produces bounded scores without mutating source funds', () => {

@@ -59,6 +59,8 @@ export interface Fund {
     '3Y'?: WindowMetrics
     '5Y'?: WindowMetrics
   }
+  // Historical ranks are display-only; never part of the current cohort or score.
+  previousRankings?: Partial<Record<'1Y' | '3Y' | '5Y', WindowMetrics>>
   verdict?: string
   holdings?: Holding[]
   holdingsMeta?: HoldingsMeta

@@ -72,6 +72,7 @@ export interface DebtPillar { label: string; detail: string; tone: 'good' | 'bad
 export interface DebtVerdict {
   tier: DebtTier | 'arbitrage'
   scored: boolean
+  horizon?: Horizon
   score?: number // 0..100
   label?: string // positioning (debt) or evaluative (arb) label
   tone: 'good' | 'warn' | 'bad' | 'neutral'
@@ -245,7 +246,7 @@ export function buildDebtVerdict(fund: Fund, allFunds: Fund[]): DebtVerdict {
     ? `${peerSet} fund scored on cost, return-vs-peers and size (not equity metrics)${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
     : `Scored within ${peerSet.toLowerCase()} funds on cost, return-vs-peers and size${rankTxt ? ', ' + rankTxt : ''}. ${scoreTxt}`.trim()
 
-  return { tier: tier as DebtTier | 'arbitrage', scored: aligned ? score != null : true, score: score ?? undefined, label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
+  return { tier: tier as DebtTier | 'arbitrage', scored: aligned ? score != null : true, score: score ?? undefined, horizon: horizon ?? HORIZONS.find(h => fund.metrics[h] === base), label, tone, rankLabel, peerSet, peerCount, pillars, caveat, oneLiner }
 }
 
 /**

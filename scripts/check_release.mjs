@@ -17,6 +17,6 @@ run(python, ['tests/smoke.py'])
 run(python, ['scripts/sync_analytics_to_shells.py', '--check'])
 node(join(root, 'node_modules/typescript/bin/tsc'), '--project', 'tsconfig.json', '--noEmit', '--incremental', 'false')
 node(join(root, 'tests/run-browser-regressions.mjs'))
-for (const file of ['saved-comparisons-browser.mjs', 'portfolio-import-browser.mjs', 'fund-changes-browser.mjs', 'usage-browser.cjs', 'reliability-browser.mjs']) {
+for (const file of ['saved-comparisons-browser.mjs', 'portfolio-import-browser.mjs', 'fund-changes-browser.mjs', 'usage-browser.cjs', 'reliability-browser.mjs', 'dated-ranking-browser.mjs']) {
   node(join(root, 'tests', file))
 }
