@@ -40,8 +40,7 @@ export default function Methodology() {
 
       <Section title="Available history and horizons">
         <p>
-          Trailing 1-year, 3-year and 5-year metrics use available NAV data. Coverage and actual observation dates
-          can differ across funds. A horizon label does not establish identical start dates, end dates or complete history.
+          Fixed 1-year, 3-year and 5-year rankings require full calendar-year history and identical observed start and end dates within each category and horizon. A shared observation up to seven calendar days before an anniversary or snapshot anchor accommodates non-trading dates. Funds missing these endpoints remain browsable without that ranking. Interior gaps may still exist in source history.
         </p>
       </Section>
 
@@ -60,6 +59,9 @@ export default function Methodology() {
         </p>
       </Section>
 
+      <Section title="NAV source checks">
+        <p>Consecutive NAV changes of 50% or more, invalid NAV values or out-of-order dates trigger source verification. Returns, rankings and NAV-based analytics are withheld for affected funds. Raw observations are retained without inferred rescaling. This conservative check can flag genuine corporate actions and does not establish that a source is wrong.</p>
+      </Section>
       <Section title="Fund coverage">
         <p>
           Which funds to include matters as much as how we rank them. We build the universe from
@@ -69,7 +71,7 @@ export default function Methodology() {
         </p>
         <p className="mt-2">
           <strong>Liquid, money market and arbitrage funds</strong> use separate peer-set scores based on cost,
-          returns and AUM. Weights differ between ranking and fund-page summary scores; these are separate formulas.
+          returns and AUM. Liquid and money market scores use 70% cost, 20% AUM and 10% return; arbitrage uses 45%, 20% and 35%. Rankings and fund-page summaries share these rules, using the same selected horizon for all peers. Missing cost or AUM receives neutral points. These weights are product choices, not proven optimal models.
         </p>
       </Section>
 
@@ -90,7 +92,7 @@ export default function Methodology() {
         <ul className="ml-5 list-disc space-y-1.5">
           <li><strong>CAGR</strong>: annualized return. Absolute return is the cumulative point-to-point return.</li>
           <li><strong>Alpha vs peers</strong>: return difference against the category comparison for the stated calculation.</li>
-          <li><strong>Sharpe / Sortino</strong>: return per unit of total / downside risk.</li>
+          <li><strong>Sharpe / Sortino</strong>: return per unit of total / downside risk. Sortino uses annualised return above the 7% target divided by annualised RMS shortfalls below the daily target, averaged over all daily observations. It is unavailable when downside deviation is zero.</li>
           <li><strong>Calmar</strong>: return relative to the worst drawdown.</li>
           <li><strong>Max drawdown</strong>: the worst peak-to-trough fall (shallower is better).</li>
           <li><strong>Volatility</strong>: annualized standard deviation of daily returns.</li>
@@ -224,11 +226,12 @@ export default function Methodology() {
 
       <Section title="Fund-page composite score">
         <p>
-          The equity fund-page composite score (0-100) uses category rank (22%), peer-relative alpha (18%),
-          Sharpe (12%), consistency (16%), the stored rounded (1-p) × 100 monthly-test statistic (12%),
-          downside capture (10%) and manager record (10%). Missing inputs generally use neutral points;
-          limited consistency history and an unavailable monthly test also use neutral points.
-          The monthly-test input remains part of the score and is not a probability of manager skill.
+          The equity fund-page composite score (0-100) uses category rank (25%), peer-relative alpha (20.45%),
+          Sharpe (13.64%), consistency (18.18%), downside capture (11.36%) and manager record (11.36%).
+          Displayed weights are rounded; the calculation divides the original six weights
+          (22, 18, 12, 16, 10 and 10) by their total of 88. Missing inputs and limited consistency history
+          use neutral points. The monthly excess-return test is excluded from this score;
+          its statistic is not a probability of manager skill.
         </p>
         <p className="mt-2">
           Reasons describe inputs that raised or lowered the score. The recent-return note is not scored.

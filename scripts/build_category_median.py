@@ -24,12 +24,12 @@ Usage: python scripts/build_category_median.py
 Idempotent. Reads committed public/nav/*.json (no network).
 """
 import os, json, statistics, sys
-from math import isfinite
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from market_date import ist_today, is_usable_nav_date
+from nav_quality import nav_quality_issues, sticky_nav_holds
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 BENCH_JSON = os.path.join(ROOT, "src", "data", "benchmarks.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
@@ -48,14 +48,11 @@ def load_nav(code):
     if not d or not v or len(d) != len(v):
         return None
     today = ist_today()
-    points = {}
-    for day, value in zip(d, v):
-        if not is_usable_nav_date(day, today):
-            continue
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value <= 0:
-            continue
-        points[day] = float(value)
-    return sorted(points.items()) or None
+    points = [(day, value) for day, value in zip(d, v)
+              if is_usable_nav_date(day, today)]
+    if nav_quality_issues(points):
+        return None
+    return points or None
 
 def daily_returns(series):
     """Map date -> daily return using the fund's own consecutive points."""
@@ -70,7 +67,8 @@ def daily_returns(series):
     return out
 
 def build_category(cat, funds):
-    codes = [f["code"] for f in funds if f.get("category") == cat]
+    holds = sticky_nav_holds(ROOT, funds)
+    codes = [f["code"] for f in funds if f.get("category") == cat and str(f["code"]) not in holds]
     ret_maps = []
     for c in codes:
         s = load_nav(c)

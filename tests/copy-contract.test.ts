@@ -61,32 +61,33 @@ test('score captions use the actual selected baseline horizon', () => {
   assert.match(buildVerdict(fund({ '1Y': metric, '3Y': metric, '5Y': metric })).oneLiner, /on 3Y/)
 })
 
-test('copy changes preserve legacy score arithmetic and neutral defaults', () => {
+test('score copy follows six-pillar arithmetic and neutral defaults', () => {
   assert.equal(buildVerdict(fund()).score, 50)
   const f = fund({ '3Y': metric })
   f.analytics = { battingAverage: { pct: 70, n: 30, windowM: 36, limited: false },
     alpha: { confidence: 95, tStat: 1.8, n: 60 },
     capture: { down: 80, up: 100, downMonths: 20, upMonths: 40 } }
   f.management = { available: true, signal: 'Strong' }
-  assert.equal(buildVerdict(f).score, 78)
-  assert.match(buildVerdict(f).positives.find(p => p.label === 'Monthly-test score input')!.detail, /12% score weight, not a probability of skill/)
+  assert.equal(buildVerdict(f).score, 75)
+  assert.ok(!buildVerdict(f).positives.some(p => p.label === 'Monthly-test score input'))
   f.analytics.alpha!.confidence = 5
-  assert.equal(buildVerdict(f).score, 67)
+  assert.equal(buildVerdict(f).score, 75)
   f.analytics.alpha!.insufficient = true
-  assert.equal(buildVerdict(f).score, 72)
+  assert.equal(buildVerdict(f).score, 75)
 })
 
-test('unchanged monthly-test score contribution is disclosed in both summary and methodology', () => {
+test('monthly-test score exclusion is disclosed in both summary and methodology', () => {
   for (const path of ['src/components/VerdictCard.tsx', 'src/pages/Methodology.tsx']) {
-    assert.match(source(path), /stored rounded \(1-p\) × 100/)
-    assert.match(source(path), /12%/)
-    assert.match(source(path), /not a probability of (manager )?skill/)
+    assert.match(source(path), /monthly excess-return test is excluded from this score/)
+    assert.match(source(path), /weights are rounded/)
+    assert.doesNotMatch(source(path), /12% score input|monthly-test statistic \(12%\)/)
   }
 })
 
 test('short-history copy uses NAV observations and does not invent zero coverage', () => {
   const text = source('src/components/VerdictCard.tsx')
-  assert.match(text, /Insufficient history for a score/)
+  assert.match(text, /No matched-period score available/)
+  assert.match(text, /Short history or a missing endpoint can make a fund ineligible/)
   assert.match(text, /NAV observations/)
   assert.doesNotMatch(text, /trading days|fund.navPoints \?\? 0|We are not\s+hiding/)
 })
@@ -122,14 +123,14 @@ test('technical score detail is collapsed while investment warnings remain visib
   const text = source('src/components/VerdictCard.tsx')
   const disclosure = text.match(/<details[^>]*>[\s\S]*?<\/details>/)?.[0] ?? ''
   assert.match(disclosure, /How this score is calculated/)
-  assert.match(disclosure, /stored rounded \(1-p\) × 100/)
-  assert.match(disclosure, /12% score input/)
-  assert.match(disclosure, /not a probability of skill/)
+  assert.match(disclosure, /monthly excess-return test is excluded from this score/)
+  assert.match(disclosure, /weights are rounded/)
+  assert.match(disclosure, /Missing inputs and limited consistency history use neutral points/)
   assert.doesNotMatch(disclosure, /<details[^>]*\sopen(?:[\s=>])/)
   const visible = text.replace(disclosure, '')
   assert.match(visible, /This score is not an investment recommendation/)
   assert.match(visible, /Past performance does not guarantee future returns/)
-  assert.match(visible, /Insufficient history for a score/)
+  assert.match(visible, /No matched-period score available/)
 })
 
 test('relocated metric definitions stay in tooltips without hiding data warnings', () => {
@@ -160,10 +161,10 @@ test('relocated metric definitions stay in tooltips without hiding data warnings
 test('user-facing methodology omits developer-process copy while preserving distinct formulas', () => {
   const text = source('src/pages/Methodology.tsx')
   assert.doesNotMatch(text, /requires a separate methodology decision|require reconciliation|re-checked at build time|NAV\s+pipeline/)
-  assert.match(text, /Weights differ between ranking and fund-page summary scores/)
+  assert.match(text, /Rankings and fund-page summaries share these rules/)
   assert.match(text, /geometric mean/)
-  assert.match(text, /category rank \(22%\)/)
-  assert.match(text, /monthly-test statistic \(12%\)/)
+  assert.match(text, /category rank \(25%\)/)
+  assert.match(text, /monthly excess-return test is excluded from this score/)
   assert.match(text, /rate-sensitive and credit-sensitive categories/)
 })
 

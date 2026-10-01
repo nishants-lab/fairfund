@@ -1,3 +1,4 @@
+import { NavQualityError } from "../lib/navQuality"
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
@@ -60,6 +61,7 @@ export default function FundDetail() {
   const [overlay, setOverlay] = useState<'leader' | 'index' | 'median'>('leader')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [navIssue, setNavIssue] = useState<string | null>(null)
   const [chartMode, setChartMode] = useState<'nav' | 'drawdown' | 'alpha'>('nav')
   useEffect(() => setChartMode('nav'), [fund?.code]) // reset to NAV when navigating between funds
 
@@ -87,6 +89,8 @@ export default function FundDetail() {
     let cancelled = false
     setLoading(true)
     setError(false)
+    setAllNav([])
+    setNavIssue(null)
     fetchNavHistory(fund.code)
       .then((pts) => {
         if (cancelled) return
@@ -102,7 +106,7 @@ export default function FundDetail() {
           setPreset(defPreset)
         }
       })
-      .catch(() => !cancelled && setError(true))
+      .catch((e) => { if (!cancelled) { setError(true); if (e instanceof NavQualityError) setNavIssue(e.message) } })
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -140,16 +144,17 @@ export default function FundDetail() {
     return () => { cancelled = true }
   }, [fund?.code, fund?.category, overlay])
 
+  const navHeld = !!navIssue || fund?.dataQuality?.status === 'quarantined'
   const earliest = allNav[0]?.date ?? ''
   const latest = allNav[allNav.length - 1]?.date ?? ''
 
   const slice = useMemo(
-    () => (start && end ? sliceByRange(allNav, start, end) : []),
-    [allNav, start, end],
+    () => (!navHeld && start && end ? sliceByRange(allNav, start, end) : []),
+    [allNav, start, end, navHeld],
   )
   const peerSlice = useMemo(
-    () => (start && end && peerNav.length ? sliceByRange(peerNav, start, end) : []),
-    [peerNav, start, end],
+    () => (!navHeld && start && end && peerNav.length ? sliceByRange(peerNav, start, end) : []),
+    [peerNav, start, end, navHeld],
   )
   const live = useMemo(() => computeMetrics(slice), [slice])
 
@@ -160,7 +165,7 @@ export default function FundDetail() {
     : fund?.metrics['5Y']
       ? '5Y'
       : '1Y'
-  const baseline = fund?.metrics[baselineHorizon] ?? null
+  const baseline = navIssue || fund?.dataQuality?.status === "quarantined" ? null : fund?.metrics[baselineHorizon] ?? null
 
   // --- Chart benchmark overlay derivations. These use hooks, so per the Rules
   // of Hooks they MUST come BEFORE the early return below (the hook count has to
@@ -260,7 +265,7 @@ export default function FundDetail() {
   // Risk-adjusted ratios (Sharpe / Sortino / Calmar): negative means it lost
   // money per unit of risk - always red. 0-1 neutral, >=1 good. Consistent
   // across all three so a negative ratio never renders black or amber.
-  function ratioTone(v: number | undefined): 'default' | 'good' | 'bad' {
+  function ratioTone(v: number | null | undefined): 'default' | 'good' | 'bad' {
     if (v == null || isNaN(v)) return 'default'
     if (v < 0) return 'bad'
     if (v >= 0.7) return 'good'
@@ -270,7 +275,7 @@ export default function FundDetail() {
   // Build a category-pivot spectrum for a risk-adjusted ratio: domain = category
   // [min,max], the "good" line (1.0) pinned to centre, this fund + category
   // median + best marked. Returns undefined if no category stats.
-  function ratioSpec(v: number | undefined, stat: ReturnType<typeof categoryMetricStats>) {
+  function ratioSpec(v: number | null | undefined, stat: ReturnType<typeof categoryMetricStats>) {
     if (v == null || isNaN(v) || !stat) return undefined
     return ratioSpectrum({
       value: v,
@@ -364,6 +369,7 @@ export default function FundDetail() {
         </div>
       </div>
 
+      {(navIssue || fund.dataQuality?.status === 'quarantined') && <p role="status" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">NAV history needs source verification. Returns, rankings and NAV-based analytics are withheld because the series contains an unexplained jump or invalid observation. Raw observations have not been adjusted.</p>}
       <FundMeta fund={fund} />
 
       {/* Range selector - the differentiator */}
@@ -447,7 +453,7 @@ export default function FundDetail() {
               value={num(live.sortino)}
               tone={ratioTone(live.sortino)}
               spectrum={ratioSpec(live.sortino, catStats.sortino)}
-              hint="Like Sharpe, but only penalizes downside moves. A negative value means downside risk exceeded return in the period. The bar spans the category range, with the lowest and highest peer values at each end; the caret (value above) is this fund, the 'med' tick is the category median, and a dashed line marks the 1.00 reference level when it falls in range."
+              hint="Annualised return above the 7% target divided by downside deviation below the daily target. Zero downside deviation is shown as unavailable; a negative ratio means return was below the target. The bar spans the category range, with the lowest and highest peer values at each end; the caret (value above) is this fund, the 'med' tick is the category median, and a dashed line marks the 1.00 reference level when it falls in range."
             />
             )}
             {!usesReducedSurface(fund) && (
@@ -496,7 +502,7 @@ export default function FundDetail() {
             <MetricCard label="Max Drawdown" value={pct(baseline.maxDrawdown)} tone={drawdownTone(baseline.maxDrawdown)} hint="Worst peak-to-trough fall in the window. A drawdown is a decline from a prior high; a smaller number is a shallower fall." />
             )}
             {!usesReducedSurface(fund) && (
-            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Like Sharpe, but only penalizes downside moves. A negative value means downside risk exceeded return in the period." />
+            <MetricCard label="Sortino Ratio" value={num(baseline.sortino)} tone={ratioTone(baseline.sortino)} hint="Annualised return above the 7% target divided by downside deviation below the daily target. Zero downside deviation is shown as unavailable; a negative ratio means return was below the target." />
             )}
             {!usesReducedSurface(fund) && (
             <MetricCard label="Calmar Ratio" value={num(baseline.calmar)} tone={ratioTone(baseline.calmar)} hint="Return relative to the worst drawdown. Higher is better; below 0 means it lost money over the window." />
@@ -505,7 +511,7 @@ export default function FundDetail() {
             <MetricCard label="Category Rank" value={`#${baseline.catRank} / ${baseline.catSize ?? fund.categorySize}`} tone={baseline.catRank <= 3 ? 'good' : 'default'} hint="Rank within category on our composite score." />
           </div>
           <p className="mt-2 text-xs text-faint">
-            Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
+            Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics{baseline.windowStart && baseline.windowEnd ? ` from ${baseline.windowStart} to ${baseline.windowEnd}` : ` (anchor ${data.anchor})`}.{' '}
             {error
               ? 'Custom-range analysis is unavailable because the NAV source is not responding. Showing stored metrics.'
               : 'Select a range to calculate return and risk metrics from daily NAV.'}
@@ -579,7 +585,7 @@ export default function FundDetail() {
           </p>
         )}
         {chartMode === 'alpha' ? (
-          <RollingAlpha fund={fund} />
+          !navIssue && fund.dataQuality?.status !== 'quarantined' ? <RollingAlpha fund={fund} /> : null
         ) : (
           <RangeChart points={slice} peer={peerSlice} peerName={overlayName} mode={chartMode} loading={loading} error={error} />
         )}
@@ -609,7 +615,7 @@ export default function FundDetail() {
       )}
 
       {/* Overall verdict - fuses backward metrics + forward signals + management */}
-      <div id='verdict'><VerdictCard fund={fund} /></div>
+      {!navIssue && fund.dataQuality?.status !== 'quarantined' && <div id='verdict'><VerdictCard fund={fund} /></div>}
 
       {usesReducedSurface(fund) && (() => {
         const ter = typeof fund.expenseRatio === 'string' ? parseFloat(fund.expenseRatio) : fund.expenseRatio
@@ -669,7 +675,7 @@ export default function FundDetail() {
           <div id='management'><ManagementCard fund={fund} /></div>
 
           {/* Forward-looking analytics (v3): "If you stay invested for..." + signals */}
-          <div id='forward'><ForwardAnalytics fund={fund} nav={allNav} /></div>
+          {!navIssue && fund.dataQuality?.status !== 'quarantined' && <div id='forward'><ForwardAnalytics fund={fund} nav={allNav} /></div>}
         </>
       )}
 

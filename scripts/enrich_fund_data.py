@@ -1,13 +1,19 @@
-"""Enrich fund-data JSONs with AUM (from holdings-history) and expense_ratio (when available)."""
+"""Publish disclosed AUM and TER to the canonical index and matching detail files."""
 import json
+import os
+from math import isfinite
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HISTORY_DIR = ROOT / "public" / "holdings-history"
 DETAIL_DIR = ROOT / "public" / "fund-data"
+FUNDS_PATH = ROOT / "src" / "data" / "funds.json"
 
 def main():
     updated = 0
+    data = json.loads(FUNDS_PATH.read_text(encoding="utf-8"))
+    funds = {str(fund["code"]): fund for fund in data["funds"]}
+    index_changed = False
 
     for hist_file in HISTORY_DIR.glob("*.json"):
         if hist_file.name.startswith("_"):
@@ -28,12 +34,15 @@ def main():
         detail = json.loads(detail_path.read_text(encoding="utf-8"))
 
         changed = False
+        disclosed = {}
 
         # AUM (in crores). Build the FULL dated series from every aum-bearing
         # snapshot (not just the last two) so the UI can trend over any window.
         aum_series = [[d, round(float(snapshots[d]["aum"]), 1)]
                       for d in dates
-                      if isinstance(snapshots[d].get("aum"), (int, float)) and snapshots[d]["aum"] > 0]
+                      if isinstance(snapshots[d].get("aum"), (int, float))
+                      and not isinstance(snapshots[d]["aum"], bool)
+                      and isfinite(snapshots[d]["aum"]) and snapshots[d]["aum"] > 0]
         if aum_series:
             last_date, last_val = aum_series[-1]
             aum_data = {"current": last_val, "asOf": last_date}
@@ -44,20 +53,23 @@ def main():
                     aum_data["prevDate"] = prev_date
                     aum_data["changePct"] = round((last_val - prev_val) / prev_val * 100, 1)
                 aum_data["series"] = aum_series
+            disclosed["aum"] = aum_data
             if detail.get("aum") != aum_data:
                 detail["aum"] = aum_data
                 changed = True
 
         # Expense ratio (always store as float)
         er = latest.get("expense_ratio")
-        if er is not None:
+        if er is not None and not isinstance(er, bool):
             try:
                 er = round(float(er), 2)
             except (ValueError, TypeError):
                 er = None
-            if er is not None and detail.get("expenseRatio") != er:
-                detail["expenseRatio"] = er
-                changed = True
+            if er is not None and isfinite(er) and er >= 0:
+                disclosed["expenseRatio"] = er
+                if detail.get("expenseRatio") != er:
+                    detail["expenseRatio"] = er
+                    changed = True
 
         # Investment info (exit load, SIP/lumpsum, availability)
         # Availability has its own ISIN-validated producer. Preserve its dated
@@ -72,9 +84,24 @@ def main():
             detail["investInfo"] = invest_info
             changed = True
 
+        fund = funds.get(code)
+        if fund is not None:
+            for key, value in disclosed.items():
+                if fund.get(key) != value:
+                    fund[key] = value
+                    index_changed = True
+
         if changed:
             detail_path.write_text(json.dumps(detail, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
             updated += 1
+
+    if index_changed:
+        temporary = FUNDS_PATH.with_suffix(".json.tmp")
+        try:
+            temporary.write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+            os.replace(temporary, FUNDS_PATH)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     print(f"Enriched {updated} fund-data files with AUM/expense data")
 

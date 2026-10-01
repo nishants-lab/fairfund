@@ -57,8 +57,9 @@ test('mergeFundDetail is pure: the shared index entry is never written to', () =
   const merged = mergeFundDetail(index, shell({ investInfo: { minSip: 1 } as any }))
 
   assert.notStrictEqual(merged, index)
-  assert.strictEqual(merged.aum, 123456)
-  assert.strictEqual(merged.expenseRatio, 9.99)
+  assert.strictEqual(merged.aum, index.aum)
+  assert.strictEqual(merged.expenseRatio, index.expenseRatio)
+  assert.deepStrictEqual(merged.investInfo, { minSip: 1 })
   assert.deepStrictEqual(merged.holdingsMeta, { asOf: '2026-01-31' })
 
   // Index values and references both unchanged...
@@ -79,13 +80,13 @@ test('two views hydrating the same fund get independent copies', () => {
   const a = mergeFundDetail(index, shell({ aum: 111 }))
   const b = mergeFundDetail(index, shell({ aum: 222 }))
   assert.notStrictEqual(a, b)
-  assert.strictEqual(a.aum, 111)
-  assert.strictEqual(b.aum, 222)
+  assert.strictEqual(a.aum, index.aum)
+  assert.strictEqual(b.aum, index.aum)
   assert.notStrictEqual(index.aum, 111)
   assert.notStrictEqual(index.aum, 222)
 })
 
-test('hydration precedence is unchanged: a blank shell cannot erase bundled values', () => {
+test('a blank shell cannot erase bundled values', () => {
   const index = getFund(code(3))!
   const empty = mergeFundDetail(index, {})
   assert.strictEqual(empty.aum, index.aum)
@@ -139,4 +140,34 @@ test('a failed shell fetch yields an empty detail and leaves the index intact', 
   const before = index.aum
   assert.strictEqual(mergeFundDetail(index, detail).aum, before)
   assert.strictEqual(index.aum, before)
+})
+
+
+test('canonical missing AUM and expense ratio never fall back to a stale shell', () => {
+  const index = { ...getFund(code(7))! }
+  delete index.aum
+  delete index.expenseRatio
+  const merged = mergeFundDetail(index, shell())
+  assert.strictEqual(merged.aum, undefined)
+  assert.strictEqual(merged.expenseRatio, undefined)
+  assert.strictEqual(Object.hasOwn(merged, 'aum'), false)
+  assert.strictEqual(Object.hasOwn(merged, 'expenseRatio'), false)
+
+  const explicit = mergeFundDetail({ ...index, aum: null, expenseRatio: null } as any, shell())
+  assert.strictEqual(explicit.aum, null)
+  assert.strictEqual(explicit.expenseRatio, null)
+  const zero = mergeFundDetail({ ...index, expenseRatio: 0 }, shell())
+  assert.strictEqual(zero.expenseRatio, 0)
+})
+
+test('quarantine still blocks shell analytics without changing detail-only metadata', () => {
+  const index: Fund = { ...getFund(code(8))!, dataQuality: { status: 'quarantined', issues: [] } }
+  const detail = shell({ management: { available: true } as any, holdings: [] })
+  const merged = mergeFundDetail(index, detail)
+  assert.deepStrictEqual(merged.metrics, {})
+  assert.deepStrictEqual(merged.analytics, {})
+  assert.strictEqual(merged.si, undefined)
+  assert.strictEqual(merged.management, detail.management)
+  assert.strictEqual(merged.holdings, detail.holdings)
+  assert.strictEqual(merged.dataQuality, index.dataQuality)
 })

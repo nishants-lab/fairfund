@@ -56,13 +56,11 @@ jobs:
         if: steps.discover.outputs.new_funds == 'true'
         run: python scripts/onboard_new_funds.py 2>&1 | tee onboard_report.md
 
-      # Step 3: Recompute metrics for new funds
+      # Rebuild the full peer cohort even when discovery finds no new funds.
       - name: Recompute metrics and rankings
-        if: steps.discover.outputs.new_funds == 'true'
         run: |
           python pipeline/compute_metrics.py
           python pipeline/compute_rankings.py
-          python scripts/build_analytics.py
           python migrations/split-analytics/split_funds.py
 
       # Step 3.5: Prune funds that failed onboarding (no holdings on Groww)
@@ -70,10 +68,25 @@ jobs:
         if: steps.discover.outputs.new_funds == 'true'
         run: python scripts/prune_pending.py
 
+      - name: Recompute final-universe metrics after pruning
+        if: steps.discover.outputs.new_funds == 'true'
+        run: |
+          python pipeline/compute_metrics.py
+          python pipeline/compute_rankings.py
+
+      - name: Rebuild peer analytics for the final universe
+        run: python scripts/build_analytics.py
+
+      - name: Quarantine unverified NAV-derived values
+        run: python scripts/quarantine_nav.py --apply
+
       - name: Synchronize shared analytics and verify parity
         run: |
           python scripts/sync_analytics_to_shells.py
           python scripts/sync_analytics_to_shells.py --check
+
+      - name: Rebuild rolling-alpha series
+        run: python scripts/build_rolling_alpha.py
 
       - name: Rebuild category benchmarks from current NAV
         run: python scripts/build_category_median.py

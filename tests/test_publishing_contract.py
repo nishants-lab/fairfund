@@ -47,12 +47,45 @@ class PublishingContractTests(unittest.TestCase):
                     continue
                 sync = body.find('python scripts/sync_analytics_to_shells.py')
                 self.assertGreaterEqual(sync, 0, f'{filename}/{name}')
+                quarantine = body.find('python scripts/quarantine_nav.py --apply')
+                self.assertGreaterEqual(quarantine, 0, f'{filename}/{name}')
+                self.assertLess(quarantine, sync)
+                metrics = body.index('python pipeline/compute_metrics.py')
+                rankings = body.index('python pipeline/compute_rankings.py')
+                analytics = body.index('python scripts/build_analytics.py')
+                rolling = body.index('python scripts/build_rolling_alpha.py')
+                self.assertLess(metrics, rankings)
+                self.assertLess(rankings, analytics)
+                self.assertLess(analytics, quarantine)
+                self.assertLess(sync, rolling)
+                self.assertLess(rolling, body.index('uses: ./.github/actions/validate'))
+                for producer in ('pipeline/compute_metrics.py', 'pipeline/compute_rankings.py',
+                                 'scripts/build_analytics.py', 'migrations/split-analytics/split_funds.py',
+                                 'scripts/prune_pending.py'):
+                    if producer in body:
+                        self.assertLess(body.index(producer), quarantine)
                 self.assertIn('python scripts/sync_analytics_to_shells.py --check', body)
                 self.assertLess(sync, body.index('uses: ./.github/actions/validate'))
                 if 'python scripts/build_rolling_alpha.py' in body:
                     self.assertLess(sync, body.index('python scripts/build_rolling_alpha.py'))
                 if 'python scripts/prune_pending.py' in body:
-                    self.assertLess(body.index('python scripts/prune_pending.py'), sync)
+                    self.assertLess(body.index('python scripts/prune_pending.py'), analytics)
+                    self.assertLess(body.index('python scripts/prune_pending.py'), body.rindex('python pipeline/compute_metrics.py'))
+                    self.assertLess(body.rindex('python pipeline/compute_rankings.py'), analytics)
+
+    def test_weekly_and_discovery_refresh_metrics_before_analytics(self):
+        for filename in ('weekly-analytics.yml', 'discover-funds.yml'):
+            text = (WORKFLOWS / filename).read_text(encoding='utf-8')
+            self.assertLess(text.index('python pipeline/compute_metrics.py'), text.index('python pipeline/compute_rankings.py'))
+            self.assertLess(text.index('python pipeline/compute_rankings.py'), text.index('python scripts/build_analytics.py'))
+        discovery = (WORKFLOWS / 'discover-funds.yml').read_text(encoding='utf-8')
+        recompute = discovery.split('- name: Recompute metrics and rankings', 1)[1].split('- name:', 1)[0]
+        self.assertNotIn('if:', recompute)
+
+    def test_monthly_ranking_follows_cost_and_size_enrichment(self):
+        body = (WORKFLOWS / 'refresh-data.yml').read_text(encoding='utf-8').split('  monthly-holdings:', 1)[1]
+        self.assertLess(body.index('scripts/enrich_fund_data.py'), body.index('pipeline/compute_metrics.py'))
+        self.assertLess(body.index('scripts/build_manager_signals.py'), body.index('pipeline/compute_rankings.py'))
 
     def test_common_action_runs_the_release_gate(self):
         action = (ROOT / '.github/actions/validate/action.yml').read_text(encoding='utf-8')
@@ -67,6 +100,13 @@ class PublishingContractTests(unittest.TestCase):
             self.assertIn(journey, runner)
         self.assertIn('await server.close()', runner)
 
+    def test_release_gate_includes_new_private_local_feature_journeys(self):
+        runner = (ROOT / 'scripts/check_release.mjs').read_text(encoding='utf-8')
+        for journey in ('saved-comparisons-browser.mjs', 'portfolio-import-browser.mjs',
+                        'fund-changes-browser.mjs', 'usage-browser.cjs', 'reliability-browser.mjs'):
+            self.assertIn(journey, runner)
+            self.assertTrue((ROOT / 'tests' / journey).is_file())
+
     def test_test_bundler_uses_cross_platform_api(self):
         runner = (ROOT / 'tests/run-regressions.mjs').read_text(encoding='utf-8')
         self.assertIn("import { buildSync } from 'esbuild'", runner)
@@ -79,6 +119,9 @@ class PublishingContractTests(unittest.TestCase):
                          'tests/smoke.py', 'scripts/sync_analytics_to_shells.py', '--check',
                          'typescript/bin/tsc', 'tests/run-browser-regressions.mjs'):
             self.assertIn(required, runner)
+        self.assertIn("run(python, ['scripts/quarantine_nav.py', '--check'])", runner)
+        self.assertLess(runner.index('scripts/quarantine_nav.py'), runner.index('tests/run-regressions.mjs'))
+        self.assertNotIn('--apply', runner)
         self.assertNotIn('pipeline/compute_metrics.py', runner)
         self.assertNotIn('git push', runner)
 

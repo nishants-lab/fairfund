@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
+import UsageTracker from './components/UsageTracker'
 import Onboarding from './components/Onboarding'
 import InstallBanner from './components/InstallBanner'
 import BackToTopFAB from './components/BackToTopFAB'
@@ -40,6 +41,7 @@ export default function App() {
     <ToastProvider>
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
+      <UsageTracker />
       <Navbar />
       <main className="flex-1">
         <Suspense fallback={<PageLoader />}>

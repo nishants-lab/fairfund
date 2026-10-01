@@ -43,10 +43,10 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       : null
     return (
       <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
-        <h3 className="font-bold text-fg">Insufficient history for a score</h3>
+        <h3 className="font-bold text-fg">No matched-period score available</h3>
         <p className="mt-2 text-sm text-muted">
           This fund has {fund.navPoints != null ? `${fund.navPoints} NAV observations` : 'limited NAV history'}{sinceTxt ? ` since ${sinceTxt}` : ''}.
-          Its available history does not meet the requirements for a ranked window.
+          A score requires a full period with the same observed start and end dates as its category peers. Short history or a missing endpoint can make a fund ineligible.
         </p>
         {si && (
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -128,9 +128,10 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
       <details className="mt-4 text-xs text-faint">
         <summary className="cursor-pointer font-semibold text-muted">How this score is calculated</summary>
         <p className="mt-2">
-          A weighted summary of past data: peer rank, alpha, Sharpe, consistency, downside capture and manager record.
-          The stored rounded (1-p) × 100 monthly-test statistic remains a 12% score input;
-          it is not a probability of skill.
+          A weighted summary of past data: peer rank (25%), alpha (20.45%), Sharpe (13.64%),
+          consistency (18.18%), downside capture (11.36%) and manager record (11.36%).
+          Displayed weights are rounded. Missing inputs and limited consistency history use neutral points.
+          The monthly excess-return test is excluded from this score.
         </p>
       </details>
       <p className="mt-3 text-xs text-faint">
@@ -179,11 +180,13 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
             <span className="font-semibold text-fg">{v.peerSet}:</span> {info.blurb} Typical holding period {info.horizon}. {info.forWhom}
           </p>
         )}
-        <p className="mt-3 text-xs text-faint">
-          What to look for on the AMC factsheet: modified duration (rate sensitivity), yield-to-maturity
-          (indicative return), and the credit-quality breakdown (AAA / AA / sovereign share). We show the
-          fund's returns, cost and portfolio mix below, but we will not rank it without those inputs.
-        </p>
+        {v.tier === 3 && (
+          <p className="mt-3 text-xs text-faint">
+            What to look for on the AMC factsheet: modified duration (rate sensitivity), yield-to-maturity
+            (indicative return), and the credit-quality breakdown (AAA / AA / sovereign share). We show the
+            fund's returns, cost and portfolio mix below, but we will not rank it without those inputs.
+          </p>
+        )}
       </div>
     )
   }

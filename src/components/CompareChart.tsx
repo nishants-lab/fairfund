@@ -56,7 +56,7 @@ export default function CompareChart({ funds, navData, start, end, colors, loadi
       </div>
     ) : (
       <div className="flex h-64 items-center justify-center text-center text-sm text-faint">
-        Live NAV for this chart is unavailable right now. The metrics above still stand.
+        No chart is available for this selection. Any available metrics above retain their stated dates.
       </div>
     )
 

@@ -23,11 +23,19 @@ jobs:
       - name: Install deps
         run: pip install -r pipeline/requirements.txt
 
+      - name: Recompute peer metrics and rankings
+        run: |
+          python pipeline/compute_metrics.py
+          python pipeline/compute_rankings.py
+
       - name: Rebuild forward-looking analytics
         run: python scripts/build_analytics.py
 
       - name: Split fund data for serving
         run: python migrations/split-analytics/split_funds.py
+
+      - name: Quarantine unverified NAV-derived values
+        run: python scripts/quarantine_nav.py --apply
 
       - name: Synchronize shared analytics and verify parity
         run: |
