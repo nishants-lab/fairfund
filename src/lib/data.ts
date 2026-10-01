@@ -14,9 +14,20 @@ export function usesReducedSurface(f: { isDebt?: boolean; isArbitrage?: boolean 
   return !!(f.isDebt || f.isArbitrage)
 }
 
-// Build a quick lookup by code
+// Build a quick lookup by code over the bundled index snapshot.
 const byCode = new Map<number, Fund>()
 funds.forEach((f) => byCode.set(f.code, f))
+
+/**
+ * The bundled index is a shared singleton: list, category, movers, peer and
+ * verdict views all read these objects. Detail hydration used to merge the
+ * per-fund shell straight into them, so opening one fund page rewrote aum /
+ * expenseRatio / analytics everywhere else in the session and made displayed
+ * numbers depend on navigation order. The entries are frozen so that can no
+ * longer happen; hydration is a pure merge that returns a new object (see
+ * mergeFundDetail), which the hydrating view holds in its own state.
+ */
+funds.forEach((f) => Object.freeze(f))
 
 // --- Lazy-load per-fund detail (analytics, holdings, management, stockMoves) ---
 const detailCache = new Map<number, Promise<Partial<Fund>>>()
@@ -31,23 +42,33 @@ export function fetchFundDetail(code: number): Promise<Partial<Fund>> {
   return p
 }
 
-// Merge fetched detail into a fund object (mutates for caching)
+/**
+ * Merge a fetched shell onto a fund, purely: `fund` is never written to, and the
+ * returned object is a new one. Callers MUST use the return value (keep it in
+ * component state) - there is no in-place hydration any more, because the object
+ * handed in is the shared, frozen index entry.
+ *
+ * Field precedence is preserved exactly as it was, pending the separate snapshot
+ * repair: the shell wins for analytics, holdings, holdingsMeta, management and
+ * stockMoves, and for aum / expenseRatio / investInfo only when it carries a
+ * real value (`!= null` skips undefined and null) so a stale or placeholder
+ * shell cannot blank out a bundled value. Which artifact should actually own
+ * these fields is still unresolved and is not decided here.
+ */
 export function mergeFundDetail(fund: Fund, detail: Partial<Fund>): Fund {
-  if (detail.analytics) fund.analytics = detail.analytics
-  if (detail.holdings) fund.holdings = detail.holdings
-  if (detail.holdingsMeta) fund.holdingsMeta = detail.holdingsMeta
-  if (detail.management) fund.management = detail.management
-  if (detail.stockMoves !== undefined) fund.stockMoves = detail.stockMoves
-  // Guard: only override when the shell carries a real value. `!= null` skips
-  // both undefined and null so a stale/placeholder shell can never blank out a
-  // fresh bundled aum/expenseRatio/investInfo (which then leaks globally via the
-  // shared singleton this mutates).
-  if (detail.aum != null) fund.aum = detail.aum
-  if (detail.expenseRatio != null) fund.expenseRatio = detail.expenseRatio
-  if (detail.investInfo != null) fund.investInfo = detail.investInfo
-  return fund
+  const merged: Fund = { ...fund }
+  if (detail.analytics) merged.analytics = detail.analytics
+  if (detail.holdings) merged.holdings = detail.holdings
+  if (detail.holdingsMeta) merged.holdingsMeta = detail.holdingsMeta
+  if (detail.management) merged.management = detail.management
+  if (detail.stockMoves !== undefined) merged.stockMoves = detail.stockMoves
+  if (detail.aum != null) merged.aum = detail.aum
+  if (detail.expenseRatio != null) merged.expenseRatio = detail.expenseRatio
+  if (detail.investInfo != null) merged.investInfo = detail.investInfo
+  return merged
 }
 
+/** The shared, frozen index entry for a code. Hydration never alters it. */
 export function getFund(code: number): Fund | undefined {
   return byCode.get(code)
 }

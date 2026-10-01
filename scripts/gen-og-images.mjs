@@ -105,7 +105,7 @@ function card(fund) {
           background: `linear-gradient(135deg, #2563eb, ${accent.glow})` },
           [txt({ fontFamily: 'Inter', fontSize: 30, fontWeight: 800, color: '#fff' }, 'F')]),
         txt({ fontFamily: 'Newsreader', fontSize: 42, fontWeight: 600, color: '#f8fafc' }, 'FairFund'),
-        txt({ fontFamily: 'Inter', fontSize: 18, fontWeight: 600, color: '#64748b', marginTop: 10 }, 'FORWARD-LOOKING MF RESEARCH'),
+        txt({ fontFamily: 'Inter', fontSize: 18, fontWeight: 600, color: '#64748b', marginTop: 10 }, 'INDIAN MUTUAL FUND RESEARCH'),
       ]),
       // body: category chip + fund name
       div({ display: 'flex', flexDirection: 'column', gap: 22 }, [
@@ -123,7 +123,7 @@ function card(fund) {
         div({ display: 'flex', gap: 18 }, stats),
         div({ display: 'flex', alignItems: 'center', gap: 12 }, [
           div({ width: 28, height: 4, background: accent.glow, borderRadius: 4 }, []),
-          txt({ fontFamily: 'Inter', fontSize: 22, fontWeight: 600, color: '#64748b' }, 'Evidence, not advice.'),
+          txt({ fontFamily: 'Inter', fontSize: 22, fontWeight: 600, color: '#64748b' }, 'Indian mutual fund research'),
         ]),
       ]),
     ],
@@ -148,4 +148,5 @@ for (const f of funds) {
   }
 }
 console.log(`[gen-og-images] wrote ${n} OG images (${errs} errors) in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+if (errs > 0) process.exitCode = 1
 }

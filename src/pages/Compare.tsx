@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
 import { getFund, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
@@ -6,6 +6,7 @@ import SearchBox from '../components/SearchBox'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
 import ShareButton from '../components/ShareButton'
+import InfoTip from '../components/InfoTip'
 import HoldingsOverlap from '../components/HoldingsOverlap'
 import { fetchNavHistory } from '../lib/nav'
 import { computeMetrics, sliceByRange, presetRange, fmtDate, fmtMonth, type ComputedMetrics } from '../lib/metrics'
@@ -30,7 +31,7 @@ export default function Compare() {
 
   usePageMeta(
     funds.length ? `Compare: ${funds.map(f => f.name.split(" ")[0]).join(" vs ")}` : 'Compare Funds',
-    'Compare up to 5 mutual funds side by side over any time period. Live metrics, growth charts, holdings overlap.'
+    'Compare mutual funds over a selected period and review overlap in their disclosed holdings.'
   )
 
   // Shared range across all compared funds
@@ -76,8 +77,14 @@ export default function Compare() {
   // Fetch per-fund holdings/detail so the overlap always renders, regardless of
   // whether the fund's detail page was ever opened this session. Guards on
   // holdingsMeta (same signal FundDetail uses); fetchFundDetail is cached.
+  // Shells are cached by code and applied per fund object: a fund object that has
+  // been hydrated is marked, so a cancelled effect (StrictMode double-invoke, or a
+  // rapid add/remove) leaves no pending flag behind, and re-adding a fund hydrates
+  // again from the cached shell instead of being skipped forever.
+  const detailByCode = useRef<Map<number, Partial<Fund>>>(new Map())
+  const hydratedObjects = useRef<WeakSet<Fund>>(new WeakSet())
   useEffect(() => {
-    const missing = funds.filter((f) => !f.holdingsMeta)
+    const missing = funds.filter((f) => !f.holdingsMeta && !hydratedObjects.current.has(f))
     if (missing.length === 0) {
       setHoldingsLoading(false)
       return
@@ -85,12 +92,30 @@ export default function Compare() {
     let cancelled = false
     setHoldingsLoading(true)
     Promise.all(
-      missing.map((f) => fetchFundDetail(f.code).then((detail) => mergeFundDetail(f, detail))),
-    ).finally(() => {
-      if (cancelled) return
-      setHoldingsTick((t) => t + 1) // force the overlap memo to recompute after in-place merge
-      setHoldingsLoading(false)
-    })
+      missing.map((f) =>
+        fetchFundDetail(f.code).then((detail) => detailByCode.current.set(f.code, detail)),
+      ),
+    )
+      .then(() => {
+        if (cancelled) return
+        // Hydration is page-local: swap in merged copies, leave the index alone.
+        setFunds((prev) => {
+          let changed = false
+          const next = prev.map((f) => {
+            const detail = detailByCode.current.get(f.code)
+            if (!detail || hydratedObjects.current.has(f)) return f
+            const merged = mergeFundDetail(f, detail)
+            hydratedObjects.current.add(merged)
+            changed = true
+            return merged
+          })
+          return changed ? next : prev
+        })
+        setHoldingsTick((t) => t + 1)
+      })
+      .finally(() => {
+        if (!cancelled) setHoldingsLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -292,9 +317,11 @@ export default function Compare() {
         <ShareButton title="Fund comparison" text="Compare funds side by side on FairFund" className="mt-1 shrink-0" />
       </div>
       <p className="mt-1 text-sm text-muted">
-        Add up to 5 funds and compare them over <strong>any time period you choose</strong>. Metrics
-        recompute live. Same category gives the cleanest comparison; mixing categories is allowed and
-        we'll flag it. Green highlights the best fund on each row; the small figure below each value is its gap to that leader.
+        Compare up to 5 funds over a period you choose.
+        <InfoTip label="How to read the comparison" align="left" width={290}>
+          Green highlights the leading value on each row. The figure below is the gap to that value.
+          A row highlight is not an investment recommendation.
+        </InfoTip>
       </p>
 
       {funds.length < MAX_FUNDS && (
@@ -500,7 +527,7 @@ export default function Compare() {
                 {/* Management quality signal */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">
-                    Management quality <span className="text-xs text-faint">(manager track record)</span>
+                    Manager record
                   </td>
                   {funds.map((f) => {
                     const sig = f.management?.signal
@@ -518,7 +545,13 @@ export default function Compare() {
                 </tr>
                 {/* Consistency (batting average) */}
                 <tr className="border-b border-line">
-                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Consistency <span className="text-xs text-faint">(% 3Y windows beat peers)</span></td>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">
+                    Consistency
+                    <InfoTip label="About consistency" align="left" width={280}>
+                      Share of measured, overlapping 3Y periods beating category median.
+                      The periods overlap, so the observations are related.
+                    </InfoTip>
+                  </td>
                   {funds.map((f, i) => {
                     const win = bestIdxBy((x) => x.analytics?.battingAverage?.pct, 'high')
                     return (
@@ -540,17 +573,6 @@ export default function Compare() {
                     return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{label}</td>
                   })}
                 </tr>
-                {/* Skill confidence */}
-                <tr className="border-b border-line">
-                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Skill confidence <span className="text-xs text-faint">(alpha vs luck)</span></td>
-                  {funds.map((f, i) => {
-                    const al = f.analytics?.alpha
-                    if (!al || al.confidence == null) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
-                    const win = bestIdxBy((x) => x.analytics?.alpha?.confidence, 'high')
-                    const tone = al.couldBeLuck ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
-                    return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}><span className={i === win && funds.length > 1 ? winClass : ''}>{Math.round(al.confidence)}%</span></td>
-                  })}
-                </tr>
                 {/* Down-capture */}
                 <tr className="border-b border-line">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Down-capture <span className="text-xs text-faint">(lower = better)</span></td>
@@ -567,18 +589,18 @@ export default function Compare() {
                 </tr>
                 {/* Running hot/cold */}
                 <tr className="border-b border-line">
-                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Momentum state</td>
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Recent return versus history</td>
                   {funds.map((f) => {
                     const mr = f.analytics?.meanReversion
                     if (!mr) return <td key={f.code} className="px-4 py-3 text-right text-faint">—</td>
-                    const label = mr.state === 'hot' ? '🔥 Hot' : mr.state === 'cold' ? '❄️ Cold' : 'Normal'
+                    const label = mr.state === 'hot' ? 'Above historical average' : mr.state === 'cold' ? 'Below historical average' : 'Near historical average'
                     return <td key={f.code} className="px-4 py-3 text-right text-fg">{label}</td>
                   })}
                 </tr>
                 {/* FINAL VERDICT (#18) - overall conviction fusing backward + forward */}
                 <tr className="border-t-2 border-line bg-surface2/40">
                   <td className="sticky left-0 z-10 border-r border-line bg-surface2 px-4 py-3 font-bold text-fg">
-                    Composite score <span className="text-xs font-normal text-faint">(all signals)</span>
+                    Composite score
                   </td>
                   {funds.map((f, i) => {
                     if (usesReducedSurface(f)) {
@@ -602,7 +624,6 @@ export default function Compare() {
                       <td key={f.code} className="px-4 py-3 text-right align-top">
                         <div className={`inline-flex flex-col items-end ${isWin ? winClass : ''}`}>
                           <span className="font-bold text-fg">{v.score}/100</span>
-                          <span className="text-xs text-faint">composite score</span>
                         </div>
                       </td>
                     )
@@ -619,8 +640,8 @@ export default function Compare() {
               <span className="text-xs text-faint">Normalized · live NAV</span>
             </div>
             <p className="mb-3 text-xs text-muted">
-              All funds start at ₹100 on {start ? fmtDate(start) : 'the start date'} so you can see
-              relative growth fairly over the exact same window.
+              Each series is rebased to ₹100 using its available NAV observations within the selected period.
+              Available dates can differ between funds.
             </p>
             <CompareChart funds={funds} navData={navData} start={start} end={end} colors={COLORS} loading={navLoading} />
           </div>

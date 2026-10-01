@@ -59,16 +59,30 @@ jobs:
         if: ${{ inputs.check_only != true }}
         run: python migrations/split-analytics/split_funds.py
 
+      - name: Synchronize shared analytics and verify parity
+        if: ${{ inputs.check_only != true }}
+        run: |
+          python scripts/sync_analytics_to_shells.py
+          python scripts/sync_analytics_to_shells.py --check
+
+      - name: Rebuild category benchmarks from current NAV
+        if: ${{ inputs.check_only != true }}
+        run: python scripts/build_category_median.py
+
       - name: Smoke test (validate data integrity)
         if: ${{ inputs.check_only != true }}
         run: python tests/smoke.py
+
+      - name: Validate research contracts
+        if: ${{ inputs.check_only != true }}
+        uses: ./.github/actions/validate
 
       - name: Commit healed data
         if: ${{ inputs.check_only != true }}
         run: |
           git config user.name fairfund-bot
           git config user.email bot@fairfund.in
-          git add public/nav/ src/data/ public/fund-data/
+          git add public/nav/ src/data/ public/fund-data/ public/category-median/
           if git diff --staged --quiet; then
             echo "No gaps to heal"
           else

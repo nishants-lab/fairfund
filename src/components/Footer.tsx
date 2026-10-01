@@ -33,8 +33,8 @@ export default function Footer() {
               <span className="text-brand-600 dark:text-brand-400">Fair</span>Fund
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
-              Independent mutual fund research for India. Every score is tested
-              against history, across {data.totalFunds} mutual funds.
+              Research {data.totalFunds} Indian mutual funds using performance history
+              and published portfolio disclosures.
             </p>
             <div className="mt-5 flex items-center gap-2 text-xs text-muted">
               <span className={`inline-block h-1.5 w-1.5 rounded-full ${bizDaysSince <= 1 ? 'bg-emerald-500' : bizDaysSince <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
@@ -44,7 +44,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="mt-1.5 text-xs leading-relaxed text-faint">
-              Metrics are computed live from today's NAV. Rankings refresh every market day.
+              NAV availability varies by fund. Analysis and portfolio disclosures can have different dates.
             </p>
           </div>
 
@@ -82,7 +82,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="flex flex-col gap-2 border-t border-line py-5 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
           <span>
-            © {new Date().getFullYear()} FairFund · {data.totalFunds} active mutual funds · live NAV from AMFI
+            © {new Date().getFullYear()} FairFund · {data.totalFunds} mutual funds covered · NAV sourced from AMFI
           </span>
           <span>Made in Bangalore, India</span>
         </div>

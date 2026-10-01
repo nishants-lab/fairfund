@@ -48,19 +48,10 @@ const EXTRA_ALIASES: Record<string, string> = {
 }
 
 function matchCategory(text: string): string | null {
-  const t = text.toLowerCase().trim()
-  // Direct match against aliases
-  const norm = t.replace(/[^a-z0-9]/g, '')
-  if (EXTRA_ALIASES[norm]) return EXTRA_ALIASES[norm]
-  if (CATEGORY_ALIASES[norm]) return CATEGORY_ALIASES[norm]
-  // Partial match
-  for (const [alias, cat] of Object.entries(EXTRA_ALIASES)) {
-    if (t.includes(alias) || alias.includes(norm)) return cat
-  }
-  for (const cat of categoryOrder) {
-    if (cat.toLowerCase().includes(t) || t.includes(cat.toLowerCase())) return cat
-  }
-  return null
+  // Match a category phrase, not a fragment inside a named fund. A query such
+  // as "Parag Parikh Flexi Cap" must open that fund instead of a category.
+  const norm = text.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
+  return EXTRA_ALIASES[norm] ?? CATEGORY_ALIASES[norm] ?? null
 }
 
 function matchFund(text: string): Fund | null {
@@ -107,11 +98,9 @@ export function parseIntent(query: string): Intent | null {
       const fundA = matchFund(m[1])
       const fundB = matchFund(m[2])
       if (fundA && fundB) {
-        const slugA = `${fundA.code}/${fundSlug(fundA.name)}`
-        const slugB = `${fundB.code}/${fundSlug(fundB.name)}`
         return {
           type: 'navigate',
-          path: `/compare?funds=${slugA},${slugB}`,
+          path: `/compare?codes=${fundA.code},${fundB.code}`,
           label: `Compare ${fundA.name.split(' -')[0]} vs ${fundB.name.split(' -')[0]}`,
         }
       }
@@ -119,7 +108,7 @@ export function parseIntent(query: string): Intent | null {
       if (fundA) {
         return {
           type: 'navigate',
-          path: `/compare?funds=${fundA.code}/${fundSlug(fundA.name)}`,
+          path: `/compare?codes=${fundA.code}`,
           label: `Compare ${fundA.name.split(' -')[0]} with another fund`,
         }
       }

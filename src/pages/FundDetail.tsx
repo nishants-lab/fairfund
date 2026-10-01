@@ -21,7 +21,7 @@ import FundLandscape from '../components/FundLandscape'
 import VerdictCard from '../components/VerdictCard'
 import FundMeta from '../components/FundMeta'
 import SectorBreakdown from '../components/SectorBreakdown' 
-import type { NavPoint } from '../types'
+import type { Fund, NavPoint } from '../types'
 import ShareButton from '../components/ShareButton'
 import TaxCard from '../components/TaxCard'
 import WishlistButton from '../components/WishlistButton'
@@ -37,15 +37,19 @@ function catSlug(name: string): string {
 export default function FundDetail() {
   const { code, slug } = useParams()
   const navigate = useNavigate()
-  const fund = getFund(Number(code))
+  const indexFund = getFund(Number(code))
+  // Hydration is page-local: the shell is merged onto a copy we hold in state, so
+  // nothing a detail visit loads can alter the shared index other views read.
+  const [hydrated, setHydrated] = useState<Fund | null>(null)
+  const fund = hydrated && hydrated.code === indexFund?.code ? hydrated : indexFund
 
   usePageMeta(
     fund ? `${fund.name} - ${fund.categoryDisplay}` : 'Fund not found',
     fund ? (fund.isArbitrage
-      ? `${fund.name} by ${fund.amc}: expense ratio, category rank, fund size and cost context for this arbitrage fund over any period.`
+      ? `${fund.name} by ${fund.amc}: expense ratio, category rank, fund size and available performance history for this arbitrage fund.`
       : fund.isDebt
-      ? `${fund.name} by ${fund.amc}: returns, category rank, NAV variability and expense-ratio context for this debt fund over any period.`
-      : `${fund.name} by ${fund.amc}: CAGR, Sharpe, Sortino, max drawdown, peer alpha and forward-looking signals over any time period.`) : undefined
+      ? `${fund.name} by ${fund.amc}: returns, category rank, NAV variability and expense-ratio context for this debt fund.`
+      : `${fund.name} by ${fund.amc}: annualised returns, risk measures, category comparisons and available portfolio disclosures.`) : undefined
   )
 
   const [allNav, setAllNav] = useState<NavPoint[]>([])
@@ -63,17 +67,20 @@ export default function FundDetail() {
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [preset, setPreset] = useState<Preset>('3Y')
-  const [, setDetailTick] = useState(0)
 
-  // Lazy-load heavy per-fund data (analytics, holdings, management, stockMoves)
+  // Lazy-load heavy per-fund data (analytics, holdings, management, stockMoves).
+  // fetchFundDetail is cached per code, so re-entering a fund costs no network.
   useEffect(() => {
-    if (!fund) return
-    if (fund.holdingsMeta) return
-    fetchFundDetail(fund.code).then((detail) => {
-      mergeFundDetail(fund, detail)
-      setDetailTick((t) => t + 1)
+    if (!indexFund) return
+    let cancelled = false
+    setHydrated(null)
+    fetchFundDetail(indexFund.code).then((detail) => {
+      if (!cancelled) setHydrated(mergeFundDetail(indexFund, detail))
     })
-  }, [fund?.code])
+    return () => {
+      cancelled = true
+    }
+  }, [indexFund?.code])
 
   useEffect(() => {
     if (!fund) return
@@ -363,7 +370,7 @@ export default function FundDetail() {
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-faint">
-            Analysis period - pick any range
+            Analysis period
           </h2>
           {live && (
             <span className="text-xs text-faint">
@@ -393,7 +400,7 @@ export default function FundDetail() {
           </div>
           <p className="mt-2 flex items-center gap-2 text-xs text-faint">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
-            Fetching live daily NAV to compute metrics for your range…
+            Loading NAV history…
           </p>
         </>
       ) : live ? (
@@ -470,10 +477,9 @@ export default function FundDetail() {
             />
           </div>
           <p className="mt-2 text-xs text-faint">
-            All metrics are computed live from daily NAV for exactly{' '}
-            <strong className="text-muted">{fmtDate(live.startDate)} – {fmtDate(live.endDate)}</strong>. Change the range
-            above and every number updates. This is the core of FairFund - no fund can hide behind a
-            cherry-picked window.
+            These return and risk metrics use daily NAV from{' '}
+            <strong className="text-muted">{fmtDate(live.startDate)} to {fmtDate(live.endDate)}</strong>.
+            {' '}Category ranks and portfolio disclosures use their own reporting periods.
           </p>
         </>
       ) : baseline ? (
@@ -501,8 +507,8 @@ export default function FundDetail() {
           <p className="mt-2 text-xs text-faint">
             Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics (anchor {data.anchor}).{' '}
             {error
-              ? 'Live custom-range analysis is unavailable right now (NAV source not responding) - these baseline numbers still stand.'
-              : 'Pick a range above to recompute everything live from daily NAV.'}
+              ? 'Custom-range analysis is unavailable because the NAV source is not responding. Showing stored metrics.'
+              : 'Select a range to calculate return and risk metrics from daily NAV.'}
           </p>
         </>
       ) : (

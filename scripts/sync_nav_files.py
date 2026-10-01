@@ -15,9 +15,12 @@ expanding the fund universe. Idempotent — safe to run repeatedly.
 """
 import os, json, sys, time
 import urllib.request
+from math import isfinite
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
+sys.path.insert(0, HERE)
+from market_date import ist_today, is_usable_nav_date
 
 # Resolve paths (CI-safe, same strategy as capture_holdings_snapshot)
 _FUNDS_CANDIDATES = [
@@ -48,22 +51,20 @@ def fetch_nav(code):
 
 def compact(data_points):
     """Convert mfapi response data to compact {d:[],v:[],u:''} format."""
-    d, v = [], []
+    points = {}
+    today = ist_today()
     for p in data_points:
         try:
             dd, mm, yyyy = p["date"].split("-")
             nav = round(float(p["nav"]), 4)
-        except Exception:
+        except (KeyError, TypeError, ValueError, AttributeError):
             continue
-        if nav <= 0:
+        day = f"{yyyy}-{mm}-{dd}"
+        if not is_usable_nav_date(day, today) or not isfinite(nav) or nav <= 0:
             continue
-        d.append(f"{yyyy}-{mm}-{dd}")
-        v.append(nav)
-    # oldest -> newest
-    if d and d[0] > d[-1]:
-        d.reverse()
-        v.reverse()
-    return d, v
+        points[day] = nav
+    dates = sorted(points)
+    return dates, [points[day] for day in dates]
 
 
 def main():

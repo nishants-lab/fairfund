@@ -65,7 +65,7 @@ export default function Navbar() {
           </div>
           <div className="leading-tight">
             <div className="font-display text-lg font-bold leading-none text-fg"><span className="text-brand-600 dark:text-brand-400">Fair</span>Fund</div>
-            <div className="text-xs font-medium uppercase tracking-wider text-faint">Forward-looking MF Research</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-faint">Mutual fund research</div>
           </div>
         </Link>
 

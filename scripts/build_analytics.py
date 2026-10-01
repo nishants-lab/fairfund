@@ -30,16 +30,17 @@ Parameters (documented on the Methodology page):
   MIN_PEERS = 5          below this -> "Limited evidence" on trajectory
 """
 import os, json, sys
-import numpy as np
-import pandas as pd
-from datetime import datetime
-from scipy import stats
 import warnings
 warnings.filterwarnings("ignore")
+
+# numpy/pandas/scipy are imported inside the functions that need them. The merge
+# step below and its tests have to run on the release gate's interpreter, which
+# installs no numeric packages (see .github/actions/validate/action.yml).
 
 
 def _clean(o):
     """Recursively convert numpy types to native Python for JSON serialization."""
+    import numpy as np
     if isinstance(o, dict):
         return {k: _clean(v) for k, v in o.items()}
     if isinstance(o, (list, tuple)):
@@ -57,7 +58,6 @@ ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 from config import is_debt_category, uses_reduced_surface  # noqa: E402
 NAV_DIR = os.path.join(ROOT, "public", "nav")
-ANCHOR = pd.Timestamp(datetime.now().strftime("%Y-%m-%d"))  # dynamic
 
 ROLL_WINDOW_M = 36
 MIN_BATTING_N = 24
@@ -95,6 +95,7 @@ def load_universe():
 
 def month_end_series(code):
     """Return a month-end NAV pd.Series (indexed by month-end Timestamp) or None."""
+    import pandas as pd
     f = os.path.join(NAV_DIR, f"{code}.json")
     if not os.path.exists(f):
         return None
@@ -119,7 +120,41 @@ def month_end_series(code):
     return me if len(me) >= 13 else None
 
 
+def merge_analytics_into_index(fdata, records):
+    """Attach the producer output to every index fund and return (merged, cleared).
+
+    A fund the producer omitted - reduced-surface debt, or too little month-end NAV
+    history - must end up with an empty analytics object. Assigning only the present
+    codes left the previous run's signals in the index, where the UI kept rendering
+    them as current.
+
+    Records are keyed by string code. A non-string key is a producer bug that this
+    lookup cannot see (it silently reads as "omitted"), so the whole output is
+    validated before any fund is touched: the run fails closed instead of writing a
+    half-cleared index.
+    """
+    for key, record in records.items():
+        if not isinstance(key, str):
+            raise ValueError(f"Producer analytics key must be a string code, got {key!r}")
+        if not isinstance(record, dict):
+            raise ValueError(f"Invalid producer analytics for {key}")
+    merged = 0
+    cleared = 0
+    for fund in fdata["funds"]:
+        record = records.get(str(fund["code"]))
+        previous = fund.get("analytics")
+        fund["analytics"] = record if record else {}
+        if record:
+            merged += 1
+        elif previous:
+            cleared += 1
+    return merged, cleared
+
+
 def main():
+    import numpy as np
+    import pandas as pd
+    from scipy import stats
     funds = load_universe()
     print(f"Universe funds: {len(funds)}")
 
@@ -192,7 +227,7 @@ def main():
         # capture, batting, rank trajectory, skill). The UI treats an empty
         # analytics object as "no forward-signals section".
         if uses_reduced_surface(cat):
-            out[code] = {}
+            out[str(code)] = {}
             continue
         rec = {}
 
@@ -350,18 +385,14 @@ def main():
     funds_path = os.path.join(ROOT, "src", "data", "funds.json")
     if os.path.exists(funds_path):
         fdata = json.load(open(funds_path, encoding="utf-8"))
-        merged = 0
-        for fund in fdata["funds"]:
-            code_str = str(fund["code"])
-            if code_str in out:
-                fund["analytics"] = out[code_str]
-                merged += 1
+        merged, cleared = merge_analytics_into_index(fdata, out)
         # Safe write: write to temp, then rename (prevents corruption on crash)
         tmp_path = funds_path + ".tmp"
         with open(tmp_path, "w", encoding="utf-8") as tmpf:
             json.dump(fdata, tmpf, separators=(",", ":"))
         os.replace(tmp_path, funds_path)
-        print(f"\nMerged analytics into funds.json for {merged} funds")
+        print(f"\nMerged analytics into funds.json for {merged} funds"
+              f" ({cleared} stale entries cleared)")
     else:
         print(f"\nWARNING: {funds_path} not found, skipping merge")
 

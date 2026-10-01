@@ -168,6 +168,17 @@ function fmtNavDate(d: string): string {
   return `${parseInt(parts[2], 10)} ${months[mi] ?? parts[1]}`
 }
 
+// Format a yyyy-mm-dd statement date as e.g. "28 Mar 2024". The year is spelled
+// out here, unlike the 1-day change dates: a statement can be years old, and a
+// bare "28 Mar" against an old valuation reads as this year.
+function fmtStatementDate(d: string): string {
+  const parts = d.split('-')
+  if (parts.length !== 3) return d
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const mi = parseInt(parts[1], 10) - 1
+  return `${parseInt(parts[2], 10)} ${months[mi] ?? parts[1]} ${parts[0]}`
+}
+
 type HoldingSortKey = 'name' | 'weight' | 'value' | 'gainPct' | 'xirr' | 'fund3y' | 'dayChangePct' | 'drift' | 'verdict'
 type HoldingSort = { k: HoldingSortKey; dir: 1 | -1 }
 
@@ -223,6 +234,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       value: h.currentValue,
       gainPct: h.gainPct,
       xirr: h.personalCagr,
+      valuationDate: h.valuationDate,
       fund3y: h.fund?.metrics['3Y']?.cagr ?? null,
       dayChangePct: h.prevNav > 0 ? h.dayChangePct : null,
       rankAtPurchase: rank?.rankAtPurchase ?? null,
@@ -321,7 +333,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       {/* Holdings table */}
       <section>
         <h3 className="text-lg font-semibold text-fg">Your holdings</h3>
-        <p className="mt-1 text-sm text-muted">Click a column to sort. XIRR is your annualized return from your own SIP history; Fund 3Y CAGR is the fund's own trailing return.</p>
+        <p className="mt-1 text-sm text-muted">Click a column to sort. XIRR is your annualized return from your own SIP history. XIRR uses the statement valuation date. Re-import older statements to capture missing dates. Fund 3Y CAGR is the fund's own trailing return.</p>
         <div className="mt-3 overflow-x-auto rounded-xl border border-line">
           <table className="w-full text-[13px]">
             <thead className="sticky top-0 z-10 bg-surface2 text-[11px] uppercase text-faint">
@@ -357,6 +369,13 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   </td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.xirr == null ? 'text-faint' : r.xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {r.xirr == null ? '—' : `${r.xirr >= 0 ? '+' : ''}${r.xirr.toFixed(1)}%`}
+                    <div className="ml-auto max-w-[10rem] whitespace-normal text-xs font-normal text-faint">
+                      {/* Why there is no number, and separately the date the
+                          statement did give us: a known valuation date is worth
+                          showing even when no return could be derived from it. */}
+                      {r.xirr == null && <div>XIRR unavailable.</div>}
+                      {r.valuationDate && <div>as of {fmtStatementDate(r.valuationDate)}</div>}
+                    </div>
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">
                     {r.fund3y != null ? `${r.fund3y >= 0 ? '+' : ''}${r.fund3y.toFixed(1)}%` : <span className="text-faint">—</span>}
@@ -456,7 +475,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       {analysis.sectorConcentration.length > 0 && (
         <section>
           <h3 className="text-lg font-semibold text-fg">Sector concentration</h3>
-          <p className="mt-1 text-sm text-muted">True exposure across all your funds combined.</p>
+          <p className="mt-1 text-sm text-muted">Combined exposure from the holdings data available for your funds.</p>
           <div className="mt-3 space-y-1.5">
             {analysis.sectorConcentration.slice(0, 10).map(s => (
               <div key={s.sector} className="flex items-center gap-3">

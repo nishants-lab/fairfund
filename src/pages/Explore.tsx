@@ -31,7 +31,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
   { key: 'rank', label: '#', align: 'left', defaultDir: 'asc' },
   { key: 'name', label: 'Fund', align: 'left', defaultDir: 'asc' },
   { key: 'cagr', label: 'CAGR', align: 'right', defaultDir: 'desc' },
-  { key: 'alpha', label: 'Alpha', align: 'right', defaultDir: 'desc' },
+  { key: 'alpha', label: 'Alpha', align: 'right', defaultDir: 'desc', tip: 'Return above or below the category median over the selected horizon.' },
   { key: 'sharpe', label: 'Sharpe', align: 'right', defaultDir: 'desc' },
   { key: 'maxDrawdown', label: 'Max DD', align: 'right', defaultDir: 'desc' }, // less negative = better
   {
@@ -42,9 +42,8 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
     tip: (
       <>
         <strong>How often the fund beat its category's median over rolling 3-year windows.</strong>
-        <br /><br />Recent form is shown by colour: green climbing the rankings, red fading, grey steady. The %
-        is the share of 3-year windows it finished in the better half - higher means more repeatable
-        skill, less luck. Full explanation on each fund's page.
+        <br /><br />Recent form is shown by colour: green climbing the rankings, red fading, grey steady.
+        The periods overlap, so the observations are related.
       </>
     ),
   },
@@ -57,9 +56,9 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defaultDi
       <>
         <strong>Our overall risk-adjusted rank within the category (0-100 bar).</strong>
         <br /><br />It's the geometric mean of the fund's within-category percentile ranks across
-        Sharpe, Sortino, Calmar, drawdown protection, peer-relative alpha, and CAGR - over identical
-        fixed windows. We use a geometric mean so a fund can't hide one terrible weakness behind
-        strong other numbers. Higher = better all-round, not just high returns.
+        Sharpe, Sortino, Calmar, drawdown protection, peer-relative alpha, and CAGR for the selected horizon.
+        Each metric has equal weight. A low percentile in one metric reduces the combined score.
+        Available NAV dates can differ between funds.
       </>
     ),
   },
@@ -220,8 +219,7 @@ export default function Explore() {
         <ShareButton title="Explore funds by category" text="Funds ranked by risk-adjusted score within each category on FairFund" className="mt-1 shrink-0" />
       </div>
       <p className="mt-1 text-sm text-muted">
-        Ranked by risk-adjusted score within each category. Tap any column header to sort. Alpha shows
-        out/under-performance vs the median fund in the same category over the chosen window.
+        Compare funds within each category. Select a column header to sort.
       </p>
 
       {/* Category tabs */}

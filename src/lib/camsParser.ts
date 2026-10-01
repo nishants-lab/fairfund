@@ -8,6 +8,7 @@
  * current holdings (avoids transaction netting errors).
  */
 import { universeFunds } from './matcherUniverse'
+import { isIsoDate } from './marketDate'
 import type { Transaction, ParsedPortfolio, FundSummary } from './portfolio'
 
 /**
@@ -159,7 +160,26 @@ function classifyTxType(desc: string): Transaction['type'] {
   return 'purchase'
 }
 
+// Rows whose economics this parser cannot model: a reinvested payout is not money
+// the investor received (its units are already inside the closing balance), and a
+// reversal cancels an earlier row that is still in the list. Counting either as
+// cash double-counts it. RTAs spell reinvestment "Reinvestment", "Re-invest" and
+// "Re Invest"; the leading word boundary keeps "Share Investment" out of the match.
+const UNPRICEABLE_ROW_RE = /\bre[ -]?invest|revers/i
+
+/**
+ * True when the first money amount after the date is bracketed or minus-signed,
+ * the way statements mark a debit. The numeric scan below reads digits only, so
+ * this is the one place that sign survives. No space is allowed after the minus:
+ * " - 5,000.00" is a separator, not a signed number.
+ */
+function firstAmountIsNegative(afterDate: string): boolean {
+  const first = afterDate.match(/\(\s*[\d,]+\.\d{1,6}\s*\)|-[\d,]+\.\d{1,6}|[\d,]+\.\d{1,6}/)
+  return !!first && /^[(-]/.test(first[0])
+}
+
 function parseDate(s: string): string | null {
+  let iso: string | null = null
   const m1 = s.match(/(\d{1,2})-([A-Za-z]{3})-(\d{4})/)
   if (m1) {
     const months: Record<string, string> = {
@@ -167,11 +187,16 @@ function parseDate(s: string): string | null {
       jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
     }
     const mm = months[m1[2].toLowerCase()]
-    if (mm) return `${m1[3]}-${mm}-${m1[1].padStart(2, '0')}`
+    if (mm) iso = `${m1[3]}-${mm}-${m1[1].padStart(2, '0')}`
   }
-  const m2 = s.match(/(\d{2})\/(\d{2})\/(\d{4})/)
-  if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`
-  return null
+  if (!iso) {
+    const m2 = s.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+    if (m2) iso = `${m2[3]}-${m2[2]}-${m2[1]}`
+  }
+  // A mangled PDF extraction can produce an impossible day (31-Feb-2026,
+  // 30/02/2026). Date would roll those forward into a different real date, so
+  // reject them: an unknown date is handled downstream, a wrong one is not.
+  return iso !== null && isIsoDate(iso) ? iso : null
 }
 
 function parseNumber(s: string): number {
@@ -197,16 +222,40 @@ interface BlockState {
   totalCost: number
   latestNav: number
   marketValue: number
+  // Null when the statement printed no readable Opening Unit Balance for this
+  // block: an unread line is unknown, not a known zero.
+  openingUnits: number | null
+  // A transaction-shaped row whose date could not be read. The rows below then
+  // do not describe the full period, so no return can be derived from them.
+  historyUnusable: boolean
+  // Dates the statement stamps on its own value lines. Null until read, and
+  // left null when the date is unreadable: nothing else on the statement (least
+  // of all the upload time) can stand in for it.
+  navDate: string | null
+  marketValueDate: string | null
 }
 
+// Shape test for an RTA product code: alphanumeric, no more than 8 characters
+// once spaces are removed, carrying at least one digit and one letter
+// ("128 MCDGG", "K 123 D", "B153G"). That is the pattern observed in the codes we
+// have statements and fixtures for, not a verified RTA-wide rule - a longer or
+// differently shaped code would be left in the name rather than mis-stripped.
+// A digit alone is not enough to call a prefix a code: a scheme name whose head
+// contains a number ("BHARAT 22 ETF - Regular Plan - Growth") used to be stripped
+// away entirely, leaving the block nameless and unmatchable.
+const RTA_CODE_RE = /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9]{2,8}$/
+
 function stripSchemeCode(line: string): string {
-  // AMC scheme codes always contain a digit and precede the first " - "
+  // AMC scheme codes precede the first " - "
   // e.g. "128 MCDGG - Axis Mid Cap Fund", "K 123 D - Kotak Mid Cap Fund"
   const dashIdx = line.indexOf(' - ')
   if (dashIdx > 0 && dashIdx < 16) {
     const prefix = line.slice(0, dashIdx)
-    if (/\d/.test(prefix) && !/fund|cap|equity|index/i.test(prefix)) {
-      return line.slice(dashIdx + 3).trim()
+    if (RTA_CODE_RE.test(prefix.replace(/\s+/g, '')) && !/fund|cap|equity|index/i.test(prefix)) {
+      const rest = line.slice(dashIdx + 3).trim()
+      // Stripping must never consume the whole name: a block with no scheme text
+      // is dropped on flush, so the holding would disappear from the portfolio.
+      if (rest) return rest
     }
   }
   return line
@@ -244,6 +293,10 @@ export function parseCAMSText(text: string): ParsedPortfolio {
         totalCost: block.totalCost,
         latestNav: block.latestNav,
         marketValue: block.marketValue,
+        navDate: block.navDate,
+        marketValueDate: block.marketValueDate,
+        openingUnits: block.openingUnits,
+        historyUnusable: block.historyUnusable,
       })
     }
   }
@@ -281,17 +334,29 @@ export function parseCAMSText(text: string): ParsedPortfolio {
         totalCost: 0,
         latestNav: 0,
         marketValue: 0,
+        openingUnits: null,
+        historyUnusable: false,
+        navDate: null,
+        marketValueDate: null,
       }
       continue
     }
 
     if (!block) continue
 
-    // Capture NAV / Market Value anywhere within the block
-    const navMatch = line.match(/NAV\s*on\s*[\d-][\w-]*\s*:\s*INR\s*([\d,]+\.\d+)/i)
-    if (navMatch) block.latestNav = parseNumber(navMatch[1])
-    const mvMatch = line.match(/Market\s*Value\s*on\s*[\d-][\w-]*\s*:\s*INR\s*([\d,]+\.\d+)/i)
-    if (mvMatch) block.marketValue = parseNumber(mvMatch[1])
+    // Capture NAV / Market Value anywhere within the block, each with the date
+    // the statement prints beside it. The two can differ, so they are kept
+    // apart: whichever value is used for the holding supplies its own date.
+    const navMatch = line.match(/NAV\s*on\s*([\d-][\w/-]*)\s*:\s*INR\s*([\d,]+\.\d+)/i)
+    if (navMatch) {
+      block.latestNav = parseNumber(navMatch[2])
+      block.navDate = parseDate(navMatch[1])
+    }
+    const mvMatch = line.match(/Market\s*Value\s*on\s*([\d-][\w/-]*)\s*:\s*INR\s*([\d,]+\.\d+)/i)
+    if (mvMatch) {
+      block.marketValue = parseNumber(mvMatch[2])
+      block.marketValueDate = parseDate(mvMatch[1])
+    }
 
     // Closing Unit Balance + Total Cost Value
     let closingMatch = line.match(/closing\s*(?:unit\s*)?balance\s*:?\s*([\d,]+\.\d+)/i)
@@ -311,6 +376,15 @@ export function parseCAMSText(text: string): ParsedPortfolio {
       continue
     }
 
+    // A non-zero Opening Unit Balance means the statement window starts after
+    // the investor already held units, so the transaction rows below do not
+    // account for all the money in the folio.
+    const openingMatch = line.match(/opening\s*unit\s*balance\s*:?\s*([\d,]+\.\d+)/i)
+    if (openingMatch) {
+      block.openingUnits = parseNumber(openingMatch[1])
+      continue
+    }
+
     // Skip non-transaction lines
     if (/^(opening unit balance|total cost value|nav on|market value|registrar|nominee|kyc|pan\s*:)/i.test(line)) continue
     if (/^\*\*\*/.test(line)) continue
@@ -319,11 +393,24 @@ export function parseCAMSText(text: string): ParsedPortfolio {
     // Transaction rows (kept for rank-at-purchase history)
     const dateMatch = line.match(dateRe)
     if (!dateMatch) continue
-    const dateStr = parseDate(dateMatch[1])
-    if (!dateStr) continue
+
+    // Checked on the raw dated line, BEFORE the numeric gate below: when a PDF
+    // wraps a row, the description can land on one line and its amounts on the
+    // next. Such a row is dropped by the gate, which would leave a history that
+    // still looks complete, so flag the block on the keyword alone.
+    if (UNPRICEABLE_ROW_RE.test(line)) block.historyUnusable = true
 
     const numMatches = line.match(/[\d,]+\.\d{1,6}/g)
     if (!numMatches || numMatches.length < 2) continue
+
+    // Shaped like a transaction but undatable. Dropping the row would leave a
+    // shorter history that still looks complete, so the block is marked instead
+    // and the analysis withholds a return for it.
+    const dateStr = parseDate(dateMatch[1])
+    if (!dateStr) {
+      block.historyUnusable = true
+      continue
+    }
 
     const afterDate = line.slice(line.indexOf(dateMatch[1]) + dateMatch[1].length)
     const descMatch = afterDate.match(/[A-Za-z][\w\s()/*-]+/)
@@ -341,11 +428,21 @@ export function parseCAMSText(text: string): ParsedPortfolio {
     }
     if (amount < 1 && units < 0.001) continue
 
+    const type = classifyTxType(desc)
+    // A bracketed or minus-signed first amount on a money-in row is a credit
+    // being taken back, not new money invested: the brackets are the only sign
+    // the statement carries, and they are lost once the digits are read. Flag the
+    // block rather than guess the economics. Money-out rows keep their usual
+    // sign convention and are left alone.
+    if (firstAmountIsNegative(afterDate) && (type === 'purchase' || type === 'sip' || type === 'switch_in')) {
+      block.historyUnusable = true
+    }
+
     transactions.push({
       fundCode: block.code ?? 0,
       fundName: block.scheme,
       date: dateStr,
-      type: classifyTxType(desc),
+      type,
       units: Math.abs(units),
       amount: Math.abs(amount),
       nav: Math.abs(nav),

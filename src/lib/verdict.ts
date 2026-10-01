@@ -86,16 +86,16 @@ export function buildVerdict(fund: Fund): Verdict {
   let consistencyPts = 50
   if (a?.battingAverage && !a.battingAverage.limited) {
     consistencyPts = a.battingAverage.pct
-    if (a.battingAverage.pct >= 65) positives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'rolling 3-year windows finishing above the category median', tone: 'good' })
-    else if (a.battingAverage.pct < 45) negatives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'rolling 3-year windows finishing above the category median', tone: 'bad' })
+    if (a.battingAverage.pct >= 65) positives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'overlapping rolling 3-year periods finishing above the category median', tone: 'good' })
+    else if (a.battingAverage.pct < 45) negatives.push({ label: `${a.battingAverage.pct}% of 3Y windows above peers`, detail: 'overlapping rolling 3-year periods finishing above the category median', tone: 'bad' })
   }
 
   // ---- Pillar 5: skill vs luck (forward) ----
   let skillPts = 50
   if (a?.alpha?.confidence != null && !a.alpha.insufficient) {
     skillPts = a.alpha.confidence
-    if (a.alpha.confidence >= 90) positives.push({ label: `Alpha confidence ${Math.round(a.alpha.confidence)}%`, detail: 'statistical confidence the peer-relative alpha is not noise', tone: 'good' })
-    else if (a.alpha.confidence < 50) negatives.push({ label: `Alpha confidence ${Math.round(a.alpha.confidence)}%`, detail: 'statistical confidence the peer-relative alpha is not noise', tone: 'bad' })
+    if (a.alpha.confidence >= 90) positives.push({ label: 'Monthly-test score input', detail: 'stored rounded (1-p) × 100 statistic; 12% score weight, not a probability of skill', tone: 'good' })
+    else if (a.alpha.confidence < 50) negatives.push({ label: 'Monthly-test score input', detail: 'stored rounded (1-p) × 100 statistic; 12% score weight, not a probability of skill', tone: 'bad' })
   }
 
   // ---- Pillar 6: downside capture (forward, risk character) ----
@@ -115,7 +115,7 @@ export function buildVerdict(fund: Fund): Verdict {
 
   // ---- Momentum caution (not scored, but surfaced) ----
   if (a?.meanReversion?.state === 'hot') {
-    negatives.push({ label: 'Recent 1Y above own norm', detail: `latest 1Y is well above this fund's own 3-year average`, tone: 'neutral' })
+    negatives.push({ label: 'Recent 1Y above own norm', detail: `latest 1Y is well above this fund's historical rolling 1-year average`, tone: 'neutral' })
   }
 
   // Weighted blend. Backward pillars (rank/alpha/sharpe) and forward pillars
@@ -146,13 +146,14 @@ export function buildVerdict(fund: Fund): Verdict {
 // composite number. No qualitative labels ('pick', 'option', 'lags') and no
 // recommendation ('weigh it against...', 'look stronger').
 function buildOneLiner(fund: Fund, score: number, _label: string, _pos: VerdictPillar[], _neg: VerdictPillar[]): string {
-  const base = fund.metrics['3Y'] ?? fund.metrics['5Y'] ?? fund.metrics['1Y']
+  const horizon = fund.metrics['3Y'] ? '3Y' : fund.metrics['5Y'] ? '5Y' : '1Y'
+  const base = fund.metrics[horizon]
   const cat = fund.categoryDisplay
   const parts: string[] = []
-  if (base?.catRank != null && base?.catSize != null) parts.push(`ranks #${base.catRank} of ${base.catSize} in ${cat} on 3Y risk-adjusted return`)
+  if (base?.catRank != null && base?.catSize != null) parts.push(`ranks #${base.catRank} of ${base.catSize} in ${cat} on ${horizon} risk-adjusted return`)
   if (base?.alpha != null) parts.push(`${base.alpha >= 0 ? '+' : ''}${base.alpha.toFixed(1)}%/yr vs the category median`)
   if (base?.sharpe != null) parts.push(`Sharpe ${base.sharpe.toFixed(2)}`)
   const head = parts.length ? parts.join(', ') : 'limited comparable history so far'
   const sentence = head.charAt(0).toUpperCase() + head.slice(1)
-  return `${sentence}. Composite score ${score}/100 across past risk-adjusted and consistency metrics, not a rating or recommendation.`
+  return `${sentence}. Composite score ${score}/100 across historical metrics. Not an investment recommendation.`
 }

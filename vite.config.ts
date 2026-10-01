@@ -31,7 +31,7 @@ export default defineConfig({
       manifest: {
         name: 'FairFund - MF Research',
         short_name: 'FairFund',
-        description: 'Forward-looking mutual fund research for India',
+        description: 'Indian mutual fund research',
         theme_color: '#2563eb',
         background_color: '#ffffff',
         display: 'standalone',
