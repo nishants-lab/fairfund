@@ -10,6 +10,21 @@ const path = require('node:path');
 const base = process.env.FF_TEST_BASE_URL || 'http://127.0.0.1:4190';
 const capture = process.env.FF_SCREENSHOT_DIR;
 const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/funds.json'), 'utf8'));
+// Selection correctness is covered by independent synthetic unit fixtures.
+// Browser integration must follow the current dataset, including changed winners.
+const { buildSync } = require('esbuild');
+const Module = require('node:module');
+const bundled = buildSync({
+  stdin: { contents: "export { categoryBadges } from './src/lib/categoryBadges'; export { categoryOrder } from './src/lib/data';", resolveDir: path.resolve(__dirname, '..'), loader: 'ts' },
+  bundle: true, platform: 'node', format: 'cjs', write: false,
+  define: { __DATA_VERSION__: '"test"', 'import.meta.env': '{"BASE_URL":"./"}' },
+});
+const selection = new Module(__filename, module);
+selection._compile(bundled.outputFiles[0].text, __filename);
+const shown = selection.exports.categoryOrder.filter(key => data.categories[key]?.fundCount > 0);
+const expectedBadges = selection.exports.categoryBadges(data, shown);
+assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
+
 (async () => {
  const browser = await chromium.launch({headless:true});
  try {
@@ -26,25 +41,27 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${name}: overflow`);
    const text=await page.locator('main').innerText();
    assert.doesNotMatch(text,/skill|luck|superpower|batting average|scientific|identical dates|stored CAGR|stored \dY/i);
-   assert.equal(await page.getByText('Top 3 by 5Y return',{exact:true}).count(),2);
-   assert.equal(await page.getByText('Lower NAV volatility',{exact:true}).count(),3);
    assert.equal(await page.getByText('Broader fund choice',{exact:true}).count(),0);
-   assert.equal(await page.getByText('Top 3 by 3Y return',{exact:true}).count(),3);
    assert.equal(await page.getByText('Top 3 by 3Y & 5Y return',{exact:true}).count(),0);
-   assert.equal(await page.locator('[data-category-card]').count(),20);
-   assert.equal(await page.locator('[data-category-badge]').count(),8);
-   for(const [category, label, expected] of [
-     ['Index - Mid Cap','Top 3 by 5Y return',/3 eligible funds \(small sample\)/],
-     ['Liquid','Lower NAV volatility',/credit or liquidity risk/],
-     ['International / Global','Top 3 by 3Y return',/26.74%/],
-     ['Index - Other','Top 3 by 3Y return',/16.10%/],
-     ['Mid Cap','Top 3 by 3Y return',/3-year annualised returns: 15.68%/],
-   ]) {
-     const button=page.getByRole('button',{name:`About ${category}: ${label}`,exact:true});
+   assert.equal(await page.locator('[data-category-card]').count(),shown.length);
+   assert.equal(await page.locator('[data-category-badge]').count(),expectedBadges.size);
+   for(const key of shown) {
+     const card=page.locator(`[data-category-card=${JSON.stringify(key)}]`);
+     const expected=expectedBadges.get(key);
+     assert.equal(await card.count(),1,`category card: ${key}`);
+     assert.equal(await card.locator('[data-category-badge]').count(),expected ? 1 : 0,`badge eligibility: ${key}`);
+     if(expected) {
+       assert.equal(await card.locator('[data-category-badge]').getAttribute('data-category-badge'),expected.kind);
+       assert.equal(await card.getByText(expected.label,{exact:true}).count(),1);
+     }
+   }
+   for(const [key, expected] of expectedBadges) {
+      const category=data.categories[key].display || key;
+      const button=page.getByRole('button',{name:`About ${category}: ${expected.label}`,exact:true});
      await button.scrollIntoViewIfNeeded();
      if(width<=360) await button.click(); else await button.focus();
      const tooltip=page.getByRole('tooltip');await tooltip.waitFor();
-     assert.match(await tooltip.innerText(),expected);
+     assert.equal(await tooltip.innerText(),expected.explanation);
      assert.equal(await button.getAttribute('aria-describedby'),await tooltip.getAttribute('id'));
      const box=await tooltip.boundingBox();assert(box.x>=0&&box.x+box.width<=width&&box.y>=0&&box.y+box.height<=height);
      assert.equal(new URL(page.url()).hash,'','badge explanation must not navigate');
@@ -80,9 +97,11 @@ const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/fun
    await page.goto(base,{waitUntil:'networkidle'});
    const tipButton=page.getByRole('button',{name:'About spotlight consistency',exact:true});
    if(await tipButton.count()) {
+     await page.mouse.move(0,0);
+     await page.keyboard.press('Escape');
      await tipButton.scrollIntoViewIfNeeded();
      await tipButton.focus();
-     const tip=page.getByRole('tooltip');
+     const tip=page.locator(`[id=${JSON.stringify(await tipButton.getAttribute('aria-describedby'))}]`);
      await tip.waitFor();
      assert.match(await tip.innerText(),/Each 3-year period starts one month after/);
      assert.equal(await tipButton.getAttribute('aria-describedby'),await tip.getAttribute('id'));
