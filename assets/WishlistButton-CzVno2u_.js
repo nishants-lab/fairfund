@@ -1,4 +1,4 @@
-import{z as l,o as t}from"./index-BHt4z9f0.js";function d({code:s,compact:r,className:i=""}){const[e,n]=l(s);return t.jsx("button",{type:"button",onClick:o=>{o.stopPropagation(),o.preventDefault(),n()},"aria-label":e?"Remove from wishlist":"Add to wishlist","aria-pressed":e,title:e?"Remove from wishlist":"Add to wishlist",className:`
+import{C as l,p as t}from"./index-CYXjGeXR.js";function d({code:s,compact:r,className:i=""}){const[e,n]=l(s);return t.jsx("button",{type:"button",onClick:o=>{o.stopPropagation(),o.preventDefault(),n()},"aria-label":e?"Remove from wishlist":"Add to wishlist","aria-pressed":e,title:e?"Remove from wishlist":"Add to wishlist",className:`
         relative inline-flex items-center justify-center transition-all
         ${r?"h-8 w-8":"h-10 w-10 rounded-lg border border-line hover:border-rose-300 dark:hover:border-rose-700"}
         before:absolute before:-inset-[6px] before:content-['']
