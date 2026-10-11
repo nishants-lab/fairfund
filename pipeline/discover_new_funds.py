@@ -35,6 +35,7 @@ from config import (
     is_arbitrage_category,
     uses_reduced_surface,
     risk_level_for,
+    display_for,
 )
 
 FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
@@ -282,7 +283,7 @@ def main():
             "fullName": scheme["name"],
             "amc": scheme["amc"].replace(" Mutual Fund", "").strip(),
             "category": cat,
-            "categoryDisplay": cat,
+            "categoryDisplay": display_for(cat),
             "riskLevel": risk_level_for(cat),
             "isDebt": is_debt_category(cat),
             "isArbitrage": is_arbitrage_category(cat),
@@ -570,7 +571,7 @@ def main_with_lifecycle():
             "fullName": scheme["name"],
             "amc": scheme["amc"].replace(" Mutual Fund", "").strip(),
             "category": cat,
-            "categoryDisplay": cat,
+            "categoryDisplay": display_for(cat),
             "riskLevel": risk_level_for(cat),
             "isDebt": is_debt_category(cat),
             "isArbitrage": is_arbitrage_category(cat),

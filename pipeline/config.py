@@ -122,6 +122,27 @@ def uses_reduced_surface(fairfund_category):
     return is_debt_category(fairfund_category) or is_arbitrage_category(fairfund_category)
 
 
+# Display label per FairFund category, as shown on the site (category pill,
+# page titles, "Top peers in ..."). Taken from the original universe's labels.
+# Categories not listed display as their internal key. Discovery must use this
+# rather than the raw key, or new funds show a different label from their peers.
+CATEGORY_DISPLAY = {
+    "ELSS": "ELSS (Tax Saver)",
+    "Index-MidCap": "Index - Mid Cap",
+    "Index-SmallCap": "Index - Small Cap",
+    "Index-Other": "Index - Other",
+    "Index-Sectoral/Thematic": "Index - Sectoral / Thematic",
+    "International": "International / Global",
+    "Sectoral/Thematic": "Sectoral / Thematic",
+    "Value/Contra": "Value / Contra",
+}
+
+
+def display_for(fairfund_category):
+    """Site display label for a FairFund internal category key."""
+    return CATEGORY_DISPLAY.get(fairfund_category, fairfund_category)
+
+
 def risk_level_for(fairfund_category):
     """SEBI riskometer band for a FairFund category (equity -> High by default)."""
     return RISK_BY_CATEGORY.get(fairfund_category, DEFAULT_RISK_LEVEL)

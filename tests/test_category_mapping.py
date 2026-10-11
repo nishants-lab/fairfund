@@ -82,6 +82,36 @@ class IndexBucketTests(unittest.TestCase):
                 self.assertEqual(M(INDEX, name), "ELSS")
 
 
+class DisplayLabelTests(unittest.TestCase):
+    """Discovery must label a new fund the way its peers are labelled."""
+
+    def setUp(self):
+        import collections
+        import json
+        data = json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))
+        self.labels = collections.defaultdict(collections.Counter)
+        for fund in data["funds"]:
+            self.labels[fund["category"]][fund.get("categoryDisplay")] += 1
+
+    def test_label_is_one_its_peers_already_use(self):
+        for cat, used in self.labels.items():
+            with self.subTest(cat=cat):
+                self.assertIn(C.display_for(cat), used)
+
+    def test_label_matches_when_peers_agree(self):
+        for cat, used in self.labels.items():
+            if len(used) == 1:
+                with self.subTest(cat=cat):
+                    self.assertEqual(C.display_for(cat), next(iter(used)))
+
+    def test_new_october_funds_get_peer_labels(self):
+        self.assertEqual(C.display_for("Value/Contra"), "Value / Contra")
+        self.assertEqual(C.display_for("Sectoral/Thematic"), "Sectoral / Thematic")
+        self.assertEqual(C.display_for("Large & Mid Cap"), "Large & Mid Cap")
+        self.assertEqual(C.display_for("Index Funds"), "Index Funds")
+        self.assertEqual(C.display_for("ELSS"), "ELSS (Tax Saver)")
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_one_argument_callers_keep_previous_index_behaviour(self):
         # refresh.py --add-fund and smoke.py call without a name.
