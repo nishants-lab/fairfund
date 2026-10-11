@@ -201,7 +201,7 @@ def main():
     excluded_debt = 0
     for code in new_codes:
         scheme = amfi_schemes[code]
-        cat = map_amfi_category(scheme["amfi_category"])
+        cat = map_amfi_category(scheme["amfi_category"], scheme.get("name"))
         if not cat:
             continue
         # Skip debt/fixed-income vehicles that share an equity AMFI bucket
@@ -492,7 +492,7 @@ def main_with_lifecycle():
     excluded_debt = 0
     for code in new_codes:
         scheme = amfi_schemes[code]
-        cat = map_amfi_category(scheme["amfi_category"])
+        cat = map_amfi_category(scheme["amfi_category"], scheme.get("name"))
         if not cat:
             continue
         # Skip debt/fixed-income vehicles that share an equity AMFI bucket
