@@ -49,6 +49,7 @@ class DiscoveredFundsOctober2026(unittest.TestCase):
         ("Equity Schemes - Thematic Fund", "Baroda BNP Paribas Services Fund", "Sectoral/Thematic"),
         ("Hybrid Schemes - Arbitrage Fund", "Zerodha Arbitrage Fund", "Arbitrage"),
         (INDEX, "Axis Nifty50 Equal Weight Index Fund", "Index Funds"),
+        (INDEX, "Kotak Nifty Bank Index Fund", "Index-Sectoral/Thematic"),
     ]
 
     def test_each_fund(self):
@@ -66,13 +67,38 @@ class IndexBucketTests(unittest.TestCase):
                 with self.subTest(name=name, cat=cat):
                     self.assertEqual(M(cat, name), "Index Funds")
 
-    def test_wider_narrower_or_factor_index_stays_other(self):
+    def test_broad_but_not_large_cap_index_stays_other(self):
+        # Wider or narrower than Nifty 50/100/Sensex: not broad large-cap.
         for name in ("Motilal Oswal Nifty 500 Index Fund", "DSP Nifty500 Index Fund",
                      "Kotak Nifty Next 50 Index Fund", "DSP Nifty Top 10 Equal Weight Index Fund",
-                     "Axis Nifty500 Quality 50 Index Fund", "UTI Nifty50 Value 20 Index Fund",
-                     "ICICI Nifty100 Low Volatility 30 Index Fund", "UTI Nifty500 Shariah Index Fund"):
+                     "UTI Nifty500 Shariah Index Fund", "Nippon India BSE Sensex Next 30 Index Fund"):
             with self.subTest(name=name):
                 self.assertEqual(M(INDEX, name), "Index-Other")
+
+    def test_sector_and_factor_index_goes_to_sectoral(self):
+        # Factor indices are thematic here, as in the existing universe.
+        for name in ("Kotak Nifty Bank Index Fund", "DSP Nifty IT Index Fund",
+                     "Groww Nifty Private Bank Index Fund", "Axis Nifty500 Quality 50 Index Fund",
+                     "UTI Nifty50 Value 20 Index Fund", "SBI Nifty100 Low Volatility 30 Index Fund",
+                     "SBI Nifty200 Momentum 30 Index Fund",
+                     "Navi Nifty Smallcap250 Momentum Quality 100 Index Fund"):
+            with self.subTest(name=name):
+                self.assertEqual(M(INDEX, name), "Index-Sectoral/Thematic")
+
+    def test_mid_and_small_cap_index(self):
+        self.assertEqual(M(INDEX, "Groww Nifty Midcap 150 Index Fund"), "Index-MidCap")
+        self.assertEqual(M(INDEX, "Navi Nifty Midsmallcap 400 Index Fund"), "Index-MidCap")
+        self.assertEqual(M(INDEX, "DSP Nifty Smallcap 250 Index Fund"), "Index-SmallCap")
+
+    def test_live_index_subcategories_match_the_rule(self):
+        # Every live fund in these index sub-categories must be placed there by
+        # index_bucket, so discovery puts new funds beside the same peers.
+        import json
+        data = json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))
+        for fund in data["funds"]:
+            if fund["category"] in ("Index-MidCap", "Index-SmallCap", "Index-Sectoral/Thematic"):
+                with self.subTest(code=fund["code"], name=fund["name"]):
+                    self.assertEqual(C.index_bucket(fund["name"]), fund["category"])
 
     def test_elss_index_fund_joins_elss_whatever_the_index(self):
         for name in ("360 ONE ELSS Tax Saver Nifty 50 Index Fund",
