@@ -200,17 +200,55 @@ STALE_NAV_DAYS = 60
 DAILY_STALE_GAP_DAYS = 7
 
 
-def map_amfi_category(amfi_cat):
+# Broad large-cap index funds (Nifty 50, Nifty 100, BSE Sensex and their
+# equal-weight versions) belong in "Index Funds" with their identical-index
+# peers. AMFI files every index fund under one category, so the fund name is
+# used here only to pick the sub-bucket. A wider or narrower index (Nifty 500,
+# Nifty Next 50, Top 10/20) or a factor/thematic variant is not broad large-cap
+# and falls through to the existing index fallback.
+_BROAD_LARGECAP_INDEX_RE = re.compile(r"\b(?:nifty\s?50|nifty\s?100|sensex)\b(?!\s?\d)")
+_NOT_BROAD_LARGECAP_QUALIFIERS = (
+    "next", "500", "top ", "value", "quality", "momentum", "alpha",
+    "low vol", "volatility", "shariah", "dividend", "esg",
+)
+
+
+def _is_broad_largecap_index(name):
+    """True if an index fund tracks a broad large-cap index (Nifty 50/100 or
+    Sensex), including equal-weight versions, with no factor/thematic twist."""
+    n = " " + (name or "").lower() + " "
+    if not _BROAD_LARGECAP_INDEX_RE.search(n):
+        return False
+    return not any(q in n for q in _NOT_BROAD_LARGECAP_QUALIFIERS)
+
+
+def map_amfi_category(amfi_cat, name=None):
     """Map AMFI's category string to FairFund's internal category key.
-    Returns None if the category is not in our universe."""
+    Returns None if the category is not in our universe.
+
+    `name` is optional; when given it is used only to place broad large-cap
+    index funds in "Index Funds". Callers without a name keep the previous
+    index behaviour."""
     if not amfi_cat:
         return None
     low = amfi_cat.lower()
 
-    # Direct mapping (exact substring match)
-    for key, val in AMFI_TO_FAIRFUND_CATEGORY.items():
+    # Direct mapping, longest key first. Keys overlap ("Mid Cap Fund" is a
+    # substring of "Large & Mid Cap Fund"), so a shorter key must never be
+    # tried before a longer one that contains it.
+    for key in sorted(AMFI_TO_FAIRFUND_CATEGORY, key=len, reverse=True):
         if key.lower() in low:
-            return val
+            return AMFI_TO_FAIRFUND_CATEGORY[key]
+
+    if "index" in low:
+        # An ELSS index fund carries the 3-year lock-in and tax treatment of
+        # ELSS, which matters more to an investor than the index it tracks, so
+        # it joins its ELSS peers whatever the underlying index.
+        n = (name or "").lower()
+        if "elss" in n or "tax saver" in n:
+            return "ELSS"
+        if _is_broad_largecap_index(name):
+            return "Index Funds"
 
     # Fallback rules (OR logic: any keyword in the list triggers)
     for keywords, category in AMFI_CATEGORY_FALLBACKS:
