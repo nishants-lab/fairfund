@@ -243,13 +243,44 @@ def _is_broad_largecap_index(name):
     return not any(q in n for q in _NOT_BROAD_LARGECAP_QUALIFIERS)
 
 
+# AMFI files every index fund under one category, so the sub-category comes
+# from the fund name. These rules reproduce the ones that built the existing
+# index categories (scripts/authoritative_category._index_bucket), which still
+# match every live Index-MidCap, Index-SmallCap and Index-Sectoral/Thematic fund,
+# in the same order: thematic and factor first, then mid cap, then small cap.
+# The large-cap step uses _is_broad_largecap_index instead of the original
+# substring test, which also caught Nifty 500 and Sensex Next 30 funds.
+INDEX_THEMATIC_KEYWORDS = (
+    "pharma", "healthcare", "bank", " it ", "auto", "fmcg",
+    "infra", "energy", "metal", "psu", "consumption",
+    "manufacturing", "momentum", "quality", "esg", "value",
+    "defence", "digital", "realty", "media", "commodit",
+    "private bank", "financial", "alpha", "low volatility",
+    "dividend", "capex", "tourism", "ev ", "innovation",
+)
+
+
+def index_bucket(name):
+    """FairFund sub-category for an index fund, from its name."""
+    n = (name or "").lower()
+    if any(k in n for k in INDEX_THEMATIC_KEYWORDS):
+        return "Index-Sectoral/Thematic"
+    if "midcap" in n or "mid cap" in n or "midsmall" in n or "mid small" in n:
+        return "Index-MidCap"
+    if "smallcap" in n or "small cap" in n:
+        return "Index-SmallCap"
+    if _is_broad_largecap_index(name):
+        return "Index Funds"
+    return "Index-Other"
+
+
 def map_amfi_category(amfi_cat, name=None):
     """Map AMFI's category string to FairFund's internal category key.
     Returns None if the category is not in our universe.
 
-    `name` is optional; when given it is used only to place broad large-cap
-    index funds in "Index Funds". Callers without a name keep the previous
-    index behaviour."""
+    `name` is optional; it is used only to choose an index fund's
+    sub-category. Without a name an index fund maps to Index-Other, the
+    previous behaviour."""
     if not amfi_cat:
         return None
     low = amfi_cat.lower()
@@ -268,8 +299,7 @@ def map_amfi_category(amfi_cat, name=None):
         n = (name or "").lower()
         if "elss" in n or "tax saver" in n:
             return "ELSS"
-        if _is_broad_largecap_index(name):
-            return "Index Funds"
+        return index_bucket(name)
 
     # Fallback rules (OR logic: any keyword in the list triggers)
     for keywords, category in AMFI_CATEGORY_FALLBACKS:
