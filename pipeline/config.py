@@ -163,17 +163,27 @@ _JUNK_NAME_KEYWORDS = [
 ]
 _CLOSED_SERIES_RE = re.compile(r"\bseries\s+([ivxl]+|\d+)\b", re.IGNORECASE)
 
+# Target-maturity corporate-debt index funds track CRISIL-IBX AAA indices
+# ("Kotak CRISIL-IBX AAA Financial Services Index-Sep 2027 Fund"). Their names
+# carry no "bond"/"debt" word, so the keyword list above misses them, and AMFI
+# files them under the same "Index Funds" bucket as equity index funds. CRISIL
+# and IBX indices are fixed-income; AAA is a credit rating. None of the three
+# appears in any equity scheme name AMFI publishes (checked 2026-10-12).
+_DEBT_INDEX_RE = re.compile(r"\bcrisil\b|\bibx\b|\baaa\b", re.IGNORECASE)
+
 
 def is_excluded_by_name(fund_name):
     """True if a fund's name marks it as something that must not enter FairFund's
     universe: (a) debt/fixed-income vehicles arriving under AMFI's mixed
     'Index Funds' / 'Fund of Funds (Overseas)' buckets (US Treasury bond FoFs,
-    target-maturity Gilt/PSU-Bond/SDL index funds); (b) segregated 'unclaimed' /
+    target-maturity Gilt/PSU-Bond/SDL and CRISIL-IBX AAA index funds); (b) segregated 'unclaimed' /
     Investor Education Fund pools; (c) closed-ended fixed-tenor 'Series N' schemes."""
     if not fund_name:
         return False
     low = fund_name.lower()
     if any(kw in low for kw in EXCLUDE_NAME_KEYWORDS):
+        return True
+    if _DEBT_INDEX_RE.search(fund_name):
         return True
     if any(kw in low for kw in _JUNK_NAME_KEYWORDS):
         return True
