@@ -59,6 +59,39 @@ _FUND_DATA_CANDIDATES = [
 ]
 FUND_DATA_DIR = next((p for p in _FUND_DATA_CANDIDATES if os.path.isdir(p)), None)
 
+# ---- Which holdings count as stock moves ----
+# Only share positions say anything about stock picking. Equity funds also park
+# cash in certificates of deposit, commercial paper and T-bills; their names
+# ("HDFC BANK LIMITED CD 10SEP26") fuzzy-match the issuer's share ticker, so
+# without this filter a maturing CD was scored as if the manager traded the
+# bank's stock. Holdings carry an instrument type from the disclosure; trust it
+# when present and fall back to name patterns only when it is missing.
+EQUITY_INSTRUMENTS = {
+    "equity", "foreign - equity", "forgn. eq", "foreign equity unspecified",
+    "ads/adr", "gdr/gds", "partly paid equity", "ppe",
+}
+
+NON_EQUITY_NAME_RE = re.compile(
+    r"\bcd\b|\bcp\b|certificate of deposit|commercial paper|"
+    r"\bt-?bills?\b|treasury|\bgoi\b|\bsdl\b|state development loan|"
+    r"\bncd\b|debenture|\bbonds?\b|"
+    r"\b\d{2}/\d{2}/\d{4}\b|\b\d{1,2}[a-z]{3}\d{2}\b|"
+    r"\brepo\b|\bcblo\b|treps|margin money|mrgn money|net (current )?(assets|payables|receivables)|"
+    r"\bcash\b|\breits?\b|\binvits?\b|investment trust|pref\.? shares|preference shares|"
+    r"\bcall\b.*\boption\b|\bput\b.*\boption\b",
+    re.IGNORECASE,
+)
+
+
+def is_equity_holding(h):
+    """True if a holdings row is a share position whose price move can judge a
+    manager's add or exit."""
+    inst = (h.get("instrument") or "").strip().lower()
+    if inst:
+        return inst in EQUITY_INSTRUMENTS
+    return not NON_EQUITY_NAME_RE.search(h.get("name") or "")
+
+
 # ---- Step 1: Extract unique stocks from holdings history ----
 
 def extract_all_stocks():
@@ -363,6 +396,12 @@ def compute_fund_moves(code, snapshots, ticker_map, price_cache):
 
     if not added and not exited:
         return None
+
+    # Score share positions only (see is_equity_holding). If every change was a
+    # CD/CP/T-bill roll, return an empty result rather than None so a stale card
+    # from an earlier, unfiltered run is replaced; the site hides empty cards.
+    added = [(k, h) for k, h in added if is_equity_holding(h)]
+    exited = [(k, h) for k, h in exited if is_equity_holding(h)]
 
     after_date = after.get("portfolioDate") or dates[-1]
     after_month = after_date[:7]  # "2026-05"
