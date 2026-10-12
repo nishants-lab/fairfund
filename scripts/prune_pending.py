@@ -2,7 +2,9 @@
 Finalize the fund universe after all pipeline scripts have run.
 
 This is the LAST script to touch funds.json before the QA gate. It:
-1. Prunes funds whose fund-data has placeholder coverage ("none") — these failed onboarding
+1. Prunes funds whose fund-data has placeholder coverage ("none") — these failed onboarding,
+   and funds whose name the universe exclusion rule now rejects (config.is_excluded_by_name),
+   so a fund admitted before a rule was tightened cannot stay in the universe
 2. Strips transient fields (holdingsMeta, holdings) from the index
 3. Recomputes all derived aggregates so they match the final fund set:
    - totalFunds
@@ -29,6 +31,7 @@ FUND_ANALYTICS = os.path.join(ROOT, "src", "data", "fund_analytics.json")
 # the pre-prune set, so survivors would otherwise keep stale catRank/catSize).
 sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 from compute_rankings import recompute_rankings, update_category_metadata
+from config import is_excluded_by_name
 
 # NAV-only benchmark series consumed by pipeline/detect_regimes.py. They are
 # not in the fund universe and must never be swept. Keep in sync with tests/smoke.py.
@@ -132,7 +135,14 @@ def main():
     keep = []
     pruned_codes = []
     young_stubbed = []
+    excluded_codes = []
     for f in data["funds"]:
+        # Out of scope by the universe rule (e.g. debt index funds admitted before
+        # the name filter caught them). Checked first: no stub can rescue these.
+        if is_excluded_by_name(f.get("name")) or is_excluded_by_name(f.get("fullName")):
+            pruned_codes.append(f["code"])
+            excluded_codes.append(f["code"])
+            continue
         cov = get_fund_data_coverage(f["code"])
         if cov in ("none", "missing", "error"):
             # Never hide funds that legitimately have no stock-level holdings:
@@ -285,6 +295,8 @@ def main():
 
     if young_stubbed:
         print(f"  Kept {len(young_stubbed)} new fund(s) with no_disclosure stub (no holdings yet): {young_stubbed[:10]}{'...' if len(young_stubbed) > 10 else ''}")
+    if excluded_codes:
+        print(f"  Excluded by universe rule (debt/out of scope): {excluded_codes}")
     print(f"Finalize: {before} -> {len(keep)} funds ({len(pruned_codes)} pruned)")
     if pruned_codes:
         print(f"  Removed: {pruned_codes[:10]}{'...' if len(pruned_codes) > 10 else ''}")
