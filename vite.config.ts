@@ -60,7 +60,6 @@ export default defineConfig({
           '**/nav/**',
           '**/holdings-history/**',
           '**/category-median/**',
-          '**/aum-index.json',
         ],
         runtimeCaching: [
           {
