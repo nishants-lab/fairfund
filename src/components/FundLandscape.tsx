@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ReferenceLine,
@@ -7,17 +7,8 @@ import {
 import { useTheme } from '../lib/theme'
 import { funds as ALL } from '../lib/data'
 import { fundSlug } from '../lib/format'
+import { formatAumCr, landscapeAum } from '../lib/landscape'
 import type { Fund, Horizon } from '../types'
-
-const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
-let aumPromise: Promise<Record<string, number>> | null = null
-function loadAum(): Promise<Record<string, number>> {
-  if (!aumPromise) {
-    const b = BASE.endsWith('/') ? BASE : BASE + '/'
-    aumPromise = fetch(`${b}aum-index.json?v=${__DATA_VERSION__}`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
-  }
-  return aumPromise
-}
 
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b)
@@ -39,8 +30,6 @@ interface Row {
 export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund?: Fund; category?: string; horizon?: Horizon }) {
   const { theme } = useTheme()
   const navigate = useNavigate()
-  const [aum, setAum] = useState<Record<string, number>>({})
-  useEffect(() => { loadAum().then(setAum) }, [])
   const [sel, setSel] = useState<Horizon>(horizon)
 
   const catKey = fund?.category ?? category
@@ -59,7 +48,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
     )
     const rows: Row[] = peers.map((f) => {
       const m = f.metrics[sel]!
-      const a = aum[String(f.code)]
+      const a = landscapeAum(f)
       return {
         x: m.volatility, y: m.cagr,
         z: Math.sqrt(a || 120), aum: a,
@@ -77,7 +66,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
       catDisplay: peers[0]?.categoryDisplay ?? catKey ?? '',
       fundPlotted: currentCode != null && rows.some((r) => r.current),
     }
-  }, [catKey, currentCode, aum, sel])
+  }, [catKey, currentCode, sel])
 
   if (n < 4) return null
 
@@ -98,7 +87,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
       <div className="rounded-xl border border-line bg-surface px-3 py-2 text-xs shadow-md">
         <div className="font-semibold text-fg">{d.name}{d.current ? ' (this fund)' : ''}</div>
         <div className="mt-0.5 text-muted">Return {d.y.toFixed(1)}% · Risk {d.x.toFixed(1)}</div>
-        {d.aum ? <div className="text-faint">AUM ₹{d.aum >= 1000 ? `${(d.aum / 1000).toFixed(1)}k` : d.aum} cr</div> : null}
+        {d.aum ? <div className="text-faint">AUM {formatAumCr(d.aum)}</div> : null}
         <div className="mt-1 text-xs text-brand-500">Click to open</div>
       </div>
     )
