@@ -22,3 +22,7 @@ export const SHELL_UP = '../../'
 
 // Default social cover image (per-fund images override this when present).
 export const COVER_IMAGE = `${SITE}/og-cover.png`
+
+// IndexNow ownership key (public by design). Served as ${SITE}/<key>.txt from
+// public/; Bing, Yandex and other IndexNow engines fetch it to verify submissions.
+export const INDEXNOW_KEY = 'cd02c7d1cf9347a7f3d92458297ead54'
