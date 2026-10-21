@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useId, useMemo, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fundSlug } from '../lib/format'
-import { searchFunds, searchCategories } from '../lib/data'
+import { matchedOtherName, searchFunds, searchCategories } from '../lib/data'
 import type { CategoryResult } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
 import { parseIntent } from '../lib/intentParser'
@@ -216,13 +216,18 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
               </Fragment>
             )
           }
+          // Found through a former or alternate name ("axis bluechip" -> Axis
+          // Large Cap Fund): say which, so the result does not look unrelated.
+          const aka = matchedOtherName(opt.fund, query)
           return (
             <Fragment key={`fund-${opt.fund.code}`}>
               {idx === fundStart && catResults.length > 0 && <Heading>Funds</Heading>}
               <button {...common} className={optionClass(idx, 'justify-between py-2.5')}>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-fg">{opt.fund.name}</div>
-                  <div className="text-xs text-faint">{opt.fund.amc}</div>
+                  {aka
+                    ? <div className="truncate text-xs text-faint" data-testid="search-aka">Also known as {aka}</div>
+                    : <div className="text-xs text-faint">{opt.fund.amc}</div>}
                 </div>
                 <span className={`pill shrink-0 ${getCategoryColor(opt.fund.category).bg} ${getCategoryColor(opt.fund.category).text}`}>
                   {opt.fund.categoryDisplay}

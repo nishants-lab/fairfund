@@ -1,0 +1,9 @@
+{
+  "_about": "Renames confirmed from the AMC's own documents (KIM, annual report, product note) or press coverage. Keyed by AMFI code. Add an entry only with a source.",
+  "120465": {"names": ["Axis Bluechip Fund"], "source": "Axis MF KIM: renamed Axis Large Cap Fund w.e.f. 2025-06-02"},
+  "118834": {"names": ["Mirae Asset Emerging Bluechip Fund"], "source": "Mirae Asset KIM: Large & Midcap Fund (formerly Emerging Bluechip Fund)"},
+  "119018": {"names": ["HDFC Top 100 Fund"], "source": "HDFC MF KIM; renamed HDFC Large Cap Fund from 2025-01-01"},
+  "119528": {"names": ["Aditya Birla Sun Life Frontline Equity Fund"], "source": "ABSL abridged annual report 2024-25"},
+  "118531": {"names": ["Franklin India Bluechip Fund"], "source": "franklintempletonindia.com fund page: Large Cap Fund (Erstwhile Bluechip Fund)"},
+  "119231": {"names": ["Tata Equity P/E Fund"], "source": "Tata MF abridged annual report 2024-25: Value Fund (earlier Equity P/E Fund)"}
+}
