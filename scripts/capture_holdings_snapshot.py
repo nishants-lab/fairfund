@@ -29,6 +29,14 @@ and accumulates month over month). Shape:
 Slugs are resolved once and cached in public/holdings-history/_slugs.json so CI does
 not need to re-resolve 800+ funds over the network each month.
 
+IDENTITY (2026-10-21): a payload is only written when Groww's own scheme_code is
+the fund's code (scripts/groww_identity.py). Renamed Groww pages (HTTP 308) are
+followed and the new slug is saved back to _slugs.json. If a fund's stored history
+was captured under a slug that proves to be a DIFFERENT scheme, that history is
+another fund's portfolio and is reset rather than extended.
+
+FF_CAPTURE_CODES=code,code limits a run to those funds (targeted repair).
+
 Resumable, threaded, periodic-save. Run locally or in CI. Paths resolve relative to
 this file so both work.
 """
@@ -39,6 +47,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+from groww_identity import fetch_scheme_verified  # noqa: E402
 
 # Resolve the history dir (local workspace vs CI repo root), mirroring update_nav_daily.
 _CAND = [
@@ -64,39 +75,8 @@ _FUNDS_CANDIDATES = [
 FUNDS_JSON = next((p for p in _FUNDS_CANDIDATES if os.path.exists(p)), _FUNDS_CANDIDATES[0])
 META_CACHE = os.path.join(ROOT, "scheme_meta_cache")
 
-H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
-SCHEME = "https://groww.in/v1/api/data/mf/web/v2/scheme/search/"
-
 FEEDER_INSTR = {"mutual fund", "foreign mf", "fund", "exchange traded fund", "etf"}
 EQUITY_INSTR = {"equity", "forgn. eq", "foreign equity", "equity shares", "fgn equity"}
-
-
-def _get(url, timeout=20):
-    """HTTP GET with exponential backoff + rate-limit awareness.
-    Retries up to 4x with increasing wait (0.5s, 1s, 2s, 4s) and respects
-    Groww's 429/403 signals — backs off longer on rate-limit responses."""
-    for attempt in range(4):
-        try:
-            req = urllib.request.Request(url, headers=H)
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                if r.status == 200:
-                    return json.loads(r.read().decode("utf-8", errors="replace"))
-                # 429 Too Many Requests or 403 Forbidden (Groww's rate-limit signal)
-                if r.status in (429, 403):
-                    wait = min(2 ** (attempt + 2), 30)  # 4s, 8s, 16s, 30s
-                    time.sleep(wait)
-                    continue
-            time.sleep(0.5 * (2 ** attempt))
-        except urllib.error.HTTPError as e:
-            if e.code in (429, 403):
-                wait = min(2 ** (attempt + 2), 30)
-                time.sleep(wait)
-                continue
-            time.sleep(0.5 * (2 ** attempt))
-        except Exception:
-            time.sleep(0.5 * (2 ** attempt))
-    return None
-
 
 
 def load_slug_map():
@@ -224,19 +204,50 @@ def load_universe():
     return uni
 
 
-def capture_one(code, name, smap, today):
+def history_belongs_elsewhere(code, stored_slug, current_slug, fetch=None):
+    """True when stored history was captured from a page that is another scheme.
+
+    Only a positive identity mismatch on the stored slug counts. If the stored slug
+    is the current one, or it still resolves to this fund (a rename), or it cannot
+    be fetched, the history is kept.
+    """
+    if not stored_slug or stored_slug == current_slug:
+        return False
+    fetch = fetch or fetch_scheme_verified
+    return fetch(code, stored_slug)["status"] == "identity_mismatch"
+
+
+def stored_slug_for(code):
+    p = os.path.join(HIST_DIR, f"{code}.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8")).get("slug")
+    except Exception:
+        return None
+
+
+def capture_one(code, name, smap, today, fetch=None):
+    """Returns (code, snap, status, final_slug, reset_history)."""
+    fetch = fetch or fetch_scheme_verified
     slug = resolve_slug(code, name, smap)
     if not slug:
-        return code, None, "unresolved"
-    sc = _get(SCHEME + slug, timeout=25)
-    if not sc:
-        return code, None, "fetch_failed"
+        return code, None, "unresolved", None, False
+    res = fetch(code, slug)
+    if res["status"] not in ("ok", "renamed"):
+        status = res["status"]
+        if status == "identity_mismatch":
+            status = f"identity_mismatch:{res.get('got')}"
+        return code, None, status, slug, False
+    sc = res["payload"]
+    final_slug = res["slug"]
+    reset = history_belongs_elsewhere(code, stored_slug_for(code), final_slug, fetch)
 
     raw = sc.get("holdings") or []
     holds = norm_holdings(raw)
     pdate = iso_pdate(raw[0].get("portfolio_date")) if raw else None
     if not holds or not pdate:
-        return code, None, "no_disclosure"
+        return code, None, "no_disclosure", final_slug, reset
     coverage = "feeder_unresolved" if is_feeder_singleline(holds) else "stock_level"
     snap = {
         "portfolioDate": pdate,
@@ -254,7 +265,7 @@ def capture_one(code, name, smap, today):
         "lock_in": sc.get("lock_in"),
         "holdings": holds,
     }
-    return code, snap, coverage
+    return code, snap, coverage, final_slug, reset
 
 
 def main():
@@ -274,6 +285,11 @@ def main():
     # matches the CURRENT latest Groww date — but we don't know that without a fetch.
     # Cheap heuristic: always fetch, but only WRITE if the portfolioDate is new.
     todo = list(uni.items())
+    _only = os.environ.get("FF_CAPTURE_CODES", "").strip()
+    if _only:
+        wanted = {int(c) for c in _only.replace(" ", "").split(",") if c.isdigit()}
+        todo = [(c, n) for c, n in todo if c in wanted]
+        print(f"(FF_CAPTURE_CODES set: only {len(todo)} funds this run)")
     # Optional cap for a quick smoke test: set FF_CAPTURE_LIMIT=5
     _lim = os.environ.get("FF_CAPTURE_LIMIT")
     if _lim and _lim.isdigit():
@@ -285,6 +301,9 @@ def main():
     skipped_same = 0
     cov_counter = {}
     fetch_errors = 0
+    renamed = {}       # code -> (old slug, new slug)
+    mismatched = []    # (code, slug, got)
+    resets = []        # codes whose old history belonged to another scheme
     t0 = time.time()
     done = 0
 
@@ -310,29 +329,32 @@ def main():
             c, n = futs[fut]
             done += 1
             try:
-                code, snap, cov = fut.result()
+                code, snap, cov, final_slug, reset = fut.result()
             except Exception as e:
-                cov = f"error:{str(e)[:20]}"; snap = None; code = c; fetch_errors += 1
-            cov_counter[cov] = cov_counter.get(cov, 0) + 1
-            if cov and ("error" in str(cov) or cov == "fetch_failed"):
+                cov = f"error:{str(e)[:20]}"; snap = None; code = c; final_slug = None; reset = False
+            ckey = cov.split(":")[0] if isinstance(cov, str) else cov
+            cov_counter[ckey] = cov_counter.get(ckey, 0) + 1
+            if ckey and ("error" in str(ckey) or ckey == "fetch_failed"):
                 fetch_errors += 1
-            c, n = futs[fut]
-            done += 1
-            try:
-                code, snap, cov = fut.result()
-            except Exception as e:
-                cov = f"error:{str(e)[:20]}"; snap = None; code = c
-            cov_counter[cov] = cov_counter.get(cov, 0) + 1
+            if ckey == "identity_mismatch":
+                mismatched.append((code, smap.get(str(code)), cov.split(":", 1)[1]))
+            if final_slug and final_slug != smap.get(str(code)):
+                renamed[code] = (smap.get(str(code)), final_slug)
+                smap[str(code)] = final_slug
             if snap:
-                rec = load_hist(code) or {"code": code, "slug": smap.get(str(code)),
-                                          "name": n, "snapshots": {}}
+                rec = load_hist(code)
+                if rec is None or reset:
+                    if reset:
+                        resets.append(code)
+                    rec = {"code": code, "slug": final_slug, "name": n, "snapshots": {}}
                 pd = snap["portfolioDate"]
-                if pd in rec["snapshots"] and rec["snapshots"][pd].get("exit_load") is not None:
+                if pd in rec["snapshots"] and rec["snapshots"][pd].get("exit_load") is not None \
+                        and rec.get("slug") == final_slug:
                     skipped_same += 1
                 else:
                     rec["snapshots"][pd] = snap
                     rec["name"] = n
-                    rec["slug"] = smap.get(str(code))
+                    rec["slug"] = final_slug
                     json.dump(rec, open(os.path.join(HIST_DIR, f"{code}.json"), "w",
                                         encoding="utf-8"), separators=(",", ":"))
                     added_snaps += 1
@@ -342,6 +364,19 @@ def main():
                 print(f"  {done}/{len(todo)} | {rate:.1f}/s | ETA {eta:.0f}s | new={added_snaps} same={skipped_same}")
 
 
+
+    if renamed:
+        json.dump(smap, open(SLUG_MAP_PATH, "w", encoding="utf-8"), separators=(",", ":"))
+        print(f"Groww renamed {len(renamed)} fund pages; saved the new slugs to _slugs.json:")
+        for code, (old, new) in sorted(renamed.items()):
+            print(f"  {code}: {old} -> {new}")
+    if resets:
+        print(f"Reset history for {len(resets)} funds whose stored snapshots came from another "
+              f"scheme's page: {sorted(resets)}")
+    if mismatched:
+        print(f"::warning::{len(mismatched)} slugs point at a different Groww scheme; holdings "
+              f"withheld until _slugs.json is corrected: "
+              + ", ".join(f"{c} (slug {s} is scheme {g})" for c, s, g in sorted(mismatched)))
 
     # write/refresh a manifest summarizing the dataset
     manifest = {"updatedAt": today, "funds": 0, "totalSnapshots": 0, "multiSnapshot": 0}

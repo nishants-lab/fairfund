@@ -12,8 +12,10 @@ Output: fund_managers.json
                    funds_managed:[{name, code}]} ],
       fetched: true/false } }
 
-Resumable & idempotent. Uses a browser User-Agent. Validates the fetched
-scheme name matches ours (same guard as holdings) before trusting manager data.
+Resumable & idempotent. Uses a browser User-Agent. Manager data is only kept
+when Groww's scheme_code for the page is this fund's own code (same guard as
+the holdings capture, scripts/groww_identity.py). A matching name alone is not
+enough: "SBI Nifty IT Index Fund" and "SBI Nifty Index Fund" overlap by name.
 """
 import json, os, sys, time, urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -21,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
+from groww_identity import fetch_scheme_verified  # noqa: E402
 
 # Try importing fetch_holdings for _get/_name_overlap; provide fallbacks if not available
 try:
@@ -84,15 +87,14 @@ def fetch_one(code):
     if not slug:
         rec = {"managers": [], "fetched": False, "note": "no slug"}
         json.dump(rec, open(cf, "w")); return code, rec
-    d = fh._get(fh.SCHEME + slug, timeout=25)
-    if not d:
-        rec = {"managers": [], "fetched": False, "note": "fetch failed"}
-        json.dump(rec, open(cf, "w")); return code, rec
-    # validate identity
-    fetched_name = d.get("scheme_name") or d.get("fund_name") or ""
-    if fh._name_overlap(auth_name(code), fetched_name) < 0.45 and str(d.get("scheme_code")) != str(code):
+    res = fetch_scheme_verified(code, slug)
+    if res["status"] == "identity_mismatch":
         rec = {"managers": [], "fetched": False, "note": "identity mismatch"}
         json.dump(rec, open(cf, "w")); return code, rec
+    if res["status"] not in ("ok", "renamed"):
+        rec = {"managers": [], "fetched": False, "note": "fetch failed"}
+        json.dump(rec, open(cf, "w")); return code, rec
+    d = res["payload"]
 
     details = d.get("fund_manager_details") or []
     managers = []

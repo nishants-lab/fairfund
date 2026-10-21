@@ -167,7 +167,14 @@ def test_slugs_json():
     universe = {str(f["code"]) for f in load_funds()["funds"]} | BENCHMARK_CODES
     orphans = [k for k in slugs if k not in universe]
     check(not orphans, f"{len(orphans)} orphan slug entries (code not in universe): {orphans[:5]}")
-    print(f"  {len(slugs)} slugs validated ({len(orphans)} orphans)")
+    # One Groww page is one scheme. A slug shared by two codes means at least one
+    # fund is showing another fund's holdings, AUM and expense ratio.
+    by_slug = {}
+    for k, v in slugs.items():
+        by_slug.setdefault(v, []).append(k)
+    shared = {v: ks for v, ks in by_slug.items() if len(ks) > 1}
+    check(not shared, f"{len(shared)} Groww slugs shared by more than one fund: {list(shared.items())[:3]}")
+    print(f"  {len(slugs)} slugs validated ({len(orphans)} orphans, {len(shared)} shared)")
 
 
 def test_fund_data_coverage():

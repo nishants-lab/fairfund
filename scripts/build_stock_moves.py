@@ -482,6 +482,30 @@ def compute_fund_moves(code, snapshots, ticker_map, price_cache):
     }
 
 
+def clear_short_history_moves(fund_data_dir, codes):
+    """Null out stockMoves for funds that have fewer than 2 snapshots.
+
+    A fund whose history was reset (it had been captured from another scheme's
+    page) has one snapshot again. Any stockMoves card it still has describes the
+    other scheme's trades, so it is cleared to null, which the site reads as
+    "no comparison yet". Returns the number of files changed.
+    """
+    cleared = 0
+    for code in sorted(codes):
+        fp = os.path.join(fund_data_dir, f"{code}.json")
+        if not os.path.exists(fp):
+            continue
+        try:
+            detail = json.load(open(fp, encoding="utf-8"))
+        except Exception:
+            continue
+        if detail.get("stockMoves"):
+            detail["stockMoves"] = None
+            json.dump(detail, open(fp, "w", encoding="utf-8"), ensure_ascii=False)
+            cleared += 1
+    return cleared
+
+
 # ---- Main ----
 
 def main():
@@ -501,14 +525,33 @@ def main():
     truly_unresolved = sum(1 for v in ticker_map.values() if v is None)
     print(f"Step 2 summary: {equity_resolved} equity tickers resolved | {debt_skipped} debt skipped | {truly_unresolved} genuinely unresolved")
 
+    # FF_MOVES_CODES=code,code recomputes only those funds (targeted repair after a
+    # holdings correction), so a repair does not reprice every other fund mid-month.
+    only = {c.strip() for c in os.environ.get("FF_MOVES_CODES", "").split(",") if c.strip().isdigit()}
+    if only:
+        print(f"(FF_MOVES_CODES set: only {sorted(only)})")
+        keys = set()
+        for c in only:
+            try:
+                rec = json.load(open(os.path.join(HIST_DIR, f"{c}.json"), encoding="utf-8"))
+            except Exception:
+                continue
+            for s in rec.get("snapshots", {}).values():
+                keys.update(h.get("key") for h in s.get("holdings", []) if h.get("key"))
+        price_keys = keys
+    else:
+        price_keys = None
+
     # Step 3: fetch prices
-    unique_tickers = list(set(v for v in ticker_map.values() if v and not v.startswith("__")))
+    unique_tickers = list(set(v for k, v in ticker_map.items()
+                              if v and not v.startswith("__") and (price_keys is None or k in price_keys)))
     print(f"Step 3: {len(unique_tickers)} unique tickers to price (excl. debt/unmapped)")
     price_cache = fetch_prices(unique_tickers)
 
     # Step 4: compute moves per fund
     print("Step 4: computing smart moves per fund...")
     results = {}
+    short_history = set()  # funds with <2 snapshots: no comparable move exists
     fund_count = 0
     with_moves = 0
     with_score = 0
@@ -516,12 +559,15 @@ def main():
         if not fn.endswith(".json") or fn.startswith("_"):
             continue
         code = fn[:-5]
+        if only and code not in only:
+            continue
         try:
             rec = json.load(open(os.path.join(HIST_DIR, fn), encoding="utf-8"))
         except:
             continue
         snaps = rec.get("snapshots", {})
         if len(snaps) < 2:
+            short_history.add(code)
             continue
         fund_count += 1
         moves = compute_fund_moves(code, snaps, ticker_map, price_cache)
@@ -531,7 +577,8 @@ def main():
             if moves["smartScore"] is not None:
                 with_score += 1
 
-    json.dump(results, open(OUTPUT, "w", encoding="utf-8"))
+    if not only:
+        json.dump(results, open(OUTPUT, "w", encoding="utf-8"))
 
     # Merge stockMoves into the per-fund detail files the website loads. Without
     # this the site keeps showing whatever was embedded at build time (stale).
@@ -550,6 +597,9 @@ def main():
                 json.dump(detail, open(fp, "w", encoding="utf-8"), ensure_ascii=False)
                 merged += 1
         print(f"Merged stockMoves into {merged} fund-data files at {FUND_DATA_DIR}")
+        cleared = clear_short_history_moves(FUND_DATA_DIR, short_history)
+        if cleared:
+            print(f"Cleared stale stockMoves for {cleared} funds with fewer than 2 snapshots")
     else:
         print("WARNING: fund-data dir not found; stockMoves NOT merged into site data")
     print(f"\nDone. Funds with >=2 snapshots: {fund_count}")
