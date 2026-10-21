@@ -8,11 +8,12 @@ Disallow: /analytics/
 Disallow: /nav/
 Disallow: /holdings-history/
 
-# Block common AI/LLM crawlers from all content
-User-agent: GPTBot
-Disallow: /
+# Crawlers read robots.txt only from the host root
+# (https://nishants-lab.github.io/robots.txt); keep this copy in sync with it.
 
-User-agent: ChatGPT-User
+# Block AI training crawlers. Search and user-requested fetchers
+# (OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-SearchBot) follow * above.
+User-agent: GPTBot
 Disallow: /
 
 User-agent: CCBot

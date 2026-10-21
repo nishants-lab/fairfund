@@ -1,0 +1,31 @@
+name: Submit URLs to IndexNow
+
+# Tells Bing (and through it DuckDuckGo, Copilot, ChatGPT search) plus Yandex,
+# Seznam, Naver and Yep that pages changed. Runs after each successful site
+# deploy and weekly to cover daily data refreshes. Never commits.
+on:
+  workflow_run:
+    workflows: ["Deploy to GitHub Pages"]
+    types: [completed]
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Submit live sitemap
+        run: node scripts/indexnow-submit.mjs

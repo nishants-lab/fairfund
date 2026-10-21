@@ -78,3 +78,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          # Pin the commit identity so gh-pages commits are credited to the owner's
+          # contribution graph (default falls back to whoever triggered the run).
+          user_name: fairfund-bot
+          user_email: 52659071+nishants-lab@users.noreply.github.com
