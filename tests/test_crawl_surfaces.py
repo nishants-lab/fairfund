@@ -124,6 +124,35 @@ class CrawlSurfaceTests(unittest.TestCase):
         self.assertRegex(key, r'^[a-f0-9]{32}$')
         self.assertEqual((ROOT/'public'/f'{key}.txt').read_text(encoding='utf-8').strip(), key)
 
+    def test_indexnow_retries_only_transient_rejections(self):
+        script = self.base/'retry_check.mjs'
+        script.write_text("""
+import { submitWithRetry } from './scripts/indexnow-submit.mjs'
+const body = { urlList: ['u'] }
+async function run(seq) {
+  const calls = []; let i = 0
+  const post = async () => { calls.push(1); return seq[Math.min(i++, seq.length - 1)] }
+  try { const s = await submitWithRetry(body, { attempts: 4, waitMs: 1, post, log: () => {} }); return { ok: s, calls: calls.length } }
+  catch (e) { return { err: e.message, calls: calls.length } }
+}
+const verify = { status: 403, text: '{"errorCode":"SiteVerificationNotCompleted"}' }
+console.log(JSON.stringify({
+  verifyThenOk: await run([verify, verify, { status: 202, text: '' }]),
+  rateThenOk: await run([{ status: 429, text: '' }, { status: 200, text: '' }]),
+  badKey: await run([{ status: 403, text: '{"errorCode":"InvalidKey"}' }]),
+  badRequest: await run([{ status: 422, text: '' }]),
+  neverVerified: await run([verify]),
+}))
+""", encoding='utf-8')
+        r = subprocess.run([NODE, str(script)], cwd=self.base, text=True, capture_output=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(out['verifyThenOk'], {'ok': 202, 'calls': 3})
+        self.assertEqual(out['rateThenOk'], {'ok': 200, 'calls': 2})
+        self.assertEqual(out['badKey']['calls'], 1); self.assertIn('HTTP 403', out['badKey']['err'])
+        self.assertEqual(out['badRequest']['calls'], 1)
+        self.assertEqual(out['neverVerified']['calls'], 4)
+
     def test_build_runs_home_between_unfurls_and_sitemap(self):
         build = json.loads((ROOT/'package.json').read_text(encoding='utf-8'))['scripts']['build']
         self.assertRegex(build, r'gen-unfurls\.mjs && node scripts/gen-home\.mjs && node scripts/gen-sitemap\.mjs')

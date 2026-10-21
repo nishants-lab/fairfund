@@ -73,12 +73,29 @@ async function main() {
   }
   const live = (await fetchText(payloads[0].keyLocation)).trim()
   if (live !== INDEXNOW_KEY) throw new Error(`Live key file ${payloads[0].keyLocation} does not match INDEXNOW_KEY`)
-  for (const body of payloads) {
-    const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body: JSON.stringify(body) })
-    const text = await r.text().catch(() => '')
-    console.log(`[indexnow] ${body.urlList.length} URLs -> HTTP ${r.status} ${text.slice(0, 200)}`)
-    if (r.status !== 200 && r.status !== 202) throw new Error(`IndexNow rejected submission: HTTP ${r.status}`)
+  const waitMs = Number(process.env.INDEXNOW_RETRY_MS ?? 60000)
+  for (const body of payloads) await submitWithRetry(body, { waitMs })
+}
+
+/** A new key gets 403 SiteVerificationNotCompleted until the engine has fetched
+ * the key file; 429/5xx are transient. Retry those with backoff, fail on others. */
+export function isRetryable(status, text) {
+  return status === 429 || status >= 500 || (status === 403 && /SiteVerificationNotCompleted/.test(text))
+}
+
+export async function submitWithRetry(body, { attempts = 8, waitMs = 60000, post = defaultPost, log = console.log } = {}) {
+  for (let i = 1; i <= attempts; i++) {
+    const { status, text } = await post(body)
+    log(`[indexnow] attempt ${i}: ${body.urlList.length} URLs -> HTTP ${status} ${String(text).slice(0, 200)}`)
+    if (status === 200 || status === 202) return status
+    if (!isRetryable(status, text) || i === attempts) throw new Error(`IndexNow rejected submission: HTTP ${status}`)
+    await new Promise(res => setTimeout(res, waitMs * i))
   }
+}
+
+async function defaultPost(body) {
+  const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body: JSON.stringify(body) })
+  return { status: r.status, text: await r.text().catch(() => '') }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
