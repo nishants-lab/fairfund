@@ -154,6 +154,7 @@ class CaptureRunTests(unittest.TestCase):
         self.patches = [
             mock.patch.object(C, "HIST_DIR", self.tmp),
             mock.patch.object(C, "SLUG_MAP_PATH", os.path.join(self.tmp, "_slugs.json")),
+            mock.patch.object(C, "FORMER_SLUGS_PATH", os.path.join(self.tmp, "_former_slugs.json")),
             mock.patch.object(C, "WS_SLUG_CACHE", os.path.join(self.tmp, "no-ws-cache")),
             mock.patch.object(C.time, "sleep", lambda s: None),
         ]
@@ -203,6 +204,15 @@ class CaptureRunTests(unittest.TestCase):
         self.assertEqual(rec["slug"], "kotak-mid-cap")
         self.assertEqual(slugs["119775"], "kotak-mid-cap")
         self.assertIn("119775: kotak-emerging -> kotak-mid-cap", log)
+        former = json.load(open(os.path.join(self.tmp, "_former_slugs.json")))
+        self.assertEqual(former, {"119775": ["kotak-emerging"]})
+
+    def test_former_slugs_append_without_duplicates(self):
+        path = os.path.join(self.tmp, "_former_slugs.json")
+        json.dump({"1": ["a"]}, open(path, "w"))
+        C.record_former_slugs({1: ("a", "b"), 2: ("x", "y"), 3: (None, "z")}, path)
+        C.record_former_slugs({1: ("b", "c")}, path)
+        self.assertEqual(json.load(open(path)), {"1": ["a", "b"], "2": ["x"]})
 
     def test_wrong_page_writes_nothing_and_warns(self):
         self.hist(153320, "sbi-nifty", ["2026-08-31"])

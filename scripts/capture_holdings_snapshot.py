@@ -62,6 +62,9 @@ if HIST_DIR is None:
     HIST_DIR = os.path.abspath(_CAND[0])
 os.makedirs(HIST_DIR, exist_ok=True)
 SLUG_MAP_PATH = os.path.join(HIST_DIR, "_slugs.json")
+# Old slugs of renamed Groww pages, kept so search can still find a fund by the
+# name it used to have (scripts/build_former_names.py).
+FORMER_SLUGS_PATH = os.path.join(HIST_DIR, "_former_slugs.json")
 
 # Local seed sources (present in the workspace, absent in CI).
 WS_SLUG_CACHE = os.path.join(ROOT, "holdings_cache", "_slugs")
@@ -202,6 +205,22 @@ def load_universe():
     else:
         print(f"  ERROR: tried {UNIVERSE_PATH} and {FUNDS_JSON}, neither exists.")
     return uni
+
+
+def record_former_slugs(renamed, path=None):
+    """Append each renamed fund's old slug to _former_slugs.json (no duplicates)."""
+    path = path or FORMER_SLUGS_PATH
+    try:
+        former = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    except Exception:
+        former = {}
+    for code, (old, _new) in renamed.items():
+        if not old:
+            continue
+        olds = former.setdefault(str(code), [])
+        if old not in olds:
+            olds.append(old)
+    json.dump(dict(sorted(former.items())), open(path, "w", encoding="utf-8"), separators=(",", ":"))
 
 
 def history_belongs_elsewhere(code, stored_slug, current_slug, fetch=None):
@@ -367,6 +386,7 @@ def main():
 
     if renamed:
         json.dump(smap, open(SLUG_MAP_PATH, "w", encoding="utf-8"), separators=(",", ":"))
+        record_former_slugs(renamed)
         print(f"Groww renamed {len(renamed)} fund pages; saved the new slugs to _slugs.json:")
         for code, (old, new) in sorted(renamed.items()):
             print(f"  {code}: {old} -> {new}")

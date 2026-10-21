@@ -67,6 +67,9 @@ jobs:
       - name: Rebuild category benchmarks from current NAV
         run: python scripts/build_category_median.py
 
+      - name: Rebuild search aliases (former fund names)
+        run: python scripts/build_former_names.py
+
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
 
@@ -171,6 +174,9 @@ jobs:
 
       - name: Rebuild category benchmarks from current NAV
         run: python scripts/build_category_median.py
+
+      - name: Rebuild search aliases (former fund names)
+        run: python scripts/build_former_names.py
 
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
