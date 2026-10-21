@@ -118,7 +118,7 @@ jobs:
         run: |
           BRANCH="discovery/$(date +%Y-%m)"
           git config user.name fairfund-bot
-          git config user.email bot@fairfund.in
+          git config user.email 52659071+nishants-lab@users.noreply.github.com
           git checkout -b "$BRANCH"
           git commit -m "discovery: new funds $(date +%Y-%m-%d)"
           git push -f origin "$BRANCH"
