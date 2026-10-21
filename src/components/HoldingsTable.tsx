@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Fund } from '../types'
 import { fmtDate } from '../lib/metrics'
+import { hasMonthOnMonth } from '../lib/holdingsChange'
 
 function coverageLabel(cov?: string): { text: string; tone: string } {
   switch (cov) {
@@ -71,7 +72,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
 
   const shown = expanded ? holdings : holdings.slice(0, 10)
   const shownSum = shown.reduce((s, h) => s + h.pct, 0)
-  const hasChange = holdings.some((h) => h.change !== undefined)
+  const hasChange = hasMonthOnMonth(holdings)
 
   return (
     <div className="mt-6 card p-5">
