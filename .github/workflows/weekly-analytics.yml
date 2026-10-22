@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # dispatch deploy.yml after committing
 
 jobs:
   rebuild-analytics:
@@ -66,19 +67,12 @@ jobs:
             git push
           fi
 
-      - name: Build and deploy site
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci && npm run build
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # Pin the commit identity so gh-pages commits are credited to the owner's
-          # contribution graph (default falls back to whoever triggered the run).
-          user_name: fairfund-bot
-          user_email: 52659071+nishants-lab@users.noreply.github.com
+      # The site is served from GitHub Actions artifacts (Pages build_type
+      # "workflow"), so a gh-pages branch push is never published, and a push
+      # made with GITHUB_TOKEN does not start deploy.yml on its own. Until
+      # 2026-10-22 this job pushed to gh-pages and its data waited for the next
+      # daily deploy. Dispatch the site's one deploy path instead.
+      - name: Deploy site (dispatch deploy.yml)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --repo "${{ github.repository }}" --ref main

@@ -46,5 +46,17 @@ class WorkflowIdentityTests(unittest.TestCase):
                                  f'{wf.name}: gh-pages publish must set user_email')
 
 
+    def test_site_deploys_only_through_pages_artifacts(self):
+        # Pages serves Actions artifacts; a gh-pages branch push is silently ignored.
+        for wf in WORKFLOWS:
+            text = wf.read_text(encoding='utf-8')
+            self.assertNotRegex(text, r'peaceiris/actions-gh-pages', f'{wf.name} publishes to an unserved gh-pages branch')
+        weekly = next(wf for wf in WORKFLOWS if wf.name == 'weekly-analytics.yml').read_text(encoding='utf-8')
+        self.assertIn('gh workflow run deploy.yml', weekly)
+        self.assertRegex(weekly, r'actions:\s*write')
+        self.assertLess(weekly.index('git push'), weekly.index('gh workflow run deploy.yml'),
+                        'deploy is dispatched after the analytics commit is pushed')
+
+
 if __name__ == '__main__':
     unittest.main()
