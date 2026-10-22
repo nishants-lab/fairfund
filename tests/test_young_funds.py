@@ -7,7 +7,8 @@ Pins the 2026-10-22 change:
   * a fund onboarded with a slug but no holdings yet still gets its managers.
     fetch_managers looked for the slug only in holdings-history files, stored
     "no slug" and never asked again (36 listed funds had no managers for this);
-  * six index funds carried another index as their benchmark.
+  * six index funds carried another index as their benchmark;
+  * a new fund's detail file exists before onboarding fills it.
 No network: Groww is never called.
 """
 from pathlib import Path
@@ -92,6 +93,69 @@ class DiscoveryWorkflowTests(unittest.TestCase):
                                          "pipeline/compute_metrics.py")]
         self.assertEqual(order, sorted(order))
         self.assertIn("src/data/", text.split("git add", 1)[1].splitlines()[0])
+
+    def test_detail_files_exist_before_onboarding(self):
+        # Onboarding, manager signals and enrichment only update an existing detail
+        # file. PR #13 (2026-10-22) shipped 20 new funds without holdings, managers,
+        # AUM or cost because split_funds first ran after all three.
+        text = (ROOT / ".github" / "workflows" / "discover-funds.yml").read_text(encoding="utf-8")
+        self.assertLess(text.index("migrations/split-analytics/split_funds.py"),
+                        text.index("scripts/onboard_new_funds.py"))
+
+
+class NewFundDetailFileTests(unittest.TestCase):
+    """A new fund's first holdings reach its detail file and survive the prune."""
+
+    FUND = {"code": 999001, "name": "Test Flexi Cap Fund", "category": "Flexi Cap",
+            "categoryDisplay": "Flexi Cap", "isYoung": True,
+            "holdingsMeta": {"coverage": "pending"}}
+    SNAP = {"portfolioDate": "2026-09-30", "aum": 64.74, "expense_ratio": "0.85",
+            "holdings": [{"name": "A Ltd", "pct": 5.0, "sector": "Financial",
+                          "instrument": "Equity", "key": "a-ltd"}]}
+
+    def run_chain(self, create_first):
+        S = _load("split_funds", "migrations/split-analytics")
+        O = _load("onboard_new_funds")
+        P = _load("prune_pending")
+        with tempfile.TemporaryDirectory(prefix="ff-new-", dir=ROOT.parent) as tmp:
+            base = Path(tmp)
+            det = base / "fund-data"
+            det.mkdir()
+            index = base / "funds.json"
+            index.write_text(json.dumps({"funds": [dict(self.FUND)]}), encoding="utf-8")
+            with mock.patch.multiple(S, FUNDS_SRC=index, DETAIL_DIR=det), \
+                 mock.patch.object(O, "DETAIL_DIR", str(det)), \
+                 mock.patch.object(P, "FUND_DATA_DIR", str(det)), \
+                 mock.patch("builtins.print"):
+                if create_first:
+                    S.main()
+                wrote = O.write_fund_data(self.FUND["code"], self.SNAP, "stock_level")
+                coverage = P.get_fund_data_coverage(self.FUND["code"])
+                fp = det / f"{self.FUND['code']}.json"
+                detail = json.loads(fp.read_text(encoding="utf-8")) if fp.exists() else None
+            return wrote, coverage, detail
+
+    def test_holdings_land_when_the_detail_file_is_created_first(self):
+        wrote, coverage, detail = self.run_chain(create_first=True)
+        self.assertTrue(wrote)
+        # prune_pending keeps a stock_level fund as is; only none/missing/error get the stub
+        self.assertEqual(coverage, "stock_level")
+        self.assertEqual(len(detail["holdings"]), 1)
+        self.assertEqual(detail["aum"], {"current": 64.7, "asOf": "2026-09-30"})
+        self.assertEqual(detail["category"], "Flexi Cap")
+
+    def test_missing_detail_file_is_reported_not_silent(self):
+        O = _load("onboard_new_funds")
+        with tempfile.TemporaryDirectory(prefix="ff-new-", dir=ROOT.parent) as tmp, \
+             mock.patch.object(O, "DETAIL_DIR", tmp), mock.patch("builtins.print") as out:
+            self.assertFalse(O.write_fund_data(999001, self.SNAP, "stock_level"))
+        self.assertIn("::warning::", out.call_args[0][0])
+
+    def test_old_order_loses_the_holdings(self):
+        wrote, coverage, detail = self.run_chain(create_first=False)
+        self.assertFalse(wrote)
+        self.assertEqual(coverage, "missing")
+        self.assertIsNone(detail)
 
 
 class YoungFundCostTests(unittest.TestCase):
