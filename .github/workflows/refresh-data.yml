@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   daily-nav:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -99,7 +99,7 @@ jobs:
 
   deploy-pages:
     needs: daily-nav
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -109,7 +109,7 @@ jobs:
 
   monthly-holdings:
     if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     needs: daily-nav
     steps:
