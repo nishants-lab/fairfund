@@ -51,6 +51,14 @@ jobs:
       - name: Rebuild matcher universe
         run: python pipeline/build_matcher_universe.py
 
+      # Step 1.6: Give each new fund its detail file before anything fills it.
+      # Onboarding, the manager signals and the AUM/cost enrichment only update a
+      # detail file that already exists, so without this step a new fund reached
+      # the release with no holdings, managers, AUM or expense ratio.
+      - name: Create detail files for new funds
+        if: steps.discover.outputs.new_funds == 'true'
+        run: python migrations/split-analytics/split_funds.py
+
       # Step 2: Onboard new funds (resolve slugs, validate, fetch initial holdings)
       - name: Onboard new funds
         if: steps.discover.outputs.new_funds == 'true'

@@ -289,7 +289,10 @@ def write_fund_data(code, snap, coverage):
     """Update fund-data/{code}.json with holdings from the snapshot."""
     detail_path = os.path.join(DETAIL_DIR, f"{code}.json")
     if not os.path.exists(detail_path):
-        return
+        # The discovery workflow creates detail files before onboarding. If one is
+        # still missing, say so: the holdings are kept in holdings-history only.
+        print(f"::warning::fund-data/{code}.json missing; holdings saved to history only")
+        return False
 
     detail = json.load(open(detail_path, encoding="utf-8"))
     detail["holdings"] = snap["holdings"][:30]  # top 30 for frontend
@@ -310,6 +313,7 @@ def write_fund_data(code, snap, coverage):
 
     with open(detail_path, "w", encoding="utf-8") as f:
         json.dump(detail, f, separators=(",", ":"), ensure_ascii=False)
+    return True
 
 
 def refresh_history_manifest():
