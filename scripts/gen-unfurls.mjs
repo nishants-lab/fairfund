@@ -202,8 +202,8 @@ function pageJsonld(name, desc, path) {
 }
 
 const moversBody = pageBody("Mutual fund movers", [
-  `What moved across ${total} Indian mutual funds: funds gaining or losing assets fastest, funds climbing or falling in their category rank, and funds with the strongest return momentum against their peers.`,
-  `Every move is measured within the fund's own category, so a small-cap is compared to small-caps and a liquid fund to liquid funds, never across risk levels.`,
+  `What moved across ${total} Indian mutual funds: estimated net flows with the market effect taken out, fund size, returns, category rank, return momentum, expense ratio changes, fund manager changes, and the stocks funds bought and sold.`,
+  `Ask in plain English, such as "which small cap fund had the highest inflow", or group the figures by category, fund house, index vs active or theme. Ranks are measured within each fund's own category; momentum compares a fund's recent 1-year return with its own 3- or 5-year record.`,
 ], '/movers')
 
 const compareBody = pageBody("Compare mutual funds side by side", [
@@ -241,8 +241,8 @@ const pages = [
     `Browse Indian mutual funds by category and compare historical returns, risk and costs.`, exploreBody,
     pageJsonld('Explore mutual funds', `Browse ${total} Indian mutual funds by category and compare historical returns, risk and costs.`, 's/explore/')],
   ['s/movers', '/movers', `Fund movers - FairFund`,
-    `Asset, category-rank and return-momentum movers across ${total} Indian mutual funds on FairFund.`, moversBody,
-    pageJsonld('Mutual fund movers', 'Funds moving fastest on assets, category rank and return momentum.', 's/movers/')],
+    `Estimated net flows, fund size, rank, costs, manager changes and portfolio moves across ${total} Indian mutual funds on FairFund.`, moversBody,
+    pageJsonld('Mutual fund movers', 'Estimated net flows, fund size, returns, rank, costs, manager changes and portfolio moves across Indian mutual funds.', 's/movers/')],
   ['s/compare', '/compare', `Compare funds side by side - FairFund`,
     `Compare mutual funds over a selected period and review overlap in their disclosed holdings.`, compareBody,
     pageJsonld('Compare mutual funds', 'Compare mutual funds over a selected period and review overlap in their disclosed holdings.', 's/compare/')],
