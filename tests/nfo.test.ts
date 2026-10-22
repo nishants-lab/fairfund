@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 
 import { funds, getFund } from '../src/lib/data'
 import {
-  categoryContext, groupNfos, nfoData, normalizeBenchmark, sameIndexFunds, statusOn, todayIst, yearsSince, type Nfo,
+  categoryContext, groupNfos, nameAgreesWithBenchmark, nfoData, normalizeBenchmark, sameIndexFunds, statusOn, todayIst, yearsSince, type Nfo,
 } from '../src/lib/nfo'
 
 const nfo = (o: Partial<Nfo>): Nfo => ({
@@ -50,6 +50,24 @@ test('index NFOs list funds already tracking the same index (real data)', () => 
   assert.deepEqual(sameIndexFunds(nfo({ category: 'Index Funds' }), funds), [])
   assert.deepEqual(sameIndexFunds(nfo({ details: { benchmark: 'NIFTY 50 Total Return Index' } }), funds), [])
   assert.deepEqual(sameIndexFunds(nfo({ category: 'Index-Other', details: { benchmark: 'Nifty Imaginary 7 TRI' } }), funds), [])
+})
+
+test('a fund whose name contradicts its stored benchmark is never listed as tracking it', () => {
+  assert.equal(nameAgreesWithBenchmark('HDFC Nifty 50 Index Fund', 'NIFTY 50 Total Return Index'), true)
+  assert.equal(nameAgreesWithBenchmark('HDFC Index Fund-BSE Sensex Plan', 'S&P BSE Sensex TRI'), true)
+  assert.equal(nameAgreesWithBenchmark('Kotak Nifty Capital Markets Index Fund', 'Nifty Capital Market Index'), true)
+  assert.equal(nameAgreesWithBenchmark('ICICI Prudential Nifty 500 Index Fund', 'NIFTY 50 Total Return Index'), false)
+  assert.equal(nameAgreesWithBenchmark('SBI Nifty IT Index Fund', 'NIFTY 50 Total Return Index'), false)
+  assert.equal(nameAgreesWithBenchmark('Motilal Oswal Nifty Microcap 250 Index Fund', 'NIFTY Smallcap 250 Total Return Index'), false)
+  assert.equal(nameAgreesWithBenchmark('Any Fund', null), false)
+  // Real data, 2026-10-22 audit: these two carry a NIFTY 50 label they do not track.
+  const n50 = nfoData.nfos.find((n) => n.details?.benchmark && normalizeBenchmark(n.details.benchmark) === 'nifty 50')
+  if (n50) {
+    const codes = sameIndexFunds(n50, funds).map((f) => f.code)
+    assert.ok(codes.length >= 10)
+    for (const wrong of [153161, 153320]) assert.ok(!codes.includes(wrong), `${wrong} is not a Nifty 50 fund`)
+    for (const f of sameIndexFunds(n50, funds)) assert.match(f.name, /50/)
+  }
 })
 
 test('active NFOs get their category size; index NFOs never do', () => {

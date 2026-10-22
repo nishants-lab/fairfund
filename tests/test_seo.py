@@ -38,12 +38,13 @@ class SeoTests(unittest.TestCase):
         tree=ET.fromstring((self.base/'dist/sitemap.xml').read_bytes())
         self.assertEqual(tree.tag,'{http://www.sitemaps.org/schemas/sitemap/0.9}urlset')
         locs=[n.text for n in tree.findall('{*}url/{*}loc')]
-        self.assertEqual(len(locs),7);self.assertEqual(len(set(locs)),7)
+        self.assertEqual(len(locs),8);self.assertEqual(len(set(locs)),8)
+        self.assertIn(SITE+'/s/nfo/',locs)
         self.assertTrue(all(u.startswith(SITE+'/') and '#' not in u for u in locs))
         self.assertFalse(tree.findall('{*}url/{*}lastmod'))
 
     def test_missing_pages_fail_without_overwriting_existing_sitemap(self):
-        for path in ['index.html','f/1/index.html','c/large-cap/index.html','s/explore/index.html']:
+        for path in ['index.html','f/1/index.html','c/large-cap/index.html','s/explore/index.html','s/nfo/index.html']:
             with self.subTest(path=path):
                 file=self.base/'dist'/path;original=file.read_bytes();file.unlink()
                 marker=self.base/'dist/sitemap.xml';marker.write_text('previous artifact')

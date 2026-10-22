@@ -29,7 +29,7 @@ function Fact({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="min-w-0">
       <dt className="text-[11px] uppercase tracking-wide text-faint">{label}</dt>
-      <dd className="truncate text-sm text-fg" title={value}>{value}</dd>
+      <dd className="line-clamp-3 break-words text-sm text-fg" title={value}>{value}</dd>
     </div>
   )
 }
@@ -47,8 +47,8 @@ function Existing({ n, today }: { n: Nfo; today: string }) {
           {shown.map((f) => {
             const yrs = yearsSince(f.inceptionDate ?? f.launchDate, today)
             return (
-              <li key={f.code} className="flex items-baseline justify-between gap-3 text-sm">
-                <Link to={`/fund/${f.code}/${fundSlug(f.name)}`} className="min-w-0 truncate text-brand-600 hover:underline dark:text-brand-400">{f.name}</Link>
+              <li key={f.code} className="flex flex-col gap-x-3 text-sm sm:flex-row sm:items-baseline sm:justify-between">
+                <Link to={`/fund/${f.code}/${fundSlug(f.name)}`} className="min-w-0 break-words text-brand-600 hover:underline dark:text-brand-400">{f.name}</Link>
                 <span className="shrink-0 text-xs tabular-nums text-muted">
                   {yrs !== null ? `${yrs >= 1 ? Math.floor(yrs) + ' yr' : '<1 yr'} record` : ''}
                   {typeof f.expenseRatio === 'number' ? ` · TER ${f.expenseRatio.toFixed(2)}%` : ''}
@@ -87,7 +87,7 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
           : `Opened ${fmtDate(n.launchDate)}`
   return (
     <article className="card p-4" data-testid="nfo-card" data-code={n.code}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col-reverse items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-fg">{n.name}</h3>
           <div className="text-xs text-faint">{n.amc}</div>
@@ -95,7 +95,7 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
         <span className={`pill shrink-0 ${color.bg} ${color.text}`}>{listed?.categoryDisplay ?? n.category.replace('-', ' - ')}</span>
       </div>
       <div className="mt-2 text-sm font-medium text-fg" data-testid="nfo-when">{when}</div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
         <Fact label="Benchmark" value={d.benchmark} />
         <Fact label="Manager" value={d.manager} />
         <Fact label="Exit load" value={d.exitLoad} />

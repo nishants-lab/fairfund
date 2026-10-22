@@ -86,6 +86,23 @@ export function yearsSince(d: string | undefined, today: string): number | null 
   return Number.isFinite(ms) && ms >= 0 ? ms / (365.25 * 86_400_000) : null
 }
 
+// Exchange and plan words a fund name may leave out without changing the index.
+const NAME_OPTIONAL = new Set(['s', 'p', 'and', 'bse', 'nse'])
+const stem = (w: string) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)
+
+/**
+ * True when a fund's own name carries every word of its stored benchmark. The
+ * stored field has known mislabels (2026-10-22 audit: "ICICI Prudential Nifty
+ * 500 Index Fund" stored as NIFTY 50, "SBI Nifty IT" as NIFTY 50), so a match
+ * on the field alone could list a fund under an index it does not track.
+ */
+export function nameAgreesWithBenchmark(name: string, benchmark?: string | null): boolean {
+  const want = normalizeBenchmark(benchmark)
+  if (!want) return false
+  const have = new Set(normalizeBenchmark(name).split(' ').map(stem))
+  return want.split(' ').every((w) => NAME_OPTIONAL.has(w) || have.has(stem(w)))
+}
+
 /**
  * Index funds FairFund already covers that track the same index as an index NFO,
  * longest record first. Empty when the NFO's benchmark is unknown or new to the
@@ -96,7 +113,8 @@ export function sameIndexFunds(n: Nfo, all: Fund[]): Fund[] {
   if (!want || !isIndexCategory(n.category)) return []
   const start = (f: Fund) => f.inceptionDate ?? '9999'
   return all
-    .filter((f) => f.code !== n.code && isIndexCategory(f.category) && normalizeBenchmark(f.benchmark) === want)
+    .filter((f) => f.code !== n.code && isIndexCategory(f.category) && normalizeBenchmark(f.benchmark) === want
+      && nameAgreesWithBenchmark(f.name, f.benchmark))
     .sort((a, b) => start(a).localeCompare(start(b)) || a.name.localeCompare(b.name))
 }
 

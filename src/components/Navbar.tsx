@@ -9,7 +9,8 @@ const links = [
   { to: '/explore', label: 'Explore' },
   { to: '/compare', label: 'Compare' },
   { to: '/movers', label: 'Movers' },
-  { to: '/nfo', label: 'NFOs' },
+  // Top bar from lg up only: at md widths a sixth link pushes the bar past the screen edge. Always in the menu.
+  { to: '/nfo', label: 'NFOs', wideOnly: true },
   { to: '/my', label: 'My Portfolio' },
   { to: '/methodology', label: 'Methodology' },
 ]
@@ -77,7 +78,7 @@ export default function Navbar() {
               <Link
                 key={l.to}
                 to={l.to}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                className={`${'wideOnly' in l ? 'hidden lg:block ' : ''}rounded-lg px-3 py-2 text-sm font-medium transition ${
                   loc.pathname.startsWith(l.to)
                     ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
                     : 'text-muted hover:bg-surface2'
@@ -191,6 +192,20 @@ export default function Navbar() {
                           ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
                           : 'text-fg hover:bg-surface2'
                       }`}
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                  <div className="my-1.5 h-px bg-line" />
+                </div>
+                {/* Links the top bar hides at md widths */}
+                <div className="hidden md:block lg:hidden">
+                  {links.filter((l) => 'wideOnly' in l).map((l) => (
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      onClick={() => setMenuOpen(false)}
+                      className="block rounded-lg px-3 py-2.5 text-sm font-medium text-fg transition hover:bg-surface2"
                     >
                       {l.label}
                     </Link>
