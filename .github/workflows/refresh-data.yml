@@ -70,6 +70,10 @@ jobs:
       - name: Rebuild search aliases (former fund names)
         run: python scripts/build_former_names.py
 
+      - name: Refresh new fund offers (AMFI scheme master)
+        run: python scripts/build_nfo.py
+        continue-on-error: true
+
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
 

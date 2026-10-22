@@ -15,7 +15,7 @@ if (!Array.isArray(data.funds) || !data.funds.length) throw new Error('No fund i
 const funds = data.funds
 const site = new URL(SITE)
 if (site.protocol !== 'https:' || site.search || site.hash || SITE.endsWith('/')) throw new Error('SITE must be an HTTPS base without query, fragment or trailing slash')
-const paths = ['','s/explore/','s/compare/','s/movers/','s/methodology/']
+const paths = ['','s/explore/','s/compare/','s/movers/','s/nfo/','s/methodology/']
 const catSlug = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 for (const [key, category] of Object.entries(data.categories ?? {})) {
   if (category.fundCount > 0) {

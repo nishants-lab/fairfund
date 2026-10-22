@@ -53,6 +53,7 @@ export default function Footer() {
             <div className="mt-3 flex flex-col gap-2.5 text-sm">
               <Link to="/explore" className="text-muted transition-colors hover:text-fg">Explore funds</Link>
               <Link to="/compare" className="text-muted transition-colors hover:text-fg">Compare</Link>
+              <Link to="/nfo" className="text-muted transition-colors hover:text-fg">New fund offers</Link>
             </div>
           </div>
 

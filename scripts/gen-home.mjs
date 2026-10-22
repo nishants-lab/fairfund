@@ -26,6 +26,7 @@ const sections = [
   ['s/explore/', 'Explore all categories'],
   ['s/compare/', 'Compare funds'],
   ['s/movers/', 'Rank movers'],
+  ['s/nfo/', 'New fund offers'],
   ['s/methodology/', 'How the numbers are calculated'],
 ]
 const cats = Object.entries(data.categories ?? {})
