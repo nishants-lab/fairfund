@@ -23,12 +23,6 @@
     "name": "Kotak Flexi Cap Fund",
     "new_name": "Kotak Flexi Cap Fund"
   },
-  "152869": {
-    "status": "renamed",
-    "note": "Name mismatch: ours='Kotak CRISIL -IBX AAA Financial Services' vs AMFI='Kotak CRISIL-IBX AAA Financial Services '",
-    "name": "Kotak CRISIL-IBX AAA Financial Services Index-Sep 2027 Fund",
-    "new_name": "Kotak CRISIL-IBX AAA Financial Services Index-Sep 2027 Fund"
-  },
   "119133": {
     "status": "renamed",
     "note": "Name mismatch: ours='Groww Largecap Fund (formerly known as I' vs AMFI='Groww Large Cap Fund'",
