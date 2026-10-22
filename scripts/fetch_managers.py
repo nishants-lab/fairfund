@@ -56,6 +56,32 @@ def auth_name(code):
     return names.get(code, "")
 
 HIST_DIR = os.path.join(ROOT, "public", "holdings-history")
+SLUG_MAP = os.path.join(HIST_DIR, "_slugs.json")
+
+# Records worth asking Groww again on the next run. A young fund is onboarded
+# with a slug but no holdings history yet, so an earlier run may have stored
+# "no slug" for it; an identity mismatch stays put until a slug is corrected.
+RETRY_NOTES = {"no slug", "fetch failed"}
+
+
+def load_slug_map():
+    try:
+        with open(SLUG_MAP, encoding="utf-8") as fh_:
+            return json.load(fh_)
+    except (OSError, ValueError):
+        return {}
+
+
+SLUGS = load_slug_map()
+
+
+def needs_fetch(code, existing):
+    """True when this run should ask Groww for the fund's managers."""
+    rec = existing.get(str(code))
+    if rec is None:
+        return not os.path.exists(os.path.join(MGR_CACHE, f"{code}.json"))
+    return not rec.get("fetched") and rec.get("note") in RETRY_NOTES
+
 
 def slug_for(code):
     # Prefer the slug embedded in the committed holdings-history file (present
@@ -68,6 +94,8 @@ def slug_for(code):
                 return slug
         except:
             pass
+    if SLUGS.get(str(code)):
+        return SLUGS[str(code)]
     f = os.path.join(SLUG_DIR, f"{code}.json")
     if os.path.exists(f):
         try:
@@ -76,9 +104,9 @@ def slug_for(code):
             return None
     return None
 
-def fetch_one(code):
+def fetch_one(code, retry=False):
     cf = os.path.join(MGR_CACHE, f"{code}.json")
-    if os.path.exists(cf):
+    if os.path.exists(cf) and not retry:
         try:
             return code, json.load(open(cf))
         except:
@@ -142,14 +170,14 @@ def main():
             if not os.path.exists(cf) or os.path.getmtime(cf) < cutoff:
                 todo.append(c)
     else:
-        todo = [c for c in codes if str(c) not in existing and not os.path.exists(os.path.join(MGR_CACHE, f"{c}.json"))]
+        todo = [c for c in codes if needs_fetch(c, existing)]
     print(f"Universe: {len(codes)} | already done: {len(codes)-len(todo)} | to fetch: {len(todo)}")
 
     results = dict(existing)
     done = 0
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=8) as ex:
-        futs = {ex.submit(fetch_one, c): c for c in todo}
+        futs = {ex.submit(fetch_one, c, str(c) in existing): c for c in todo}
         for fut in as_completed(futs):
             code, rec = fut.result()
             results[str(code)] = rec

@@ -191,20 +191,20 @@ def is_excluded_by_name(fund_name):
         return True
     return False
 
-# Minimum NAV data points (~3 years of trading days) for a fund to be eligible.
-# Equity funds need a 3Y window for their risk-adjusted analytics to be meaningful.
-MIN_NAV_POINTS = 30
+# Minimum NAV data points for a fund to enter the universe. One published NAV
+# is enough: a fund that has started trading in a category we cover is listed
+# straight away, with its managers, size, cost and first holdings. It is marked
+# isYoung and carries no 1Y/3Y/5Y metrics or category rank until it has the
+# history for them (pipeline/compute_metrics.py); ranks never use a short window.
+MIN_NAV_POINTS = 1
 
-# Debt (cash-equivalent) funds are judged on 1Y return consistency and cost, not
-# on 3Y risk-adjusted ratios, so a shorter history is acceptable. ~250 trading
-# days is about one year, enough to compute the 1Y window. Newer liquid/money-market
-# funds that clear this bar are onboarded and simply carry 1Y metrics only.
-MIN_NAV_POINTS_DEBT = 30
+# Debt cash-equivalents (Liquid, Money Market) follow the same rule. Their 1Y
+# metrics and rank appear once a full year of NAVs exists.
+MIN_NAV_POINTS_DEBT = 1
 
 
 def min_nav_points_for(fairfund_category):
-    """Minimum NAV history a fund needs to enter the universe. Debt cash-equivalents
-    qualify on ~1Y of history; equity funds require ~3Y."""
+    """Minimum NAV history a fund needs to enter the universe (see MIN_NAV_POINTS)."""
     return MIN_NAV_POINTS_DEBT if uses_reduced_surface(fairfund_category) else MIN_NAV_POINTS
 
 # Groww API settings

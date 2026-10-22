@@ -1,8 +1,37 @@
 """Publish disclosed AUM and TER to the canonical index and matching detail files."""
 import json
 import os
+from datetime import date
 from math import isfinite
 from pathlib import Path
+
+# SEBI's base TER ceilings (Regulation 52(6)): index funds 1.00%, other equity and
+# hybrid 2.25%, debt 2.00%, plus GST on the management fee (at most 18% of it).
+# A Direct plan sits well below them. In a fund's first weeks the published figure
+# can be far above any of them (15.55% for an index fund allotted 28 Sep 2026,
+# 3.39% for a flexi cap whose Direct TER is 0.55%), which is no annual cost at all.
+# A young fund's TER above ceiling + GST is withheld, with a warning, until a
+# plausible one is disclosed.
+YOUNG_TER_DAYS = 183
+GST_HEADROOM = 1.18
+
+
+def ter_ceiling(category):
+    category = category or ""
+    if category.startswith("Index"):
+        return 1.00
+    if category in ("Liquid", "Money Market"):
+        return 2.00
+    return 2.25
+
+
+def implausible_young_ter(fund, snapshot_date, er):
+    """True when a fund under six months old discloses a TER above its SEBI ceiling plus GST."""
+    try:
+        age = (date.fromisoformat(snapshot_date[:10]) - date.fromisoformat(fund["inceptionDate"][:10])).days
+    except (KeyError, TypeError, ValueError):
+        return False
+    return age < YOUNG_TER_DAYS and er > round(ter_ceiling(fund.get("category")) * GST_HEADROOM, 4)
 
 ROOT = Path(__file__).resolve().parent.parent
 HISTORY_DIR = ROOT / "public" / "holdings-history"
@@ -14,6 +43,7 @@ def main():
     data = json.loads(FUNDS_PATH.read_text(encoding="utf-8"))
     funds = {str(fund["code"]): fund for fund in data["funds"]}
     index_changed = False
+    withheld = []
 
     for hist_file in HISTORY_DIR.glob("*.json"):
         if hist_file.name.startswith("_"):
@@ -65,7 +95,15 @@ def main():
                 er = round(float(er), 2)
             except (ValueError, TypeError):
                 er = None
-            if er is not None and isfinite(er) and er >= 0:
+            fund = funds.get(code)
+            if er is not None and isfinite(er) and er >= 0 and fund is not None \
+                    and implausible_young_ter(fund, dates[-1], er):
+                withheld.append(f"{code} {fund.get('name', '')} {er}%")
+                if detail.pop("expenseRatio", None) is not None:
+                    changed = True
+                if fund.pop("expenseRatio", None) is not None:
+                    index_changed = True
+            elif er is not None and isfinite(er) and er >= 0:
                 disclosed["expenseRatio"] = er
                 if detail.get("expenseRatio") != er:
                     detail["expenseRatio"] = er
@@ -103,6 +141,8 @@ def main():
         finally:
             temporary.unlink(missing_ok=True)
 
+    if withheld:
+        print(f"::warning::{len(withheld)} young funds' TER withheld (above SEBI ceiling plus GST): " + "; ".join(withheld))
     print(f"Enriched {updated} fund-data files with AUM/expense data")
 
 
