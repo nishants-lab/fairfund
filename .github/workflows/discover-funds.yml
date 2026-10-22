@@ -56,6 +56,23 @@ jobs:
         if: steps.discover.outputs.new_funds == 'true'
         run: python scripts/onboard_new_funds.py 2>&1 | tee onboard_report.md
 
+      # Step 2.5: Give new funds their managers, size and cost on day one instead
+      # of waiting for the next monthly holdings run. fetch_managers only asks
+      # Groww about funds it has no record for (or could not reach last time).
+      - name: Fetch fund manager data for new funds (Groww)
+        if: steps.discover.outputs.new_funds == 'true'
+        run: python scripts/fetch_managers.py
+        continue-on-error: true
+
+      - name: Build manager quality signals
+        if: steps.discover.outputs.new_funds == 'true'
+        run: python scripts/build_manager_signals.py
+        continue-on-error: true
+
+      - name: Enrich fund-data with AUM and expense ratio
+        if: steps.discover.outputs.new_funds == 'true'
+        run: python scripts/enrich_fund_data.py
+
       # Rebuild the full peer cohort even when discovery finds no new funds.
       - name: Recompute metrics and rankings
         run: |
