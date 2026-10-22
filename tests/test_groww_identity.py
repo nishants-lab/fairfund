@@ -56,10 +56,16 @@ def fake_groww(pages):
 
 
 class SchemeMatchTests(unittest.TestCase):
-    def test_matches_own_code_in_either_field(self):
+    def test_matches_own_scheme_code(self):
         self.assertTrue(G.scheme_matches(146376, {"scheme_code": "146376"}))
         self.assertTrue(G.scheme_matches("146376", {"scheme_code": 146376}))
-        self.assertTrue(G.scheme_matches(146376, {"scheme_code": None, "direct_scheme_code": "146376"}))
+        self.assertTrue(G.scheme_matches(146376, {"scheme_code": " 146376 ", "direct_scheme_code": "146376"}))
+
+    def test_direct_scheme_code_alone_is_not_identity(self):
+        # QA round 2: a contradictory payload passed when either field matched.
+        self.assertFalse(G.scheme_matches(146376, {"scheme_code": "146381", "direct_scheme_code": "146376"}))
+        self.assertFalse(G.scheme_matches(146376, {"scheme_code": None, "direct_scheme_code": "146376"}))
+        self.assertFalse(G.scheme_matches(146376, {"direct_scheme_code": "146376"}))
 
     def test_sibling_code_is_rejected(self):
         # The live failure: DSP Nifty 50's slug served DSP Nifty Next 50.
@@ -92,6 +98,14 @@ class FetchVerifiedTests(unittest.TestCase):
         self.assertEqual(r["status"], "identity_mismatch")
         self.assertIsNone(r["payload"])
         self.assertEqual(r["got"], "999")
+
+    def test_contradictory_payload_is_withheld(self):
+        # scheme_code says DSP Nifty Next 50 while direct_scheme_code says Nifty 50.
+        bad = dict(payload(146381), direct_scheme_code="146376")
+        r = G.fetch_scheme_verified(146376, "dsp-nifty-50", fake_groww({"dsp-nifty-50": ("ok", bad)}))
+        self.assertEqual(r["status"], "identity_mismatch")
+        self.assertIsNone(r["payload"])
+        self.assertEqual(r["got"], "146381")
 
     def test_wrong_scheme_payload_is_withheld(self):
         r = G.fetch_scheme_verified(153320, "sbi-nifty", fake_groww({"sbi-nifty": ("ok", payload(119827))}))
