@@ -251,6 +251,29 @@ class CaptureRunTests(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.tmp, "1.json")))
         self.assertTrue(os.path.exists(os.path.join(self.tmp, "2.json")))
 
+    def _weights(self, *pcts):
+        return [{"company_name": f"Stock {i}", "corpus_per": p, "sector_name": "Financial",
+                 "instrument_name": "Equity", "stock_search_id": f"s{i}",
+                 "portfolio_date": "2026-09-29T18:30:00.000Z"} for i, p in enumerate(pcts)]
+
+    def test_broken_disclosure_is_withheld_and_others_still_update(self):
+        # 2026-10-22: Groww's Sep-30 WhiteOak Capital Arbitrage data summed to 299.5%,
+        # failed the smoke test and blocked every fund's September holdings.
+        self.hist(7, "bad", ["2026-08-31"])
+        pages = {"bad": ("ok", payload(7, self._weights(99.0, 99.0, 99.0, 2.5))),
+                 "good": ("ok", payload(8))}
+        log, _ = self.run_capture({7: "Fund 7", 8: "Fund 8"}, {"7": "bad", "8": "good"}, pages)
+        self.assertEqual(sorted(self.read(7)["snapshots"]), ["2026-08-31"])
+        self.assertEqual(sorted(self.read(8)["snapshots"]), ["2026-09-30"])
+        self.assertIn("::warning::1 funds withheld", log)
+        self.assertIn("7 (2026-09-30 sums to 299.5%)", log)
+        self.assertIn("'implausible_sum': 1", log)
+        self.assertIn("Fetch errors/failures: 0", log)
+
+    def test_weights_at_the_limit_are_kept(self):
+        self.run_capture({9: "Fund 9"}, {"9": "edge"}, {"edge": ("ok", payload(9, self._weights(60.0, 55.0)))})
+        self.assertEqual(sorted(self.read(9)["snapshots"]), ["2026-09-30"])
+
     def test_progress_counts_each_fund_once(self):
         log, _ = self.run_capture({1: "A"}, {"1": "a"}, {"a": ("ok", payload(1))})
         self.assertIn("New snapshots: 1", log)
