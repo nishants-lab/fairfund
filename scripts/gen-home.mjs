@@ -25,7 +25,7 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(
 const sections = [
   ['s/explore/', 'Explore all categories'],
   ['s/compare/', 'Compare funds'],
-  ['s/movers/', 'Rank movers'],
+  ['s/movers/', 'Fund flows and movers'],
   ['s/nfo/', 'New fund offers'],
   ['s/methodology/', 'How the numbers are calculated'],
 ]

@@ -116,6 +116,13 @@ jobs:
       - name: Rebuild category benchmarks from current NAV
         run: python scripts/build_category_median.py
 
+      # Fund-house names from AMFI, then the data behind the Movers page
+      # (estimated flows, costs, manager and portfolio changes).
+      - name: Build Movers data
+        run: |
+          python scripts/normalize_amc.py
+          python scripts/build_movers.py
+
       # Step 3.6: QA gate - block the PR if data is bad (debt funds, broken ranks, orphans, etc.)
       - name: QA gate (smoke tests)
         if: steps.discover.outputs.new_funds == 'true'
