@@ -7,18 +7,20 @@ import { fmtDate } from '../lib/metrics'
 import { getCategoryColor } from '../lib/categoryColors'
 import ShareButton from '../components/ShareButton'
 import {
-  categoryContext, groupNfos, nfoData, sameIndexFunds, todayIst, yearsSince,
+  availableFrom, categoryContext, groupNfos, nfoData, sameIndexFunds, SHOW_DAYS_AFTER_CLOSE, todayIst, visibleUntil, yearsSince,
   type Nfo, type NfoStatus,
 } from '../lib/nfo'
 
 // New fund offers in the categories FairFund covers, each shown next to what
 // already exists: the funds tracking the same index, or the size of the category.
 
+const DAYS = nfoData.showDaysAfterClose ?? SHOW_DAYS_AFTER_CLOSE
+
 const SECTIONS: { key: NfoStatus; title: string; blurb: string }[] = [
-  { key: 'offer', title: 'Offer opened, not trading yet', blurb: 'The offer period has started and units are not yet allotted. AMFI does not always publish the closing date; the scheme\'s offer document has it.' },
+  { key: 'offer', title: 'Offer opened, not trading yet', blurb: 'The offer period has started and units are not yet allotted. Where no closing date is shown, FairFund could not confirm one; the scheme\'s offer document has it.' },
   { key: 'upcoming', title: 'Opening soon', blurb: 'Listed by AMFI with an opening date ahead.' },
-  { key: 'closed', title: 'Offer closed', blurb: 'The closing date AMFI lists has passed; units are not yet allotted.' },
-  { key: 'trading', title: 'Recently started trading', blurb: 'AMFI now publishes a daily NAV for these schemes.' },
+  { key: 'closed', title: 'Offer closed', blurb: `The offer has closed and units are not yet allotted. Each stays on this list for ${DAYS} days after it closes.` },
+  { key: 'trading', title: 'Recently started trading', blurb: `AMFI now publishes a daily NAV for these schemes. Each stays on this list for ${DAYS} days after its offer closed, or after its first NAV when no closing date was published.` },
 ]
 
 const catSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -80,11 +82,17 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
   const color = getCategoryColor(n.category)
   const listed = getFund(n.code)
   const d = n.details ?? {}
+  const closes = n.closeDate ? fmtDate(n.closeDate) : null
   const when =
-    status === 'upcoming' ? `Opens ${fmtDate(n.launchDate)}`
-      : status === 'trading' && n.nav ? `NAV ₹${n.nav.value.toFixed(4)} on ${fmtDate(n.nav.date)}`
-        : n.closeDate ? `${fmtDate(n.launchDate)} to ${fmtDate(n.closeDate)}`
-          : `Opened ${fmtDate(n.launchDate)}`
+    status === 'upcoming' ? `Opens ${fmtDate(n.launchDate)}${closes ? `, closes ${closes}` : ''}`
+      : status === 'offer' ? (closes ? `Open ${fmtDate(n.launchDate)} to ${closes}` : `Opened ${fmtDate(n.launchDate)}`)
+        : closes ? `Offer closed ${closes} (opened ${fmtDate(n.launchDate)})` : `Opened ${fmtDate(n.launchDate)}`
+  const avail = availableFrom(n)
+  const availText = avail
+    ? (avail.expected ? `Units expected to be available from ${fmtDate(avail.date)}` : `Open for investment since ${fmtDate(avail.date)} (first NAV)`)
+    : status === 'closed' ? 'Not trading yet. No date for units to be available has been published.'
+      : null
+  const until = status === 'closed' || status === 'trading' ? visibleUntil(n, DAYS) : null
   return (
     <article className="card p-4" data-testid="nfo-card" data-code={n.code}>
       <div className="flex flex-col-reverse items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
@@ -95,6 +103,11 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
         <span className={`pill shrink-0 ${color.bg} ${color.text}`}>{listed?.categoryDisplay ?? n.category.replace('-', ' - ')}</span>
       </div>
       <div className="mt-2 text-sm font-medium text-fg" data-testid="nfo-when">{when}</div>
+      {availText && <div className="mt-0.5 text-sm text-fg" data-testid="nfo-available">{availText}</div>}
+      {status === 'trading' && n.nav && (
+        <div className="mt-0.5 text-xs tabular-nums text-muted" data-testid="nfo-nav">NAV ₹{n.nav.value.toFixed(4)} on {fmtDate(n.nav.date)}</div>
+      )}
+      {until && <div className="mt-0.5 text-xs text-faint" data-testid="nfo-until">On this list until {fmtDate(until)}</div>}
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
         <Fact label="Benchmark" value={d.benchmark} />
         <Fact label="Manager" value={d.manager} />
@@ -142,8 +155,9 @@ export default function NfoPage() {
         </section>
       ))}
       <p className="mt-8 text-xs text-faint">
-        Source: AMFI scheme master and daily NAV file, updated each weekday ({fmtDate(nfoData.generatedAt)}). Benchmark, manager and exit load come from the scheme's
-        Groww page, used only when its AMFI code matches. Check the scheme information document before investing.
+        Source: AMFI scheme master and daily NAV file, updated each weekday ({fmtDate(nfoData.generatedAt)}). Benchmark, manager, exit load and the expected date units
+        are available come from the scheme's Groww page, used only when its AMFI code matches. Closing dates AMFI leaves blank come from ICICIdirect and Morningstar,
+        used only when the opening date, fund house and name agree. Check the scheme information document before investing.
       </p>
     </div>
   )

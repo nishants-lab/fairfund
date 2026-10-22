@@ -7,7 +7,8 @@ import assert from 'node:assert/strict'
 
 import { funds, getFund } from '../src/lib/data'
 import {
-  categoryContext, groupNfos, nameAgreesWithBenchmark, nfoData, normalizeBenchmark, sameIndexFunds, statusOn, todayIst, yearsSince, type Nfo,
+  availableFrom, categoryContext, groupNfos, isListed, nameAgreesWithBenchmark, nfoData, normalizeBenchmark, sameIndexFunds, statusOn, todayIst,
+  visibleUntil, yearsSince, type Nfo,
 } from '../src/lib/nfo'
 
 const nfo = (o: Partial<Nfo>): Nfo => ({
@@ -113,4 +114,37 @@ test('committed nfo.json is well formed and in scope (real data)', () => {
     const f = getFund(n.code)
     if (f) assert.equal(f.category, n.category, n.name)
   }
+})
+
+test('closed and trading NFOs stay listed for 7 calendar days after closing', () => {
+  const closed = nfo({ launchDate: '2026-10-01', closeDate: '2026-10-15' })
+  assert.equal(visibleUntil(closed, 7), '2026-10-22')
+  assert.equal(isListed(closed, '2026-10-22'), true)
+  assert.equal(isListed(closed, '2026-10-23'), false)
+  // Trading: counted from the close, else from the first NAV, else kept.
+  const nav = { date: '2026-10-21', value: 10.1 }
+  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12', firstNavDate: '2026-10-20' }), '2026-10-22'), false)
+  assert.equal(isListed(nfo({ nav, firstNavDate: '2026-10-16' }), '2026-10-23'), true)
+  assert.equal(isListed(nfo({ nav, firstNavDate: '2026-10-16' }), '2026-10-24'), false)
+  assert.equal(isListed(nfo({ nav }), '2026-12-31'), true)
+  // Offers and upcoming ones are never dropped by this rule.
+  assert.equal(isListed(nfo({ launchDate: '2026-09-30' }), '2026-12-31'), true)
+  const g = groupNfos([closed, nfo({ code: 2, launchDate: '2026-10-12', closeDate: '2026-10-26' })], '2026-10-23')
+  assert.deepEqual([g.closed.length, g.offer.length], [0, 1])
+})
+
+test('availability: first NAV once trading, else a plausible expected date', () => {
+  const nav = { date: '2026-10-21', value: 10.1 }
+  assert.deepEqual(availableFrom(nfo({ nav, firstNavDate: '2026-10-16', details: { reopenDate: '2026-10-15' } })), { date: '2026-10-16', expected: false })
+  assert.equal(availableFrom(nfo({ nav })), null)
+  assert.deepEqual(availableFrom(nfo({ closeDate: '2026-10-26', details: { reopenDate: '2026-10-28' } })), { date: '2026-10-28', expected: true })
+  assert.equal(availableFrom(nfo({ closeDate: '2026-10-26', details: { reopenDate: '2026-10-26' } })), null)  // not after the close
+  assert.equal(availableFrom(nfo({ launchDate: '2026-10-12', details: { reopenDate: '2026-10-12' } })), null)  // the launch date itself
+  assert.equal(availableFrom(nfo({})), null)
+})
+
+test('the built list never carries an NFO past its last listed day', () => {
+  const day = nfoData.generatedAt
+  for (const n of nfoData.nfos) assert.ok(isListed(n, day), `${n.code} ${n.name} should have left the list`)
+  for (const n of nfoData.nfos) if (n.closeDate) assert.ok(n.closeDate > n.launchDate, `${n.code} closes before it opens`)
 })

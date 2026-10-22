@@ -3,6 +3,11 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const base=process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190';
 const nfo=require('../src/data/nfo.json');
+// Same rule as src/lib/nfo.ts: closed or trading NFOs leave 7 days after closing (else after the first NAV).
+const today=new Date(Date.now()+330*60000).toISOString().slice(0,10);
+const addDays=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
+const statusOf=n=>n.nav?'trading':n.launchDate>today?'upcoming':n.closeDate&&n.closeDate<today?'closed':'offer';
+const listed=nfo.nfos.filter(n=>{const s=statusOf(n);const a=n.closeDate||n.firstNavDate;return !(s==='closed'||s==='trading')||!a||today<=addDays(a,nfo.showDaysAfterClose??7)});
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
@@ -18,8 +23,8 @@ const nfo=require('../src/data/nfo.json');
    assert.match(main,/not a recommendation to invest/);
    assert.match(main,/A low NAV is not cheaper than a high one/);
    const cards=page.getByTestId('nfo-card');
-   assert.equal(await cards.count(),nfo.nfos.length,'one card per NFO');
-   if(nfo.nfos.length){
+   assert.equal(await cards.count(),listed.length,'one card per NFO');
+   if(listed.length){
     // Every card fits the viewport: no horizontal overflow on phones.
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`horizontal overflow at ${width}px`);
     // Benchmark, manager and exit load are readable in full unless very long (those clamp to 3 lines with a tooltip).
@@ -36,10 +41,22 @@ const nfo=require('../src/data/nfo.json');
      await link.click();await page.waitForURL(/#\/fund\/\d+\//);
      await page.goBack();await page.getByRole('heading',{name:'New fund offers',level:1}).waitFor();
     }
+    // Offers show their closing date; closed and trading ones say until when they are listed,
+    // and trading ones since when units can be bought.
+    for(const n of listed){
+     const card=page.locator(`[data-testid="nfo-card"][data-code="${n.code}"]`);const s=statusOf(n);
+     const when=await card.getByTestId('nfo-when').innerText();
+     if(s==='offer'&&n.closeDate) assert.match(when,/^Open .+ to .+/,`${n.code} closing date`);
+     if(s==='closed'||s==='trading'){
+      if(n.closeDate||n.firstNavDate) assert.match(await card.getByTestId('nfo-until').innerText(),/^On this list until /,`${n.code} until`);
+      if(s==='closed'||n.firstNavDate) assert.ok(await card.getByTestId('nfo-available').count(),`${n.code} says when units are available`);
+     }
+     if(s==='trading'&&n.firstNavDate) assert.match(await card.getByTestId('nfo-available').innerText(),/^Open for investment since /);
+    }
     // Section headings carry their counts and add up to the list.
     const counts=await page.locator('section[data-testid^="nfo-section-"] h2').allInnerTexts();
     const sum=counts.map(t=>Number((t.match(/\((\d+)\)/)||[])[1]||0)).reduce((a,b)=>a+b,0);
-    assert.equal(sum,nfo.nfos.length,'section counts add up');
+    assert.equal(sum,listed.length,'section counts add up');
    }
    // Tablet widths hide the top-bar link; the menu carries it instead.
    if(width>=768&&width<1024){
