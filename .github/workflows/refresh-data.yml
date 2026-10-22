@@ -74,6 +74,13 @@ jobs:
         run: python scripts/build_nfo.py
         continue-on-error: true
 
+      # Fund-house names from AMFI, then the data behind the Movers page
+      # (estimated flows, costs, manager and portfolio changes).
+      - name: Build Movers data
+        run: |
+          python scripts/normalize_amc.py
+          python scripts/build_movers.py
+
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
 
@@ -148,8 +155,10 @@ jobs:
       - name: Enrich fund-data with AUM and expense ratio
         run: python scripts/enrich_fund_data.py
 
+      # --refresh-all re-asks Groww for lists a month old, so manager changes in
+      # existing funds are seen; a failed fetch keeps the earlier list.
       - name: Refresh fund manager data (Groww)
-        run: python scripts/fetch_managers.py
+        run: python scripts/fetch_managers.py --refresh-all
         continue-on-error: true
 
       - name: Build manager quality signals
@@ -181,6 +190,13 @@ jobs:
 
       - name: Rebuild search aliases (former fund names)
         run: python scripts/build_former_names.py
+
+      # Fund-house names from AMFI, then the data behind the Movers page
+      # (estimated flows, costs, manager and portfolio changes).
+      - name: Build Movers data
+        run: |
+          python scripts/normalize_amc.py
+          python scripts/build_movers.py
 
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
