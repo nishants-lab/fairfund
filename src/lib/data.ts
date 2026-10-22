@@ -157,7 +157,7 @@ function editDistance(a: string, b: string, max: number): number {
 /**
  * Spelling fix for one query word: when no fund's search text contains it, the
  * closest word that does ("paragh" -> "parag", "midcp" -> "midcap", "kotk" ->
- * "kotak"). One edit allowed from 4 letters, two from 7; a word still being
+ * "kotak"). One edit allowed from 4 letters, two from 9; a word still being
  * typed is compared with the same-length start of each word ("emergn" ->
  * "emerging"). Ties go to the word more funds use. Numbers and words of under 4
  * letters are left alone, so "50" never becomes "30".
@@ -166,7 +166,8 @@ function correctToken(t: string): { token: string; fixed: boolean } {
   const vocab = vocabulary!
   if (t.length < 4 || /\d/.test(t) || vocab.has(t)) return { token: t, fixed: false }
   for (const w of vocab.keys()) if (w.includes(t)) return { token: t, fixed: false }
-  const max = t.length >= 7 ? 2 : 1
+  // Two edits from 7 letters turned "unicorn" into "union" (QA round 2).
+  const max = t.length >= 9 ? 2 : 1
   let best = ''
   let bestDist = max + 1
   let bestCount = 0

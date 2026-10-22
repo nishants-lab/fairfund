@@ -5,5 +5,7 @@
   "119018": {"names": ["HDFC Top 100 Fund"], "source": "HDFC MF KIM; renamed HDFC Large Cap Fund from 2025-01-01"},
   "119528": {"names": ["Aditya Birla Sun Life Frontline Equity Fund"], "source": "ABSL abridged annual report 2024-25"},
   "118531": {"names": ["Franklin India Bluechip Fund"], "source": "franklintempletonindia.com fund page: Large Cap Fund (Erstwhile Bluechip Fund)"},
-  "119231": {"names": ["Tata Equity P/E Fund"], "source": "Tata MF abridged annual report 2024-25: Value Fund (earlier Equity P/E Fund)"}
+  "119231": {"names": ["Tata Equity P/E Fund"], "source": "Tata MF abridged annual report 2024-25: Value Fund (earlier Equity P/E Fund)"},
+  "120166": {"names": ["Kotak Standard Multicap Fund"], "source": "Livemint 2021-02-17: Kotak Standard Multicap renamed Kotak Flexicap Fund"},
+  "118481": {"names": ["IDFC Sterling Value Fund", "Bandhan Sterling Value Fund"], "source": "Bandhan (formerly IDFC) MF: IDFC Sterling Value Fund, renamed Bandhan Sterling Value Fund (2023) then Bandhan Value Fund; same scheme, direct plan launched 2013-01-01 (Livemint/Moneycontrol scheme pages)"}
 }
