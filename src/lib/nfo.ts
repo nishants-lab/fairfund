@@ -19,6 +19,10 @@ export interface Nfo {
   category: string
   launchDate: string
   closeDate: string | null
+  /** Where a closing date AMFI left blank came from. */
+  closeDateSource?: 'AMFI' | 'ICICIdirect' | 'Morningstar' | null
+  /** First NAV date, once AMFI publishes NAVs for the scheme. */
+  firstNavDate?: string | null
   minAmount: number | null
   status: NfoStatus
   nav: { date: string; value: number } | null
@@ -28,6 +32,8 @@ export interface Nfo {
     exitLoad?: string | null
     minSip?: number | null
     lockInYears?: number | null
+    /** Day units are expected to be available again after the offer (Groww). */
+    reopenDate?: string | null
     groww?: string | null
   } | null
   detailsAsOf?: string | null
@@ -36,6 +42,7 @@ export interface Nfo {
 export interface NfoData {
   generatedAt: string
   window: { lookbackDays: number; lookaheadDays: number }
+  showDaysAfterClose?: number
   source: string
   nfos: Nfo[]
 }
@@ -142,10 +149,43 @@ export function categoryContext(n: Nfo, all: Fund[]): CategoryContext | null {
   }
 }
 
-/** NFOs grouped for display as of `today`. */
+export const SHOW_DAYS_AFTER_CLOSE = 7
+
+const addDays = (iso: string, days: number) => new Date(Date.parse(iso + 'T00:00:00Z') + days * 86_400_000).toISOString().slice(0, 10)
+
+/**
+ * Last day an NFO is listed: 7 calendar days after it closes or, when no closing
+ * date was found, after its first NAV. Null while neither date is known.
+ */
+export function visibleUntil(n: Pick<Nfo, 'closeDate' | 'firstNavDate'>, days = nfoData.showDaysAfterClose ?? SHOW_DAYS_AFTER_CLOSE): string | null {
+  const anchor = n.closeDate || n.firstNavDate
+  return anchor ? addDays(anchor, days) : null
+}
+
+/** False once a closed or trading NFO is past its last listed day. */
+export function isListed(n: Nfo, today: string): boolean {
+  const s = statusOn(n, today)
+  if (s !== 'closed' && s !== 'trading') return true
+  const until = visibleUntil(n)
+  return !until || today <= until
+}
+
+/**
+ * When units can be bought: the first NAV date once trading, else the date the
+ * scheme page expects (only if it falls after the offer opened and closed).
+ */
+export function availableFrom(n: Nfo): { date: string; expected: boolean } | null {
+  if (n.nav && n.firstNavDate) return { date: n.firstNavDate, expected: false }
+  if (n.nav) return null
+  const r = n.details?.reopenDate
+  if (!r || r <= n.launchDate || (n.closeDate && r <= n.closeDate)) return null
+  return { date: r, expected: true }
+}
+
+/** NFOs grouped for display as of `today`, without those past their last listed day. */
 export function groupNfos(list: Nfo[], today: string): Record<NfoStatus, Nfo[]> {
   const g: Record<NfoStatus, Nfo[]> = { offer: [], upcoming: [], closed: [], trading: [] }
-  for (const n of list) g[statusOn(n, today)].push(n)
+  for (const n of list) if (isListed(n, today)) g[statusOn(n, today)].push(n)
   g.offer.sort((a, b) => b.launchDate.localeCompare(a.launchDate))
   g.upcoming.sort((a, b) => a.launchDate.localeCompare(b.launchDate))
   g.closed.sort((a, b) => b.launchDate.localeCompare(a.launchDate))
