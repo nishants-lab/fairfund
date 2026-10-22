@@ -226,7 +226,7 @@ const nfoBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund
 <p style="font-size:16px;margin:0 0 20px">A new fund starts at a round NAV, usually &#8377;10. A low NAV is not cheaper than a high one.</p>
 ${nfoRows ? `<div class="metrics-scroll" role="region" aria-label="New fund offers" tabindex="0"><table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Scheme</th><th style="text-align:left;padding:0 16px 6px 0">Category</th><th style="text-align:left;padding:0 16px 6px 0">Benchmark</th><th style="text-align:left;padding:0 0 6px 0">Status</th></tr></thead><tbody>${nfoRows}</tbody></table></div>` : '<p style="font-size:16px">No new fund offers in FairFund\'s categories right now.</p>'}
 <p style="margin-top:24px"><a href="${SHELL_UP}#/nfo" style="color:#2563eb;font-weight:600">Open it on FairFund &rarr;</a></p>
-<p style="font-size:12px;color:#475569;margin-top:20px">Source: AMFI${nfoData.generatedAt ? `, ${esc(nfoData.generatedAt)}` : ''}. Information, not a recommendation to invest. Read the scheme information document before investing.</p>`
+<p style="font-size:12px;color:#475569;margin-top:20px">Source: AMFI${nfoData.generatedAt ? `, ${esc(nfoData.generatedAt)}` : ''}. Data for research only, not investment advice. Past performance does not indicate future returns. Read the scheme information document before investing.</p>`
 
 const methodBody = pageBody("How FairFund works", [
   `FairFund compares mutual funds within their categories using NAV history and published portfolio data. This page explains the calculations, ranking rules and data limitations.`,

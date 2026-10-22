@@ -67,7 +67,8 @@ class GeneratedCopyTests(unittest.TestCase):
         result = self.run_script('gen-unfurls.mjs')
         self.assertEqual(result.returncode, 0, result.stderr)
         shells = list((self.base / 'dist').rglob('index.html'))
-        self.assertEqual(len(shells), 8)
+        self.assertEqual(len(shells), 9)
+        self.assertTrue((self.base / 'dist/s/nfo/index.html').exists())
         for shell in shells:
             text = shell.read_text(encoding='utf-8')
             self.assertNotRegex(text.lower(), r'forward-looking|skill|evidence,? not advice|identical')
