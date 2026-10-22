@@ -18,6 +18,7 @@ the holdings capture, scripts/groww_identity.py). A matching name alone is not
 enough: "SBI Nifty IT Index Fund" and "SBI Nifty Index Fund" overlap by name.
 """
 import json, os, sys, time, urllib.parse
+from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +43,8 @@ _funds_data = json.load(open(_funds_path, encoding="utf-8"))
 names = {int(f["code"]): f["name"] for f in _funds_data["funds"] if not f.get("isDebt") and not f.get("isArbitrage")}  # debt & arbitrage: no equity manager attribution
 META = os.path.join(ROOT, "scheme_meta_cache")
 
-# Support --refresh-all: re-fetch managers older than 30 days
+# Support --refresh-all: re-fetch managers older than 30 days. Age is the record's own
+# fetchedOn date, so it works in CI, where the local manager_cache is never present.
 REFRESH_ALL = "--refresh-all" in sys.argv
 MAX_CACHE_AGE_DAYS = 30
 
@@ -81,6 +83,29 @@ def needs_fetch(code, existing):
     if rec is None:
         return not os.path.exists(os.path.join(MGR_CACHE, f"{code}.json"))
     return not rec.get("fetched") and rec.get("note") in RETRY_NOTES
+
+
+def is_stale(code, existing, today):
+    """A successfully fetched record older than MAX_CACHE_AGE_DAYS (or never dated)."""
+    rec = existing.get(str(code))
+    if not rec or not rec.get("fetched"):
+        return False
+    try:
+        fetched_on = date.fromisoformat(rec.get("fetchedOn") or "")
+    except ValueError:
+        return True
+    return (today - fetched_on).days >= MAX_CACHE_AGE_DAYS
+
+
+def merge(old, new):
+    """A refresh that fails, or comes back with no managers, keeps what an earlier fetch
+    verified: neither may read as a fund losing its managers."""
+    if not (old and old.get("fetched")):
+        return new
+    # a verified page that lists no managers is as suspect as a failed fetch
+    if new.get("fetched") and (new.get("managers") or not old.get("managers")):
+        return new
+    return old
 
 
 def slug_for(code):
@@ -148,7 +173,7 @@ def fetch_one(code, retry=False):
             "fundsManaged": fm,
         })
     rec = {"managers": managers, "fetched": True,
-           "fund_manager_str": d.get("fund_manager")}
+           "fund_manager_str": d.get("fund_manager"), "fetchedOn": date.today().isoformat()}
     json.dump(rec, open(cf, "w"))
     return code, rec
 
@@ -161,14 +186,9 @@ def main():
         except:
             existing = {}
     if REFRESH_ALL:
-        # Re-fetch all where cache is older than MAX_CACHE_AGE_DAYS
-        import time as _time
-        cutoff = _time.time() - MAX_CACHE_AGE_DAYS * 86400
-        todo = []
-        for c in codes:
-            cf = os.path.join(MGR_CACHE, f"{c}.json")
-            if not os.path.exists(cf) or os.path.getmtime(cf) < cutoff:
-                todo.append(c)
+        # New and retryable records, plus verified ones whose fetchedOn is a month old
+        today = date.today()
+        todo = [c for c in codes if needs_fetch(c, existing) or is_stale(c, existing, today)]
     else:
         todo = [c for c in codes if needs_fetch(c, existing)]
     print(f"Universe: {len(codes)} | already done: {len(codes)-len(todo)} | to fetch: {len(todo)}")
@@ -177,10 +197,10 @@ def main():
     done = 0
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=8) as ex:
-        futs = {ex.submit(fetch_one, c, str(c) in existing): c for c in todo}
+        futs = {ex.submit(fetch_one, c, str(c) in existing or REFRESH_ALL): c for c in todo}
         for fut in as_completed(futs):
             code, rec = fut.result()
-            results[str(code)] = rec
+            results[str(code)] = merge(existing.get(str(code)), rec)
             done += 1
             if done % 100 == 0:
                 rate = done/(time.time()-t0)
