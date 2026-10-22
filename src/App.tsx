@@ -24,6 +24,7 @@ const MyDashboard = lazy(() => import('./pages/MyDashboard'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const Movers = lazy(() => import('./pages/Movers'))
 const CategoryDetail = lazy(() => import('./pages/CategoryDetail'))
+const Nfo = lazy(() => import('./pages/Nfo'))
 
 function PageLoader() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/my" element={<MyDashboard />} />
             <Route path="/my/portfolio" element={<Portfolio />} />
             <Route path="/category/:slug" element={<CategoryDetail />} />
+            <Route path="/nfo" element={<Nfo />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
