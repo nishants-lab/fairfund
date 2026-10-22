@@ -246,6 +246,13 @@ def stored_slug_for(code):
         return None
 
 
+# A stock-level snapshot whose weights add up past this is a broken disclosure, not a
+# portfolio (2026-10-22: Groww's Sep-30 WhiteOak Capital Arbitrage data summed to 299.5%).
+# Same limit as tests/smoke.py. The fund keeps its last good month and the run warns,
+# so one bad source page cannot block every other fund's monthly update.
+MAX_STOCK_LEVEL_SUM = 115
+
+
 def capture_one(code, name, smap, today, fetch=None):
     """Returns (code, snap, status, final_slug, reset_history)."""
     fetch = fetch or fetch_scheme_verified
@@ -268,6 +275,10 @@ def capture_one(code, name, smap, today, fetch=None):
     if not holds or not pdate:
         return code, None, "no_disclosure", final_slug, reset
     coverage = "feeder_unresolved" if is_feeder_singleline(holds) else "stock_level"
+    if coverage == "stock_level":
+        total = sum(h["pct"] for h in holds)
+        if total > MAX_STOCK_LEVEL_SUM:
+            return code, None, f"implausible_sum:{pdate}:{round(total, 1)}", final_slug, reset
     snap = {
         "portfolioDate": pdate,
         "capturedOn": today,
@@ -322,6 +333,7 @@ def main():
     fetch_errors = 0
     renamed = {}       # code -> (old slug, new slug)
     mismatched = []    # (code, slug, got)
+    implausible = []   # (code, portfolio date, weight sum) withheld as broken disclosures
     resets = []        # codes whose old history belonged to another scheme
     t0 = time.time()
     done = 0
@@ -357,6 +369,9 @@ def main():
                 fetch_errors += 1
             if ckey == "identity_mismatch":
                 mismatched.append((code, smap.get(str(code)), cov.split(":", 1)[1]))
+            if ckey == "implausible_sum":
+                _, pd_bad, total_bad = cov.split(":", 2)
+                implausible.append((code, pd_bad, total_bad))
             if final_slug and final_slug != smap.get(str(code)):
                 renamed[code] = (smap.get(str(code)), final_slug)
                 smap[str(code)] = final_slug
@@ -397,6 +412,11 @@ def main():
         print(f"::warning::{len(mismatched)} slugs point at a different Groww scheme; holdings "
               f"withheld until _slugs.json is corrected: "
               + ", ".join(f"{c} (slug {s} is scheme {g})" for c, s, g in sorted(mismatched)))
+
+    if implausible:
+        print(f"::warning::{len(implausible)} funds withheld: holdings weights add up past "
+              f"{MAX_STOCK_LEVEL_SUM}%, so the source disclosure is broken; last good month kept: "
+              + ", ".join(f"{c} ({p} sums to {t}%)" for c, p, t in sorted(implausible)))
 
     # write/refresh a manifest summarizing the dataset
     manifest = {"updatedAt": today, "funds": 0, "totalSnapshots": 0, "multiSnapshot": 0}
