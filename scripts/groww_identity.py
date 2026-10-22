@@ -26,16 +26,18 @@ MAX_REDIRECTS = 3
 
 
 def scheme_matches(code, payload):
-    """True only when the payload's own AMFI code is this fund's code.
+    """True only when the payload's own scheme_code is this fund's AMFI code.
 
-    A payload with no code at all is not accepted: absence is not proof.
+    scheme_code alone decides. direct_scheme_code names the direct plan of the
+    scheme on the page, so a regular-plan page (same holdings, higher expense
+    ratio) or a contradictory payload would pass a check that also accepted it.
+    A payload with no scheme_code is not accepted: absence is not proof.
     """
     if not isinstance(payload, dict):
         return False
     want = str(code).strip()
-    got = {str(payload.get(k)).strip() for k in ("scheme_code", "direct_scheme_code")
-           if payload.get(k) not in (None, "")}
-    return bool(want) and want in got
+    got = payload.get("scheme_code")
+    return bool(want) and got not in (None, "") and str(got).strip() == want
 
 
 def groww_get(slug, timeout=25, retries=4, sleep=time.sleep):
