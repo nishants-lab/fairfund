@@ -50,6 +50,8 @@ test('old fund names find the renamed fund first', () => {
   assert.equal(top('aditya frontline')[0], 119528)
   assert.equal(top('parag parikh long term value')[0], 122639)
   assert.equal(top('icici bluechip')[0], 120586)
+  assert.equal(top('kotak standard multicap')[0], 120166)  // Kotak Flexi Cap Fund
+  assert.equal(top('idfc sterling value')[0], 118481)       // Bandhan Value Fund
 })
 
 test('AMC abbreviations and former AMC names', () => {
@@ -114,6 +116,8 @@ test('misspelt words are fixed against words the funds use', () => {
   // A word still being typed is matched, not replaced.
   assert.equal(top('kotak emerg')[0], 119775)
   assert.deepEqual(searchFunds('zzzzqqqq'), [])
+  // Two edits are allowed only from nine letters: "unicorn" is not "union".
+  assert.deepEqual(searchFunds('unicorn rocket'), [])
 })
 
 test('matchedOtherName explains old-name matches only', () => {
