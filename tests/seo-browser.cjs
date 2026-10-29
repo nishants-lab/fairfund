@@ -37,7 +37,8 @@ const base=(process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190').replace(/\/$/
      assert.equal(await page.locator('.metrics-scroll[tabindex]').count(),table?1:0,route+' only eligible windows render metric tables');
      if(table) {
       assert.equal(await page.locator('.metrics-scroll').getAttribute('tabindex'),'0');
-      assert.equal(await page.locator('.metrics-scroll td').first().evaluate(e=>getComputedStyle(e).whiteSpace),'nowrap');
+      // Figures stay on one line; a name column may wrap so the table fits at 320px.
+      assert.equal(await page.locator('.metrics-scroll tr td:last-child').first().evaluate(e=>getComputedStyle(e).whiteSpace),'nowrap');
      }
      if(quarantined) {
       assert.match(await page.locator('main [role=status]').innerText(),/NAV history needs source verification/);

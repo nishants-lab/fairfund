@@ -20,7 +20,7 @@ class SeoTests(unittest.TestCase):
         self.base = Path(self.tmp.name)
         for folder in ['scripts', 'src/data', 'dist']:
             (self.base/folder).mkdir(parents=True)
-        for name in ['gen-sitemap.mjs','gen-unfurls.mjs','site-config.mjs']:
+        for name in ['gen-sitemap.mjs','gen-unfurls.mjs','site-config.mjs','research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
         self.data = {'funds':[{'code':1,'name':'Example Fund','amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','metrics':{}}], 'totalFunds':1,'categories':{'Large Cap':{'fundCount':1,'display':'Large Cap'}}}
         self.save_data()
@@ -108,8 +108,8 @@ class SeoTests(unittest.TestCase):
         result = self.run_script('gen-unfurls.mjs')
         self.assertEqual(result.returncode, 0, result.stderr)
         html = (self.base/'dist/f/1/index.html').read_text()
-        self.assertIn('2023-09-29 to 2026-09-29', html)
-        self.assertIn('Rank #2/4', html)
+        self.assertIn('29 Sep 2023 to 29 Sep 2026', html)
+        self.assertIn('#2 of 4', html)
 
     def test_explorer_metrics_have_scroll_region(self):
         html=(self.base/'dist/s/explore/index.html').read_text()
