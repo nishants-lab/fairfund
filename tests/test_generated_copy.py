@@ -20,7 +20,7 @@ class GeneratedCopyTests(unittest.TestCase):
         self.base = Path(self.temp.name)
         for directory in ('scripts/fonts', 'src/data', 'dist'):
             (self.base / directory).mkdir(parents=True)
-        for name in ('gen-unfurls.mjs', 'gen-og-images.mjs', 'site-config.mjs'):
+        for name in ('gen-unfurls.mjs', 'gen-og-images.mjs', 'site-config.mjs', 'research-pages.mjs'):
             shutil.copyfile(ROOT / 'scripts' / name, self.base / 'scripts' / name)
         self.funds = [self.fund(1, '3Y'), self.fund(2, '5Y'), self.fund(3, '1Y')]
         self.write_data()

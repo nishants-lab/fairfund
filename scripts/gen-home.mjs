@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SITE } from './site-config.mjs'
+import { buildResearch } from './research-pages.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = join(ROOT, 'dist')
@@ -29,6 +30,9 @@ const sections = [
   ['s/nfo/', 'New fund offers'],
   ['s/methodology/', 'How the numbers are calculated'],
 ]
+if (buildResearch(ROOT, data.funds ?? []).paths.length) {
+  sections.splice(3, 0, ['s/stocks/', 'Which mutual funds hold a stock'], ['s/overlap/', 'Portfolio overlap between funds'])
+}
 const cats = Object.entries(data.categories ?? {})
   .map(([key, c]) => ({ key, display: c.display || key, count: c.fundCount ?? 0 }))
   .filter(c => c.count > 0)

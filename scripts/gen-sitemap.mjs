@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SITE } from './site-config.mjs'
+import { buildResearch } from './research-pages.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = join(ROOT, 'dist')
@@ -28,6 +29,9 @@ for (const fund of funds) {
   if (!Number.isSafeInteger(fund.code) || fund.code <= 0) throw new Error('Invalid fund code for sitemap')
   paths.push(`f/${fund.code}/`)
 }
+// Holdings research pages (stocks, overlap pairs, hubs), from the same rules the renderer uses.
+const researchPaths = buildResearch(ROOT, funds).paths
+paths.push(...researchPaths)
 if (new Set(paths).size !== paths.length) throw new Error('Duplicate sitemap path')
 if (paths.length > 50000) throw new Error('Sitemap exceeds 50000 URLs; split before publication')
 const escapeXml = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
@@ -46,4 +50,4 @@ const xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://ww
   ...paths.map(path => `  <url><loc>${escapeXml(`${SITE}/${path}`)}</loc></url>`), '</urlset>', ''].join('\n')
 if (Buffer.byteLength(xml) > 50 * 1024 * 1024) throw new Error('Sitemap exceeds 50MB')
 writeFileSync(join(DIST, 'sitemap.xml'), xml)
-console.log(`sitemap.xml: ${paths.length} validated URLs (1 home + ${paths.length - 1 - funds.length} sections + ${funds.length} funds)`)
+console.log(`sitemap.xml: ${paths.length} validated URLs (1 home + ${paths.length - 1 - funds.length - researchPaths.length} sections + ${funds.length} funds + ${researchPaths.length} holdings research)`)

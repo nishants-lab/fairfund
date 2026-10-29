@@ -21,7 +21,7 @@ class CrawlSurfaceTests(unittest.TestCase):
         self.base = Path(self.tmp.name)
         for folder in ['scripts', 'src/data', 'dist']:
             (self.base/folder).mkdir(parents=True)
-        for name in ['gen-sitemap.mjs', 'gen-unfurls.mjs', 'gen-home.mjs', 'site-config.mjs', 'indexnow-submit.mjs']:
+        for name in ['gen-sitemap.mjs', 'gen-unfurls.mjs', 'gen-home.mjs', 'site-config.mjs', 'indexnow-submit.mjs', 'research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
         self.data = {'funds': [{'code': 1, 'name': 'Example Fund', 'amc': 'Example', 'category': 'Large Cap', 'categoryDisplay': 'Large Cap', 'metrics': {}},
                                {'code': 2, 'name': 'Other Fund', 'amc': 'Other', 'category': 'Mid Cap', 'categoryDisplay': 'Mid Cap', 'metrics': {}}],
