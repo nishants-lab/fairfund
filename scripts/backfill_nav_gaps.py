@@ -21,6 +21,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from market_date import ist_today, is_usable_nav_date
+from nav_corrections import correct_history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NAV_DIR = os.path.abspath(os.path.join(HERE, "..", "public", "nav"))
@@ -58,7 +59,8 @@ def fetch_history(code, today=None):
                 # some liquid-fund NAVs with the next business day.
                 if nav > 0 and is_usable_nav_date(iso, today):
                     out[iso] = nav
-            return out
+            # Verified unit splits: source history in today's units, like the stored file.
+            return correct_history(code, out)
         except Exception:
             time.sleep(1 * (2 ** attempt))
     return None

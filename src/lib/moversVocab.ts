@@ -5,7 +5,8 @@
  */
 import type { Measure, View } from './moversState'
 
-export interface MeasureWord { m: Measure; order?: 'desc' | 'asc'; sign?: 'pos' | 'neg'; pct?: boolean; field?: boolean }
+export interface MeasureWord { m: Measure; order?: 'desc' | 'asc'; sign?: 'pos' | 'neg'; pct?: boolean; field?: boolean; inc?: boolean }
+// inc: the sign came from a negation ("not positive returns"), so zero is on that side too.
 export interface Theme { label: string; re: RegExp; sector?: string }
 
 /** Fund themes, matched on the fund name; `sector` is the stock sector the same word means. */

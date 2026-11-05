@@ -57,6 +57,22 @@ class WorkflowIdentityTests(unittest.TestCase):
         self.assertLess(weekly.index('git push'), weekly.index('gh workflow run deploy.yml'),
                         'deploy is dispatched after the analytics commit is pushed')
 
+    def test_only_the_canary_runs_on_the_moving_ubuntu_image(self):
+        # ubuntu-latest moving to 26.04 broke the daily refresh; everything that
+        # publishes stays pinned, and one read-only canary watches the new image.
+        for wf in WORKFLOWS:
+            text = wf.read_text(encoding='utf-8')
+            runners = re.findall(r'runs-on:\s*(\S+)', text)
+            self.assertTrue(runners, wf.name)
+            if wf.name == 'runner-canary.yml':
+                self.assertEqual(runners, ['ubuntu-latest'])
+                self.assertRegex(text, r'schedule:')
+                self.assertRegex(text, r'contents:\s*read')
+                self.assertNotRegex(text, r'git push|git commit|deploy-pages|upload-pages-artifact|contents:\s*write')
+                self.assertIn('npm run test:browser:built', text)
+            else:
+                self.assertEqual(set(runners), {'ubuntu-24.04'}, wf.name)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -55,6 +55,18 @@ class ExclusionRuleTests(unittest.TestCase):
         # "aaa" or "ibx" inside a longer word must not exclude a fund.
         self.assertFalse(C.is_excluded_by_name("Kaaashi Ibxen Growth Fund"))
 
+    def test_gilt_target_maturity_index_funds_are_excluded(self):
+        # Tata Nifty G Sec Dec 2026 Index Fund sat in equity Index-Other.
+        for name in ["Tata Nifty G Sec Dec 2026 Index Fund",
+                     "Bandhan CRISIL IBX Gilt Nifty G-Sec 2027 Index Fund",
+                     "Axis Nifty G.Sec Sep 2032 Index Fund",
+                     "Some Nifty GSec 2030 Index Fund"]:
+            self.assertTrue(C.is_excluded_by_name(name), name)
+        # "sec" inside other words must not exclude an equity fund.
+        for name in ["ICICI Prudential Nifty Financial Services Index Fund",
+                     "Mirae Asset Nifty Secure Growth Fund", "HDFC Nifty G20 Securities Index Fund"]:
+            self.assertFalse(C.is_excluded_by_name(name), name)
+
     def test_live_universe_holds_no_excluded_fund(self):
         funds = json.loads((ROOT / "src" / "data" / "funds.json").read_text(encoding="utf-8"))["funds"]
         bad = [f["code"] for f in funds

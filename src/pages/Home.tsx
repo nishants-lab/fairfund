@@ -245,6 +245,20 @@ export default function Home() {
           <p className="mt-2 text-sm leading-relaxed text-muted">Import a CAMS statement to examine allocation and overlap where fund data is available.</p>
           <span className="mt-3 inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Open portfolio review</span>
         </Link>
+        {/* Static research pages generated at build time (scripts/gen-unfurls.mjs);
+            relative links resolve against the app's real base path. */}
+        <a href="s/stocks/" className="group rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-700 dark:text-brand-300">Stocks</p>
+          <h2 className="mt-2 flex items-center justify-between gap-3 font-display text-2xl font-semibold text-fg">Which funds hold a stock <Arrow /></h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">See how many funds hold a stock, at what weight, and how the weight changed since their previous disclosure.</p>
+          <span className="mt-3 inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Browse stocks</span>
+        </a>
+        <a href="s/overlap/" className="group rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-700 dark:text-brand-300">Overlap</p>
+          <h2 className="mt-2 flex items-center justify-between gap-3 font-display text-2xl font-semibold text-fg">Portfolio overlap <Arrow /></h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">How much the largest funds in each equity category hold in common, with the stocks they share.</p>
+          <span className="mt-3 inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Browse overlap pairs</span>
+        </a>
         <p className="text-xs text-muted md:col-span-2">Statements are processed in your browser. Coverage and matching can be incomplete.</p>
       </div>
     </section>

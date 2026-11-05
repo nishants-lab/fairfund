@@ -387,7 +387,7 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
   // ---- "not" before a signed figure or a comparator flips it ----
   // "not positive returns", "no inflows", "not under 1%". Category, fund house, theme, type,
   // age and risk are negated further down; anything else is said to be unsupported.
-  const flipSign = (w: MeasureWord): MeasureWord => ({ ...w, sign: w.sign === 'pos' ? 'neg' : 'pos', order: w.order === 'desc' ? 'asc' : w.order === 'asc' ? 'desc' : w.order })
+  const flipSign = (w: MeasureWord): MeasureWord => ({ ...w, sign: w.sign === 'pos' ? 'neg' : 'pos', inc: true, order: w.order === 'desc' ? 'asc' : w.order === 'asc' ? 'desc' : w.order })
   items.forEach((it, i) => {
     if (it.p.k !== 'neg') return
     let j = i + 1
@@ -396,7 +396,7 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
     if (!t) return
     let done = false
     if (t.p.k === 'measure' && t.p.v.sign) { t.p = { k: 'measure', v: flipSign(t.p.v) }; done = true }
-    else if (t.p.k === 'measure' && t.p.v.m === 'flow' && INFLOW_TEXT.test(t.text)) { t.p = { k: 'measure', v: { m: 'flow', order: 'asc', sign: 'neg', field: true } }; done = true }
+    else if (t.p.k === 'measure' && t.p.v.m === 'flow' && INFLOW_TEXT.test(t.text)) { t.p = { k: 'measure', v: { m: 'flow', order: 'asc', sign: 'neg', field: true, inc: true } }; done = true }
     else if (t.p.k === 'cmp') { t.p = { k: 'cmp', v: t.p.v === 'gt' ? 'lt' : 'gt', ...(t.p.inc ? {} : { inc: true }) }; done = true }
     // "not expensive", "not the biggest": the other end of the same list
     else if (t.p.k === 'measure' && (t.p.v.order === 'desc' || t.p.v.order === 'asc')) { t.p = { k: 'measure', v: { ...t.p.v, order: t.p.v.order === 'desc' ? 'asc' : 'desc' } }; done = true }
@@ -445,14 +445,14 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
   const timeMonths: number[] = [], timeYears: number[] = []
   const usedMeasure = new Set<number>()
   /** `sign`: the side the measure's own wording is on ("outflow", "positive returns"). */
-  const fieldAt = (idx: number): { field: FilterField; flip: boolean; pct?: boolean; sign?: 'pos' | 'neg' } | null => {
+  const fieldAt = (idx: number): { field: FilterField; flip: boolean; pct?: boolean; sign?: 'pos' | 'neg'; inc?: boolean } | null => {
     const it = items[idx]
     if (!it || usedMeasure.has(idx)) return null
     if (it.p.k === 'measure' && it.p.v.field) {
       const m = it.p.v.m
       const field: FilterField = m === 'rankNow' ? 'rankNow' : (m as FilterField)
       const sign = it.p.v.sign ?? (m === 'flow' && INFLOW_TEXT.test(it.text) ? 'pos' : undefined)
-      return { field, flip: it.p.v.sign === 'neg' && (m === 'flow' || m === 'aumChange' || m === 'terChange' || m === 'rankMove'), sign }
+      return { field, flip: it.p.v.sign === 'neg' && (m === 'flow' || m === 'aumChange' || m === 'terChange' || m === 'rankMove'), sign, ...(it.p.v.inc ? { inc: true } : {}) }
     }
     if (it.p.k === 'age') return { field: 'age', flip: false }
     return null
@@ -527,6 +527,8 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
       let lo = Math.min(v1, q2.v), hi = Math.max(v1, q2.v)
       if (f && f.flip) [lo, hi] = [-hi, -lo]
       thresholds.push({ field, op: 'between', a: lo, b: hi, ...(unit === 'pct' && !PCT_FIELDS.has(field) ? { pct: true } : {}) })
+      // "not positive returns between -10% and 5%": the side said through "not" still holds.
+      if (f && f.inc && f.sign) thresholds.push({ field, op: f.sign === 'neg' ? 'lt' : 'gt', a: 0, inc: true, ...(unit === 'pct' && !PCT_FIELDS.has(field) ? { pct: true } : {}) })
       continue
     }
     let op: 'gt' | 'lt' | null = null
@@ -576,8 +578,9 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
       let value = isTime && u === 'months' ? v / 12 : v
       let flip = false
       let side: 'pos' | 'neg' | undefined
+      let sideInc = false
       if (f && f.field === 'age') { field = 'age'; items[fi].used = true }
-      else if (f) { field = f.field; flip = f.flip; side = (f as { sign?: 'pos' | 'neg' }).sign; usedMeasure.add(fi); items[fi].used = true }
+      else if (f) { field = f.field; flip = f.flip; side = (f as { sign?: 'pos' | 'neg' }).sign; sideInc = !!(f as { inc?: boolean }).inc; usedMeasure.add(fi); items[fi].used = true }
       else if (ageNear(s, e) || isTime) field = 'age'
       else if (u === 'cr') field = items.some(x => x.p.k === 'measure' && x.p.v.m === 'flow') ? 'flow' : 'aum'
       else if (u === 'pct') {
@@ -590,8 +593,9 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
       thresholds.push({ field, op: o, a: value, ...(u === 'pct' && (field === 'flow' || field === 'aumChange' || field === 'aum') ? { pct: true } : {}), ...(inc && !(field === 'rankNow' && o === 'lt') ? { inc: true } : {}) })
       // "outflow below 500 cr" is an outflow, -500 to 0, not anything above -500; a negative
       // number ("inflow < -200") means the wording was net flow, so no side is added.
-      if (side && v >= 0 && !(side === 'neg' ? o === 'lt' && value <= 0 : o === 'gt' && value >= 0)) {
-        thresholds.push({ field, op: side === 'neg' ? 'lt' : 'gt', a: 0, ...(u === 'pct' && (field === 'flow' || field === 'aumChange' || field === 'aum') ? { pct: true } : {}) })
+      // A side said through "not" ("not positive returns above -10%") always holds, whatever the number.
+      if (side && (v >= 0 || sideInc) && !(side === 'neg' ? o === 'lt' && value <= 0 : o === 'gt' && value >= 0)) {
+        thresholds.push({ field, op: side === 'neg' ? 'lt' : 'gt', a: 0, ...(u === 'pct' && (field === 'flow' || field === 'aumChange' || field === 'aum') ? { pct: true } : {}), ...(sideInc ? { inc: true } : {}) })
       }
       continue
     }
@@ -781,7 +785,7 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
     const o = orderItems.find(oo => ownerOf.get(oo.i) === x.i)
     const ov = o ? (o.it.p as { v: string }).v : null
     let th: Threshold | null = null
-    if (w.sign && (FILTER_FIELDS as readonly string[]).includes(w.m)) th = { field: w.m as FilterField, op: w.sign === 'neg' ? 'lt' : 'gt', a: 0 }
+    if (w.sign && (FILTER_FIELDS as readonly string[]).includes(w.m)) th = { field: w.m as FilterField, op: w.sign === 'neg' ? 'lt' : 'gt', a: 0, ...(w.inc ? { inc: true } : {}) }
     else if (w.m === 'cagr' && (ov === 'good' || ov === 'bad')) th = { field: 'vsCategory', op: ov === 'good' ? 'gt' : 'lt', a: 0 }
     else if (w.m === 'flow' && INFLOW_TEXT.test(x.it.text)) th = { field: 'flow', op: 'gt', a: 0 }
     if (th) { thresholds.push(th); x.it.used = true; if (o) o.it.used = true }
@@ -848,6 +852,13 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
   if (measure === 'vsCategory' && mw?.sign === 'neg' && !firstOrder) sign = 'neg'
   if (measure === 'rankMove' && !firstOrder && mw?.sign) sign = mw.sign
   if (measure === 'momentum' && !firstOrder) sign = mw?.sign === 'neg' ? 'neg' : 'pos'
+  // "not positive returns" keeps the funds at exactly zero, which the strict sign filter drops.
+  let signThreshold: Threshold | null = null
+  if (sign !== 'any' && mw?.inc && measure && (FILTER_FIELDS as readonly string[]).includes(measure)) {
+    signThreshold = { field: measure as FilterField, op: sign === 'neg' ? 'lt' : 'gt', a: 0, inc: true }
+    thresholds.push(signThreshold)
+    sign = 'any'
+  }
 
   // ---- time ----
   const YTD = /^(this year|ytd|year to date|so far this year|calendar year|this calendar year)$/
@@ -932,6 +943,8 @@ export function parseQuery(text: string, ctx: ParseContext, base?: MoversState):
   if (cashOnly && (s.view === 'flows' || s.view === 'size')) {
     notes.push('Month-end AUM history is not tracked for liquid and money market funds yet; showing their size and cost.')
     s.view = 'debt'; s.measure = 'aum'; s.sign = 'any'
+    // These funds have no flow or AUM-change figures, so a filter on them would empty the list.
+    s.thresholds = s.thresholds.filter(t => t !== signThreshold && t.field !== 'flow' && t.field !== 'aumChange')
   }
 
   // ---- a fund's own name ----

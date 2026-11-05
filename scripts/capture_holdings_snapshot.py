@@ -78,8 +78,7 @@ _FUNDS_CANDIDATES = [
 FUNDS_JSON = next((p for p in _FUNDS_CANDIDATES if os.path.exists(p)), _FUNDS_CANDIDATES[0])
 META_CACHE = os.path.join(ROOT, "scheme_meta_cache")
 
-FEEDER_INSTR = {"mutual fund", "foreign mf", "fund", "exchange traded fund", "etf"}
-EQUITY_INSTR = {"equity", "forgn. eq", "foreign equity", "equity shares", "fgn equity"}
+from holdings_class import FEEDER_INSTR, EQUITY_INSTR, fund_of_funds_coverage  # noqa: E402
 
 
 def load_slug_map():
@@ -157,11 +156,7 @@ def norm_holdings(raw):
 
 
 def is_feeder_singleline(holds):
-    if not holds:
-        return False
-    eq = [h for h in holds if h["instrument"].lower() in EQUITY_INSTR]
-    feeders = [h for h in holds if h["instrument"].lower() in FEEDER_INSTR]
-    return bool(not eq and feeders and feeders[0]["pct"] >= 80)
+    return fund_of_funds_coverage(holds) == "feeder_unresolved"
 
 
 def iso_pdate(s):
@@ -274,7 +269,7 @@ def capture_one(code, name, smap, today, fetch=None):
     pdate = iso_pdate(raw[0].get("portfolio_date")) if raw else None
     if not holds or not pdate:
         return code, None, "no_disclosure", final_slug, reset
-    coverage = "feeder_unresolved" if is_feeder_singleline(holds) else "stock_level"
+    coverage = fund_of_funds_coverage(holds) or "stock_level"
     if coverage == "stock_level":
         total = sum(h["pct"] for h in holds)
         if total > MAX_STOCK_LEVEL_SUM:
