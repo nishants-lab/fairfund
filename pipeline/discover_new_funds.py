@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(ROOT, "scripts"))
+from nav_corrections import correct_history  # noqa: E402
 
 from config import (
     ELIGIBLE_AMFI_CATEGORIES as ELIGIBLE_CATEGORIES,
@@ -168,6 +170,9 @@ def fetch_nav_history(code):
             points_d.reverse()
             points_v.reverse()
         
+        # Verified unit splits (src/data/nav_corrections.json): today's units.
+        fixed = correct_history(code, dict(zip(points_d, points_v)))
+        points_v = [fixed[d] for d in points_d]
         return points_d, points_v
     except Exception:
         return None, None

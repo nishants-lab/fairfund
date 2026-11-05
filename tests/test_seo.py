@@ -115,6 +115,32 @@ class SeoTests(unittest.TestCase):
         html=(self.base/'dist/s/explore/index.html').read_text()
         self.assertIn('class="metrics-scroll" role="region" aria-label="Category metrics" tabindex="0"><table',html)
 
+    def test_cash_like_and_arbitrage_fund_pages_leave_out_sharpe_and_drawdown(self):
+        m={'3Y':{'cagr':6.9,'alpha':0.1,'catRank':3,'catSize':30,'sharpe':-8.4,'maxDrawdown':-0.1}}
+        self.data['funds']=[dict(self.data['funds'][0],code=1,metrics=m),
+                            dict(self.data['funds'][0],code=2,name='Liquid Example Fund',category='Liquid',categoryDisplay='Liquid',isDebt=True,metrics=m),
+                            dict(self.data['funds'][0],code=3,name='Arbitrage Example Fund',category='Arbitrage',categoryDisplay='Arbitrage',isArbitrage=True,metrics=m)]
+        self.data['totalFunds']=3;self.save_data()
+        result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('Sharpe ratio',(self.base/'dist/f/1/index.html').read_text())
+        for code in (2,3):
+            html=(self.base/f'dist/f/{code}/index.html').read_text()
+            self.assertNotIn('Sharpe ratio',html);self.assertNotIn('-8.4',html);self.assertNotIn('max drawdown',html)
+            self.assertIn('#3 of 30',html)
+
+    def test_nfo_table_has_two_columns_that_fit_a_phone(self):
+        nfo={'generatedAt':'2026-11-05','nfos':[{'code':9,'name':'Example Nifty Realty Index Fund','amc':'Example AMC','category':'Index-Sectoral/Thematic',
+             'launchDate':'2026-10-26','closeDate':'2099-11-09','nav':None,'details':{'benchmark':'NIFTY Realty TRI'}}]}
+        (self.base/'src/data/nfo.json').write_text(json.dumps(nfo),encoding='utf-8')
+        result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
+        html=(self.base/'dist/s/nfo/index.html').read_text()
+        table=re.search(r'<table.*?</table>',html,re.S).group(0)
+        self.assertEqual(len(re.findall(r'<th\b',table)),2)
+        self.assertEqual(len(re.findall(r'<td\b',table)),2)
+        self.assertIn('Benchmark: NIFTY Realty TRI',table)
+        self.assertIn('Index - Sectoral/Thematic',table)
+        self.assertIn('Open until 2099-11-09',table)
+
     def test_external_names_cannot_break_out_of_jsonld(self):
         name='Example </script><script>alert(1)</script> & Fund'
         self.data['funds'][0]['name']=name;self.save_data()

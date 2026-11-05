@@ -170,6 +170,9 @@ _CLOSED_SERIES_RE = re.compile(r"\bseries\s+([ivxl]+|\d+)\b", re.IGNORECASE)
 # and IBX indices are fixed-income; AAA is a credit rating. None of the three
 # appears in any equity scheme name AMFI publishes (checked 2026-10-12).
 _DEBT_INDEX_RE = re.compile(r"\bcrisil\b|\bibx\b|\baaa\b", re.IGNORECASE)
+# Government-securities index funds also appear as "G Sec" with a space
+# ("Tata Nifty G Sec Dec 2026 Index Fund"), which the "g-sec"/"gsec" keywords miss.
+_GSEC_RE = re.compile(r"\bg[\s.-]*sec\b", re.IGNORECASE)
 
 
 def is_excluded_by_name(fund_name):
@@ -183,7 +186,7 @@ def is_excluded_by_name(fund_name):
     low = fund_name.lower()
     if any(kw in low for kw in EXCLUDE_NAME_KEYWORDS):
         return True
-    if _DEBT_INDEX_RE.search(fund_name):
+    if _DEBT_INDEX_RE.search(fund_name) or _GSEC_RE.search(fund_name):
         return True
     if any(kw in low for kw in _JUNK_NAME_KEYWORDS):
         return True

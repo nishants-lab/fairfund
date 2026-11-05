@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from market_date import IST, ist_today, is_usable_nav_date
+from nav_corrections import correct_history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # repo root = parent of this scripts/ dir; nav lives in public/nav
@@ -56,7 +57,8 @@ def fetch_mfapi_history(code):
                     continue
                 if nav > 0:
                     out[f"{yyyy}-{mm}-{dd}"] = nav
-            return out
+            # Verified unit splits: source history in today's units, like the stored file.
+            return correct_history(code, out)
         except Exception:
             time.sleep(1 * (2 ** attempt))
     return {}

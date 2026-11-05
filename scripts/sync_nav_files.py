@@ -21,6 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from market_date import ist_today, is_usable_nav_date
+from nav_corrections import correct_history
 
 # Resolve paths (CI-safe, same strategy as capture_holdings_snapshot)
 _FUNDS_CANDIDATES = [
@@ -107,6 +108,9 @@ def main():
             failed += 1
             continue
         d, v = compact(raw["data"])
+        # Stored files hold corrected values (src/data/nav_corrections.json).
+        fixed = correct_history(code, dict(zip(d, v)))
+        v = [fixed[x] for x in d]
         if len(d) < 30:
             failed += 1
             continue

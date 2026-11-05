@@ -75,6 +75,12 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    assert.equal(await facts.count(),2);
    assert.doesNotMatch(text,/The periods overlap|These periods overlap|analysis coverage|year-labelled/);
    assert.equal(await page.locator('a button').count(),0,'tooltip controls must not nest inside links');
+   // The static research hubs sit beside the app, so their links resolve against the page, not the hash route.
+   for (const [label,hub] of [['Which funds hold a stock','s/stocks/'],['Portfolio overlap','s/overlap/']]) {
+     const link=page.getByRole('link',{name:new RegExp(label)});
+     assert.equal(await link.count(),1,`hub card: ${hub}`);
+     assert.equal(await link.evaluate(a=>a.href),new URL(hub,page.url().split('#')[0]).href);
+   }
    if(capture){fs.mkdirSync(capture,{recursive:true});await page.screenshot({path:path.join(capture,`fairfund-home-${name}.png`),fullPage:true,timeout:12000,animations:'disabled'});}
    await page.evaluate(()=>scrollTo(0,0));
    const search=page.getByRole('combobox',{name:'Search mutual funds',exact:true});

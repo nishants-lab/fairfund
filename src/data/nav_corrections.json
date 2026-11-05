@@ -1,0 +1,17 @@
+{
+  "doc": "Source-verified corrections to AMFI/mfapi NAV history. Applied to every source response (pipeline fetches and the app's live fetch) before quality checks; stored public/nav files already hold corrected values. A split divides every NAV dated before firstNewDate by factor, so the history is in today's units. Add an entry only with a citation that confirms it.",
+  "splits": [
+    {
+      "code": 120304,
+      "name": "UTI Liquid Fund - Direct Plan - Growth",
+      "factor": 10,
+      "firstNewDate": "2026-06-20",
+      "evidence": "UTI MF factsheets: Direct Growth NAV 4569.7551 on 31 May 2026 (June 2026 factsheet) and 459.9553 on 30 June 2026 (July 2026 factsheet), June high 4543.7279 and low 454.4497 for the Growth option. mfapi/AMFI history moves from 4589.1243 on 2026-06-19 to 458.9915 on 2026-06-20.",
+      "sources": [
+        "https://www.utimf.com/static/digitalfactsheet/june2026/Debt-funds/liquid.html",
+        "https://www.utimf.com/static/digitalfactsheet/july2026/Debt-funds/liquid.html"
+      ],
+      "verified": "2026-11-06"
+    }
+  ]
+}

@@ -279,6 +279,32 @@ test('labels read the way people say them', () => {
 const REAL = (fundsJson as unknown as { funds: Fund[] }).funds
 const RD = moversJson as unknown as MoversData
 const RS = stocksJson as unknown as StocksData
+test('"not positive returns" keeps a fund at exactly 0%; "negative returns" does not', () => {
+  const flat = fund(6, 'Flat Mid Cap Fund', 'Mid Cap', { metrics: { '3Y': { cagr: 0, catMedianCagr: 13, catRank: 6, catSize: 10, maxDrawdown: -10, score: 0.5 } as never } })
+  const up = fund(7, 'Up Mid Cap Fund', 'Mid Cap', { metrics: { '3Y': { cagr: 4, catMedianCagr: 13, catRank: 7, catSize: 10, maxDrawdown: -10, score: 0.5 } as never } })
+  const down = fund(8, 'Down Mid Cap Fund', 'Mid Cap', { metrics: { '3Y': { cagr: -3, catMedianCagr: 13, catRank: 8, catSize: 10, maxDrawdown: -10, score: 0.5 } as never } })
+  const names = (q: string) => fundRows([flat, up, down], DATA, parseQuery(q, moversContext()).state).map(r => r.fund.name)
+  assert.deepEqual(names('funds with not positive returns'), ['Down Mid Cap Fund', 'Flat Mid Cap Fund'])
+  assert.deepEqual(names('funds not in the red'), ['Up Mid Cap Fund', 'Flat Mid Cap Fund'])
+  assert.deepEqual(names('funds with negative returns'), ['Down Mid Cap Fund'])
+  assert.deepEqual(names('funds with positive returns'), ['Up Mid Cap Fund'])
+  assert.equal(thresholdLabel(parseQuery('funds with not positive returns', moversContext()).state.thresholds[0]), 'Return zero or less')
+})
+
+test('negation stays inclusive next to a number, and cash funds keep their size fallback', () => {
+  const th = (q: string) => parseQuery(q, moversContext()).state.thresholds
+  assert.deepEqual(th('not negative returns below 10%').filter(t => t.a === 0), [{ field: 'cagr', op: 'gt', a: 0, inc: true }])
+  assert.deepEqual(th('not positive returns above -10%'), [{ field: 'cagr', op: 'gt', a: -10 }, { field: 'cagr', op: 'lt', a: 0, inc: true }])
+  assert.deepEqual(th('not positive returns between -10% and 5%'), [{ field: 'cagr', op: 'between', a: -10, b: 5 }, { field: 'cagr', op: 'lt', a: 0, inc: true }])
+  assert.deepEqual(th('not negative returns between -5% and 10%'), [{ field: 'cagr', op: 'between', a: -5, b: 10 }, { field: 'cagr', op: 'gt', a: 0, inc: true }])
+  assert.ok(th('not positive returns and returns above -10%').some(t => t.field === 'cagr' && t.op === 'lt' && t.a === 0 && t.inc), 'zero passes with a second bound')
+  for (const q of ['liquid funds with no inflows', 'money market funds that did not see outflows', 'liquid funds by aum with no inflows']) {
+    const s = parseQuery(q, moversContext()).state
+    assert.equal(s.view, 'debt', q)
+    assert.deepEqual(s.thresholds, [], q)
+  }
+})
+
 const GOLDEN: { q: string }[] = JSON.parse(readFileSync(new URL('./fixtures/movers-queries.json', 'file://' + process.cwd().replace(/\\/g, '/') + '/tests/'), 'utf-8'))
 
 test(`every golden question gives rows that obey its own state (${GOLDEN.length})`, () => {

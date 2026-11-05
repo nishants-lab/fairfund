@@ -48,9 +48,8 @@ def safe_filename(s):
     return _re.sub(r'[<>:"/\\|?*]', "_", s)
 
 # instrument_name values that indicate a FEEDER line (not a real stock)
-FEEDER_INSTR = {"mutual fund", "foreign mf", "fund", "exchange traded fund", "etf"}
+from holdings_class import FEEDER_INSTR, EQUITY_INSTR, fund_of_funds_coverage, underlying_name  # noqa: E402
 # instrument_name values that are real equities we count for overlap
-EQUITY_INSTR = {"equity", "forgn. eq", "foreign equity", "equity shares", "fgn equity"}
 
 
 def _get(url, timeout=20):
@@ -249,11 +248,7 @@ def is_feeder_singleline(holdings):
     """True if holdings is essentially one line into another fund."""
     if not holdings:
         return False
-    eq = [h for h in holdings if h["instrument"].lower() in EQUITY_INSTR]
-    feeders = [h for h in holdings if h["instrument"].lower() in FEEDER_INSTR]
-    if not eq and feeders and feeders[0]["pct"] >= 80:
-        return True
-    return False
+    return fund_of_funds_coverage(holdings) == "feeder_unresolved"
 
 
 def process_fund(code, name):
@@ -305,7 +300,7 @@ def process_fund(code, name):
             usc = fetch_scheme(under_slug)
             if usc:
                 uholds = norm_holdings(usc.get("holdings", []))
-                if uholds and not is_feeder_singleline(uholds):
+                if uholds and not fund_of_funds_coverage(uholds):
                     rec.update({"coverage": "lookthrough_domestic", "holdings": uholds,
                                 "note": f"Look-through via {feeder['name']}",
                                 "underlying": feeder["name"]})
@@ -314,6 +309,13 @@ def process_fund(code, name):
         rec.update({"coverage": "feeder_unresolved", "holdings": holds,
                     "note": f"Feeder into {feeder['name']}; stock-level look-through unavailable",
                     "underlying": feeder["name"]})
+        return code, rec
+
+    # Several underlying funds: units of funds, not stocks.
+    if fund_of_funds_coverage(holds) == "fof_level":
+        rec.update({"coverage": "fof_level", "holdings": holds,
+                    "note": "Fund of funds; stock-level look-through unavailable",
+                    "underlying": underlying_name(holds)})
         return code, rec
 
     # normal stock-level disclosure

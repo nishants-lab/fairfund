@@ -6,7 +6,15 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
-const server=await createServer({root,plugins:[{name:'observe-events',enforce:'pre',transform(code,id){if(id.endsWith('/src/lib/usage.ts'))return code.replace('export function trackUsageEvent(event: UsageEvent) {','export function trackUsageEvent(event: UsageEvent) { (window as any).__events ??= []; (window as any).__events.push(event);')}}],server:{host:'127.0.0.1',port:0}})
+// Synthetic holds on one debt and one equity fund, so the sticky-hold check does not
+// depend on which real funds are quarantined today (120304 was released on 2026-11-06).
+const HELD=[120304,120826]
+const hold=r=>{r.metrics={};r.analytics={};delete r.si;delete r.previousRankings;r.dataQuality={status:'quarantined',issues:[{reason:'unverified_nav_jump',date:'2026-01-02',previousDate:'2026-01-01',changePct:-90}]};return r}
+const server=await createServer({root,plugins:[{name:'observe-events',enforce:'pre',transform(code,id){
+ const file=id.split('?')[0]
+ if(file.endsWith('/src/lib/usage.ts'))return code.replace('export function trackUsageEvent(event: UsageEvent) {','export function trackUsageEvent(event: UsageEvent) { (window as any).__events ??= []; (window as any).__events.push(event);')
+ if(file.endsWith('/src/data/funds.json')){const d=JSON.parse(code);for(const f of d.funds)if(HELD.includes(f.code))hold(f);return JSON.stringify(d)}
+}}],server:{host:'127.0.0.1',port:0}})
 let browser
 try {
  await server.listen()
@@ -16,8 +24,10 @@ try {
  const page=await context.newPage(),errors=[]
  page.on('pageerror',e=>errors.push(e.message))
  const points=Array.from({length:1462},(_,i)=>({date:new Date(Date.UTC(2020,0,1+i)).toISOString().slice(0,10),nav:100+i*.025+Math.sin(i/7)*.5}))
- await context.route('**/*',route=>{
+ await context.route('**/*',async route=>{
   const url=new URL(route.request().url())
+  const heldDetail=url.origin===base&&url.pathname.match(/\/fund-data\/(\d+)\.json$/)
+  if(heldDetail&&HELD.includes(Number(heldDetail[1]))){const res=await route.fetch();return route.fulfill({response:res,json:hold(await res.json())})}
   if(url.hostname==='api.mfapi.in')return route.fulfill({contentType:'application/json',body:JSON.stringify({data:points.map((p,i)=>({date:p.date.split('-').reverse().join('-'),nav:String(url.pathname.endsWith('/120503') ? 100*1.001**i : p.nav)})).reverse()})})
   if(url.origin!==base)return route.abort()
   return route.continue()

@@ -39,8 +39,7 @@ DETAIL_DIR = os.path.join(ROOT, "public", "fund-data")
 SLUG_MAP_PATH = os.path.join(HIST_DIR, "_slugs.json")
 
 # Instruments that indicate real stock-level holdings
-EQUITY_INSTR = {"equity", "forgn. eq", "foreign equity", "equity shares", "fgn equity"}
-FEEDER_INSTR = {"mutual fund", "foreign mf", "fund", "exchange traded fund", "etf"}
+from holdings_class import FEEDER_INSTR, EQUITY_INSTR, fund_of_funds_coverage  # noqa: E402
 
 
 def _get(url, timeout=20):
@@ -238,11 +237,11 @@ def fetch_holdings(slug):
 
     # Classify coverage
     eq = [h for h in holdings if h["instrument"].lower() in EQUITY_INSTR]
-    feeders = [h for h in holdings if h["instrument"].lower() in FEEDER_INSTR]
-    if eq:
+    fof = fund_of_funds_coverage(holdings)
+    if fof:
+        coverage = fof
+    elif eq:
         coverage = "stock_level"
-    elif feeders and feeders[0]["pct"] >= 80:
-        coverage = "feeder_unresolved"
     elif holdings:
         # FoF with disclosed underlying funds
         coverage = "fof_level"

@@ -347,8 +347,12 @@ for (const f of funds) {
     ['Return a year (CAGR)', mm => `${fixed(mm.cagr)}%`],
     ['Versus category median', mm => mm.alpha != null ? `${sign(mm.alpha)}%` : '-'],
     ['Category rank', mm => `#${mm.catRank} of ${mm.catSize}`],
-    ['Sharpe ratio', mm => typeof mm.sharpe === 'number' && Number.isFinite(mm.sharpe) ? String(mm.sharpe) : '-'],
-    ['Largest fall (max drawdown)', mm => mm.maxDrawdown != null ? `${fixed(mm.maxDrawdown)}%` : '-'],
+    // Cash-like and arbitrage funds barely move, so ratios of return to price
+    // swings are not meaningful for them: the app hides these rows (usesReducedSurface).
+    ...(f.isDebt || f.isArbitrage ? [] : [
+      ['Sharpe ratio', mm => typeof mm.sharpe === 'number' && Number.isFinite(mm.sharpe) ? String(mm.sharpe) : '-'],
+      ['Largest fall (max drawdown)', mm => mm.maxDrawdown != null ? `${fixed(mm.maxDrawdown)}%` : '-'],
+    ]),
   ]
   const cell = 'padding:6px 16px 6px 0'
   const table = wins.length
@@ -423,13 +427,14 @@ const nfoData = existsSync(nfoPath) ? JSON.parse(readFileSync(nfoPath, 'utf-8'))
 const buildDay = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10)
 const nfoStatus = n => n.nav ? 'Now trading' : n.launchDate > buildDay ? `Opens ${n.launchDate}` : n.closeDate && n.closeDate < buildDay ? `Closed ${n.closeDate}` : n.closeDate ? `Open until ${n.closeDate}` : `Opened ${n.launchDate}`
 const nfoRows = nfoData.nfos.map(n =>
-  `<tr><td style="padding:6px 16px 6px 0">${esc(n.name)}<div style="font-size:12px;color:#64748b">${esc(n.amc)}</div></td><td style="padding:6px 16px 6px 0">${esc(n.category.replace('-', ' - '))}</td><td style="padding:6px 16px 6px 0">${esc(n.details?.benchmark || '-')}</td><td style="padding:6px 0">${esc(nfoStatus(n))}</td></tr>`
+  // Two columns so the list fits a 320px screen: category and benchmark sit under the name.
+  `<tr><td style="padding:6px 16px 6px 0;white-space:normal;min-width:10rem">${esc(n.name)}<div style="font-size:12px;color:#64748b">${esc(n.amc)} &middot; ${esc(n.category.replace('-', ' - '))}</div><div style="font-size:12px;color:#64748b">Benchmark: ${esc(n.details?.benchmark || '-')}</div></td><td style="padding:6px 0;white-space:normal;min-width:6rem">${esc(nfoStatus(n))}</td></tr>`
 ).join('')
 const nfoBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">New fund offers (NFOs)</h1>
 <p style="font-size:16px;margin:0 0 14px">New fund offers in the categories FairFund covers, from AMFI's scheme list. Each is shown on FairFund next to the funds that already track the same index, because a new fund has no performance record of its own.</p>
 <p style="font-size:16px;margin:0 0 20px">A new fund starts at a round NAV, usually &#8377;10. A low NAV is not cheaper than a high one.</p>
-${nfoRows ? `<div class="metrics-scroll" role="region" aria-label="New fund offers" tabindex="0"><table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Scheme</th><th style="text-align:left;padding:0 16px 6px 0">Category</th><th style="text-align:left;padding:0 16px 6px 0">Benchmark</th><th style="text-align:left;padding:0 0 6px 0">Status</th></tr></thead><tbody>${nfoRows}</tbody></table></div>` : '<p style="font-size:16px">No new fund offers in FairFund\'s categories right now.</p>'}
+${nfoRows ? `<div class="metrics-scroll" role="region" aria-label="New fund offers" tabindex="0"><table style="border-collapse:collapse;font-size:14px;width:100%"><thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:0 16px 6px 0">Scheme</th><th style="text-align:left;padding:0 0 6px 0">Status</th></tr></thead><tbody>${nfoRows}</tbody></table></div>` : '<p style="font-size:16px">No new fund offers in FairFund\'s categories right now.</p>'}
 <p style="margin-top:24px"><a href="${SHELL_UP}#/nfo" style="color:#2563eb;font-weight:600">Open it on FairFund &rarr;</a></p>
 <p style="font-size:12px;color:#475569;margin-top:20px">Source: AMFI${nfoData.generatedAt ? `, ${esc(nfoData.generatedAt)}` : ''}. Data for research only, not investment advice. Past performance does not indicate future returns. Read the scheme information document before investing.</p>`
 

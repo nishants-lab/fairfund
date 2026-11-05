@@ -1,6 +1,7 @@
 import type { NavPoint } from '../types'
 import { getFund } from './data'
 import { navQualityIssue, NavQualityError } from './navQuality'
+import { correctSourceNav } from './navCorrections'
 import { reportLiveNavDate } from './navFreshness'
 import { dropFutureNavPoints, istToday } from './marketDate'
 
@@ -78,7 +79,7 @@ export async function fetchNavHistory(code: number): Promise<NavPoint[]> {
     const res = await withTimeout(`https://api.mfapi.in/mf/${code}`, LIVE_TIMEOUT_MS)
     if (res.ok) {
       const json = (await res.json()) as MfApiResponse
-      const points = parseLive(json)
+      const points = correctSourceNav(code, parseLive(json))
       liveIssue = navQualityIssue(points)
       if (points.length > 0 && !liveIssue) {
         cache.set(code, points)
