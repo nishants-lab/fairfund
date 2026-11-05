@@ -1,0 +1,34 @@
+{
+  "doc": "Stock display names, keyed by stock slug (the source holding key, lowercased, non-alphanumerics to '-'). renames: verified company renames (name now, formerly then), each with a source. display: cleaner spelling of the same company where the only source name is a raw registry string. Used by scripts/research-pages.mjs and the app.",
+  "renames": {
+    "zomato-ltd": {
+      "name": "Eternal Ltd",
+      "formerly": "Zomato Ltd",
+      "source": "Ministry of Corporate Affairs approved Zomato Ltd -> Eternal Ltd on 20 Mar 2025"
+    },
+    "shriram-transport-finance-company-ltd": {
+      "name": "Shriram Finance Ltd",
+      "formerly": "Shriram Transport Finance Company Ltd",
+      "source": "Renamed Dec 2022 after the Shriram City Union merger; same ISIN INE721A01013"
+    },
+    "dewan-housing-finance-corporation-ltd": {
+      "name": "Piramal Finance Ltd",
+      "formerly": "Dewan Housing Finance Corporation Ltd",
+      "source": "DHFL, acquired by Piramal in 2021, became Piramal Finance Ltd and relisted (NSE: PIRAMALFIN, BSE: 544597); https://groww.in/stocks/dewan-housing-finance-corporation-ltd shows Piramal Finance Ltd"
+    },
+    "aadhar-housing-finance-ltd": {
+      "name": "Aadhar Housing Finance Ltd",
+      "formerly": "DHFL Vysya Housing Finance Ltd",
+      "source": "DHFL Vysya Housing Finance was renamed Aadhar Housing Finance in 2017; the source key is the new name"
+    }
+  },
+  "display": {
+    "national-stock-exchange-of-india-ltd": "National Stock Exchange of India Ltd",
+    "tata-capital-ltd": "Tata Capital Ltd",
+    "hexaware-technologies-limited": "Hexaware Technologies Ltd",
+    "hdb-financial-services-ltd": "HDB Financial Services Ltd",
+    "inox-india-ltd": "INOX India Ltd",
+    "afcons-infrastructure-ltd": "Afcons Infrastructure Ltd",
+    "dr-agarwals-health-care-ltd": "Dr. Agarwal's Health Care Ltd"
+  }
+}

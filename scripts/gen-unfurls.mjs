@@ -13,7 +13,7 @@ import { readFileSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SITE, SHELL_UP, COVER_IMAGE } from './site-config.mjs'
-import { buildResearch, PAIR_TOP_N, isIndexFund, median, hasMonthOnMonth, hasUsableHoldings, isLiveFund, stockSlug, pairPath, currentStock } from './research-pages.mjs'
+import { buildResearch, PAIR_TOP_N, isIndexFund, median, hasMonthOnMonth, hasUsableHoldings, isLiveFund, stockSlug, pairPath, currentStock, isRawStockName } from './research-pages.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -159,6 +159,25 @@ function lockInText(lock) {
   return parts.length ? parts.join(' ') : null
 }
 const rupees = n => `Rs&nbsp;${Math.round(n).toLocaleString('en-IN')}`
+/** JSON-LD for a page plus its breadcrumb trail (Home > ... > page), as one @graph. */
+function withBreadcrumbs(main, trail) {
+  const crumbs = [['FairFund', `${SITE}/`], ...trail]
+  return structuredData({ '@context': 'https://schema.org', '@graph': [
+    Object.fromEntries(Object.entries(main).filter(([k]) => k !== '@context')),
+    { '@type': 'BreadcrumbList', itemListElement: crumbs.map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
+  ] })
+}
+/** Plain share links (no script): WhatsApp and X, pointing at this public page. */
+function shareLinks(url, text) {
+  const u = encodeURIComponent(url), t = encodeURIComponent(text)
+  return `<p style="font-size:14px;margin:8px 0 20px">Share: <a href="https://wa.me/?text=${t}%20${u}" rel="noopener nofollow">WhatsApp</a> &middot; <a href="https://twitter.com/intent/tweet?text=${t}&amp;url=${u}" rel="noopener nofollow">X</a></p>`
+}
+/** The SEBI riskometer level most funds in a category carry (official label, not a house view). */
+function categorySebiRisk(key) {
+  const counts = new Map()
+  for (const f of funds) if (f.category === key && isActive(f) && f.sebiRisk) counts.set(f.sebiRisk, (counts.get(f.sebiRisk) || 0) + 1)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0]?.[0] ?? null
+}
 const DISCLAIMER = '<p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>'
 const EYEBROW = '<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>'
 const OVERLAP_RULE = 'Overlap adds up the smaller of the two weights for every holding both funds own: 0% means no shared holdings, 100% means the same holdings at the same weights.'
@@ -313,21 +332,31 @@ for (const f of funds) {
   if (lead?.cagr != null && leadWin) descBits.push(`${leadWin} CAGR ${fixed(lead.cagr)}%`)
   if (lead?.alpha != null && leadWin) descBits.push(`alpha ${sign(lead.alpha)}%`)
   if (typeof f.expenseRatio === 'number') descBits.push(`expense ratio ${f.expenseRatio.toFixed(2)}%`)
-  const desc = `${descBits.join(' \u00b7 ')}. Mutual fund research on FairFund.`
-  const title = `${f.name} - ${cat} | FairFund`
+  // Lead with the fund name and fund house so each description is specific to
+  // the fund; end with the facts people search for (return, cost, size).
+  const descFacts = []
+  if (lead?.cagr != null && leadWin) descFacts.push(`${leadWin} return ${fixed(lead.cagr)}% a year`)
+  if (lead?.catRank && lead?.catSize) descFacts.push(`rank #${lead.catRank} of ${lead.catSize} in ${cat}`)
+  if (typeof f.expenseRatio === 'number') descFacts.push(`expense ratio ${f.expenseRatio.toFixed(2)}%`)
+  if (f.aum?.current) descFacts.push(`fund size Rs ${Math.round(f.aum.current).toLocaleString('en-IN')} Cr`)
+  const topHolding = (detail?.holdings ?? []).filter(h => h.instrument === 'Equity').sort((x, y) => y.pct - x.pct)[0]
+  if (topHolding && detail?.holdingsMeta?.coverage === 'stock_level') descFacts.push(`top holding ${currentStock(topHolding).name.replace(/\s+(Ltd\.?|Limited)\s*$/i, '')} ${fixed(topHolding.pct)}%`)
+  const desc = `${f.name} (${f.amc ? `${f.amc}, ` : ''}${cat}, direct plan): ${descFacts.length ? descFacts.join(', ') : 'returns, costs and holdings'}.`
+  const plan = /direct/i.test(f.name) ? '' : ' Direct Growth'
+  const hasHoldings = detail?.holdingsMeta?.coverage === 'stock_level' || detail?.holdingsMeta?.coverage === 'fof_level'
+  const title = `${f.name}${plan}: returns, expense ratio${hasHoldings ? ', holdings' : ''} | FairFund`
   const image = existsSync(join(DIST, 'og', `${f.code}.png`)) ? `${SITE}/og/${f.code}.png` : COVER_IMAGE
   const url = `${SITE}/f/${f.code}/`
 
   // JSON-LD structured data.
-  const jsonld = structuredData({
-    '@context': 'https://schema.org',
+  const jsonld = withBreadcrumbs({
     '@type': 'FinancialProduct',
     name: f.name,
     category: cat,
     provider: { '@type': 'Organization', name: f.amc },
     url,
     description: desc,
-  })
+  }, [[cat, `${SITE}/c/${catSlug(f.category)}/`], [f.name, url]])
 
   // Visible/crawlable body. Lead sentence + metrics table for long windows only
   // (drop 1Y from the shell: it swings hard and misrepresents a fund in search).
@@ -362,7 +391,9 @@ for (const f of funds) {
 
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(f.name)}</h1>
-<p style="font-size:15px;color:#475569;margin:0 0 20px">${subline}</p>
+<p style="font-size:15px;color:#475569;margin:0 0 12px">${subline}</p>
+<p style="margin:0 0 4px"><a href="${SHELL_UP}#${hash}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#1d4ed8;color:#fff;font-weight:600;text-decoration:none">Open charts, compare and full analysis &rarr;</a></p>
+${shareLinks(url, `${f.name}: returns, expense ratio and holdings on FairFund`)}
 ${qualityWarning}<p style="font-size:16px">${leadSentence}</p>
 ${table}
 ${factsSection(f, detail)}
@@ -485,25 +516,39 @@ let catN = 0
 for (const c of categories) {
   const slug = catSlug(c.key)
   const hash = `/category/${slug}`
-  const title = `${c.display} funds - deep dive | FairFund`
-  const desc = `Explore ${c.count} ${c.display} funds, their historical returns and category comparisons.`
-  const jsonld = structuredData({
-    '@context': 'https://schema.org',
+  const plural = /funds?$/i.test(c.display) ? c.display.replace(/funds?$/i, 'funds') : `${c.display} funds`
+  // Every fund in the category has a report page, so every one is linked from here.
+  const inCat = funds.filter(f => f.category === c.key)
+  const ers = inCat.filter(isActive).map(f => f.expenseRatio).filter(v => typeof v === 'number')
+  const medEr = ers.length ? median(ers) : null
+  const ranked = inCat.filter(f => isActive(f) && !isQuarantined(f) && f.metrics?.['3Y']?.catRank).sort((x, y) => x.metrics['3Y'].catRank - y.metrics['3Y'].catRank)
+  const unranked = inCat.filter(f => !ranked.includes(f)).sort((a, b) => a.name.localeCompare(b.name))
+  const rankDate = ranked[0]?.metrics['3Y'].windowEnd
+  const title = `${plural} compared: 3Y returns, ranks, expense ratios | FairFund`
+  const desc = `${inCat.length} ${plural} (direct plans) side by side: 3-year return, category rank and expense ratio${medEr != null ? ` (median ${medEr.toFixed(2)}%)` : ''}${c.median5Y != null ? `, median 5Y return ${c.median5Y.toFixed(1)}% a year` : ''}.`
+  const jsonld = withBreadcrumbs({
     '@type': 'WebPage',
-    name: `${c.display} funds - category deep dive`,
+    name: `${plural} compared`,
     description: desc,
     url: `${SITE}/c/${slug}/`,
+  }, [['Categories', `${SITE}/s/explore/`], [plural, `${SITE}/c/${slug}/`]])
+  const sebi = categorySebiRisk(c.key)
+  const rankRows = ranked.map(f => {
+    const m = f.metrics['3Y']
+    return `<tr>${nameCell(`<a href="${SITE}/f/${f.code}/">${esc(f.name)}</a>`, `#${m.catRank} of ${m.catSize}`)}${td(m.cagr != null ? pct(m.cagr) : '-', 'num')}${td(typeof f.expenseRatio === 'number' ? `${f.expenseRatio.toFixed(2)}%` : '-', 'num')}</tr>`
   })
-  const fundLinks = funds.filter(f => f.category === c.key)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(f => `<li style="margin:.5rem 0"><a href="${SITE}/f/${f.code}/">${esc(f.name)}</a></li>`).join('')
+  const rankTable = ranked.length ? `<h2 style="font-size:20px">Funds by 3-year category rank</h2>
+<p>Ranked within the category ${rankLead(c.key, '3Y')}${rankDate ? `, for the 3 years to ${fmtDay(rankDate)}` : ''}. A rank describes the past, not the future.</p>
+${dataTable(`${plural} by 3-year rank`, [['Fund'], ['3Y return a year', 'num'], ['Expense ratio', 'num']], rankRows)}` : ''
+  const fundLinks = unranked.map(f => `<li style="margin:.5rem 0"><a href="${SITE}/f/${f.code}/">${esc(f.name)}</a></li>`).join('')
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
-<h1 style="font-size:28px;margin:0 0 6px">${esc(c.display)} funds</h1>
-<p style="font-size:15px;color:#475569;margin:0 0 20px">${c.count} funds &middot; ${esc(c.risk || 'Moderate')} risk${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
+<h1 style="font-size:28px;margin:0 0 6px">${esc(plural)}</h1>
+<p style="font-size:15px;color:#475569;margin:0 0 20px">${inCat.length} funds${sebi ? ` &middot; SEBI riskometer for most: ${esc(sebi)}` : ''}${medEr != null ? ` &middot; Median expense ratio ${medEr.toFixed(2)}%` : ''}${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
 <p style="font-size:16px">Explore the ${esc(c.display)} category: historical return distributions, category comparisons and performance during past market falls. Check the dates and available history before comparing results.</p>
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the interactive deep dive &rarr;</a></p>
+${rankTable}
 ${categoryOverlap(c.key)}
-<h2 style="font-size:20px">Fund reports in this category</h2><ul>${fundLinks}</ul>
+${fundLinks ? `<h2 style="font-size:20px">${ranked.length ? 'Funds without a 3-year rank yet' : 'Fund reports in this category'}</h2><ul>${fundLinks}</ul>` : ''}
 <p style="font-size:12px;color:#475569;margin-top:20px">Data for research only, not investment advice. Past performance does not indicate future returns.</p>`
 
   writeShell({ dir: `c/${slug}`, hash, title, desc, canonicalPath: `c/${slug}/`, jsonld, bodyHtml })
@@ -521,8 +566,10 @@ const MAX_INDEX_ROWS = 50
 const coveredCount = research.covered.length
 const formerlyText = st => st.formerly ? ` (formerly ${esc(stockLabel(st.formerly))})` : ''
 let stockN = 0
+const rawNames = []
 for (const st of research.stocks) {
   const label = stockLabel(st.name)
+  if (isRawStockName(st.name)) rawNames.push(`${st.slug}: ${st.name}`)
   const holders = st.holders
   const n = holders.length
   const activeHolders = holders.filter(h => !isIndexFund(h.fund))
@@ -559,10 +606,15 @@ ${holderTable(activeHolders, `Actively managed funds holding ${esc(label)}`, MAX
 ${holderTable(indexHolders, `Index funds holding ${esc(label)}`, MAX_INDEX_ROWS)}
 <p><a href="${SITE}/s/stocks/">All stocks</a> &middot; <a href="${SHELL_UP}#/movers" style="color:#2563eb;font-weight:600">Fund buying and selling on FairFund &rarr;</a></p>
 ${DISCLAIMER}`
-  const jsonld = pageJsonld(`Mutual funds that hold ${label}`, desc, path)
+  const jsonld = withBreadcrumbs({ '@type': 'WebPage', name: `Mutual funds that hold ${label}`, description: desc, url: `${SITE}/${path}` },
+    [['Stocks', `${SITE}/s/stocks/`], [label, `${SITE}/${path}`]])
   writeShell({ dir: path.slice(0, -1), hash: '/movers', title, desc, canonicalPath: path, jsonld, bodyHtml })
   stockN++
 }
+
+// A stock page titled with a raw registry string reads badly in search results:
+// add a display spelling (or a sourced rename) to src/data/stock_names.json.
+if (rawNames.length) console.warn(`${process.env.GITHUB_ACTIONS ? '::warning::' : ''}[gen-unfurls] ${rawNames.length} stock pages use a raw source name (add to src/data/stock_names.json): ${rawNames.join('; ')}`)
 
 // ---- Overlap pages: fund A vs fund B -----------------------------------------
 let pairN = 0
@@ -604,7 +656,7 @@ for (const pair of research.pairs) {
   })
   const onlyList = (f, list) => list.length ? `<p><strong>Largest holdings only in ${short(f)}:</strong> ${list.map(x => `${stockName(x.h)} ${pct(x.w)}`).join(', ')}.</p>` : ''
   const cat = esc(catLabel(a))
-  const title = `${a.name} vs ${b.name}: portfolio overlap | FairFund`
+  const title = `${a.name} vs ${b.name}: overlap, returns, expense ratio | FairFund`
   const desc = `${a.name} and ${b.name} have ${ovPct(overlap).replace('&lt;', 'under ').replace('&gt;', 'over ')} portfolio overlap with ${shared.length} holdings in common. Shared holdings, costs and returns side by side.`
   const bodyHtml = `${EYEBROW}
 <h1 style="font-size:28px;margin:0 0 6px">${esc(a.name)} vs ${esc(b.name)}</h1>
@@ -621,7 +673,8 @@ ${onlyList(b, only(mb, ma))}
 <p>Fund reports: ${fundLink(a)} &middot; ${fundLink(b)} &middot; <a href="${SITE}/s/overlap/">More overlap pairs</a></p>
 <p style="margin-top:24px"><a href="${SHELL_UP}#/compare?codes=${a.code},${b.code}" style="color:#2563eb;font-weight:600">Compare these funds over any period &rarr;</a></p>
 ${DISCLAIMER}`
-  const jsonld = pageJsonld(`${a.name} vs ${b.name}: portfolio overlap`, desc, pair.path)
+  const jsonld = withBreadcrumbs({ '@type': 'WebPage', name: `${a.name} vs ${b.name}: portfolio overlap`, description: desc, url: `${SITE}/${pair.path}` },
+    [['Portfolio overlap', `${SITE}/s/overlap/`], [`${a.name} vs ${b.name}`, `${SITE}/${pair.path}`]])
   writeShell({ dir: pair.path.slice(0, -1), hash: '/compare', title, desc, canonicalPath: pair.path, jsonld, bodyHtml })
   pairN++
 }
