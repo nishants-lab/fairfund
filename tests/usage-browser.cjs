@@ -55,7 +55,7 @@ const html = '<!doctype html><html><head><title>SECRET_SCHEME ABCDE1234F</title>
    const errors=[]
    page.on('pageerror',error=>errors.push(error.message))
    const origin=scenario==='localhost'?'https://localhost':'https://nishants-lab.github.io'
-   await page.goto(origin+'/fairfund/?pan=ABCDE1234F&search=SECRET_SEARCH#/fund/123456/SECRET_SCHEME',{waitUntil:'domcontentloaded'})
+   await page.goto(origin+'/fairfund/?pan=ABCDE1234F&search=SECRET_SEARCH&ref='+(scenario==='loaded'?'X':'SECRET_REF')+'#/fund/123456/SECRET_SCHEME',{waitUntil:'domcontentloaded'})
    await requested
    await page.evaluate(()=>window.ready)
    if(scenario==='delayed'){
@@ -83,7 +83,7 @@ const html = '<!doctype html><html><head><title>SECRET_SCHEME ABCDE1234F</title>
     await page.evaluate(()=>window.navigate('/my/portfolio?file=SECRET_FILE&password=SECRET_PASSWORD'));await portfolio
     await Promise.all(captures)
     assert.deepEqual(hits.map(hit=>new URL(hit.url).searchParams.get('p')), [
-     '/fund', ...(scenario==='delayed'?['portfolio_import_completed']:[]),
+     ...(scenario==='loaded'?['ref_x']:[]), '/fund', ...(scenario==='delayed'?['portfolio_import_completed']:[]),
      '/compare', 'comparison_completed', '/fund', '/category', '/my/portfolio',
     ])
     for(const hit of hits){

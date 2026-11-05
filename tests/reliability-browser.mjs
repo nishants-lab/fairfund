@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs'
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 // Synthetic holds on one debt and one equity fund, so the sticky-hold check does not
-// depend on which real funds are quarantined today (120304 was released on 2026-11-06).
+// depend on which real funds are quarantined today (120304, 119517 and 120826 were released on 2026-11-06).
 const HELD=[120304,120826]
 const hold=r=>{r.metrics={};r.analytics={};delete r.si;delete r.previousRankings;r.dataQuality={status:'quarantined',issues:[{reason:'unverified_nav_jump',date:'2026-01-02',previousDate:'2026-01-01',changePct:-90}]};return r}
 const server=await createServer({root,plugins:[{name:'observe-events',enforce:'pre',transform(code,id){

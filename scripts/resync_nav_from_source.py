@@ -19,21 +19,30 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from backfill_nav_gaps import fetch_history  # noqa: E402  (applies nav_corrections)
 from market_date import ist_today, is_usable_nav_date  # noqa: E402
+from nav_corrections import dropped_dates  # noqa: E402
 from nav_quality import nav_quality_issues  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def resync(stored, corrected):
-    """Stored {d, v} and corrected {date: nav} -> (new {d, v}, changed dates)."""
+def resync(stored, corrected, dropped=()):
+    """Stored {d, v} and corrected {date: nav} -> (new {d, v}, changed dates).
+
+    dropped: dates a verified correction removes (published value wrong, no
+    correct value). They leave the stored file and count as changed."""
     changed = []
+    dates = []
     values = []
     for day, nav in zip(stored["d"], stored["v"]):
+        if day in dropped:
+            changed.append(day)
+            continue
         new = corrected.get(day, nav)
         if new != nav:
             changed.append(day)
+        dates.append(day)
         values.append(new)
-    return dict(stored, v=values), changed
+    return dict(stored, d=dates, v=values), changed
 
 
 def main(argv=None):
@@ -48,7 +57,7 @@ def main(argv=None):
     if not corrected:
         print(f"{args.code}: source fetch failed; nothing written")
         return 1
-    new, changed = resync(stored, corrected)
+    new, changed = resync(stored, corrected, dropped_dates(args.code))
     today = ist_today()
     issues = nav_quality_issues([(d, v) for d, v in zip(new["d"], new["v"]) if is_usable_nav_date(d, today)])
     print(f"{args.code}: {len(changed)} stored values differ from the corrected source"

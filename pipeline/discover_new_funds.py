@@ -171,7 +171,9 @@ def fetch_nav_history(code):
             points_v.reverse()
         
         # Verified unit splits (src/data/nav_corrections.json): today's units.
+        # A verified point correction may drop a day, so keep only surviving dates.
         fixed = correct_history(code, dict(zip(points_d, points_v)))
+        points_d = [d for d in points_d if d in fixed]
         points_v = [fixed[d] for d in points_d]
         return points_d, points_v
     except Exception:

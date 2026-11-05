@@ -109,7 +109,9 @@ def main():
             continue
         d, v = compact(raw["data"])
         # Stored files hold corrected values (src/data/nav_corrections.json).
+        # A verified point correction may drop a day, so keep only surviving dates.
         fixed = correct_history(code, dict(zip(d, v)))
+        d = [x for x in d if x in fixed]
         v = [fixed[x] for x in d]
         if len(d) < 30:
             failed += 1

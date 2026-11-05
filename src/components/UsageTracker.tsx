@@ -6,7 +6,7 @@ export default function UsageTracker() {
   const location = useLocation()
   const navigation = useMemo(() => Symbol(), [location])
   useEffect(() => {
-    trackUsageRoute(location.pathname, navigation)
-  }, [location.pathname, navigation])
+    trackUsageRoute(location.pathname, navigation, location.search)
+  }, [location.pathname, location.search, navigation])
   return null
 }
