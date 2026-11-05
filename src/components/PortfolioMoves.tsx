@@ -1,5 +1,6 @@
 import type { Fund } from '../types'
 import InfoTip from './InfoTip'
+import { displayStockName } from '../lib/stockNames'
 
 function fmtMonth(iso: string): string {
   try {
@@ -69,7 +70,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
               {moves.added.filter(s => s.name).slice(0, 7).map((s, i) => (
                 <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-surface2/40 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-medium text-fg">{s.name}</div>
+                    <div className="truncate text-xs font-medium text-fg">{displayStockName(undefined, s.name)}</div>
                     {s.ticker && <div className="text-xs text-faint">{s.ticker} · {s.pct.toFixed(1)}% weight</div>}
                     {!s.ticker && <div className="text-xs text-faint">{s.pct.toFixed(1)}% weight</div>}
                   </div>
@@ -96,7 +97,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
               {moves.exited.filter(s => s.name).slice(0, 7).map((s, i) => (
                 <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-surface2/40 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-medium text-fg">{s.name}</div>
+                    <div className="truncate text-xs font-medium text-fg">{displayStockName(undefined, s.name)}</div>
                     {s.ticker && <div className="text-xs text-faint">{s.ticker} · was {s.pct.toFixed(1)}%</div>}
                     {!s.ticker && <div className="text-xs text-faint">was {s.pct.toFixed(1)}%</div>}
                   </div>

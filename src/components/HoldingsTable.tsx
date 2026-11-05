@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Fund } from '../types'
 import { fmtDate } from '../lib/metrics'
 import { hasMonthOnMonth } from '../lib/holdingsChange'
+import { displayStockName } from '../lib/stockNames'
 
 function coverageLabel(cov?: string): { text: string; tone: string } {
   switch (cov) {
@@ -114,7 +115,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
           <tbody>
             {shown.map((h, i) => (
               <tr key={`${h.key || h.name}-${i}`} className="border-b border-line last:border-0">
-                <td className="px-3 py-2 font-medium text-fg">{h.name}</td>
+                <td className="px-3 py-2 font-medium text-fg">{displayStockName(h.key, h.name)}</td>
                 <td className="hidden px-3 py-2 text-muted sm:table-cell">{h.sector || '—'}</td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">

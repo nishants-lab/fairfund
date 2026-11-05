@@ -6,6 +6,7 @@ import { fundSlug } from '../lib/format'
 import { normalizeSearch } from '../lib/searchText'
 import type { Fund } from '../types'
 import ShareButton from '../components/ShareButton'
+import { displayStockName } from '../lib/stockNames'
 import { availableWindows, buildContext, loadMovers, loadStocks, monthLabel, type MoversData, type StocksData } from '../lib/moversData'
 import { parseQuery, type ParseOutput } from '../lib/moversQuery'
 import { THEMES, VIEW_LABEL } from '../lib/moversVocab'
@@ -390,7 +391,7 @@ function FilterChips({ s, data, onChange }: { s: MoversState; data: MoversData |
   s.thresholds.forEach((t, i) => chips.push({ key: 'th' + i, label: thresholdLabel(t), next: without(c => { c.thresholds.splice(i, 1) }) }))
   if (s.names.length) chips.push({ key: 'names', label: `Name: ${s.names.join(' ')}`, next: without(c => { c.names = [] }) })
   if (s.stock) {
-    const name = data?.stocks.find(x => x[0] === s.stock)?.[1] ?? s.stock
+    const name = displayStockName(s.stock, data?.stocks.find(x => x[0] === s.stock)?.[1] ?? s.stock)
     chips.push({ key: 'stock', label: `Stock: ${name}`, next: without(c => { c.stock = null }) })
   }
   if (s.limit) chips.push({ key: 'limit', label: `Top ${s.limit}`, next: without(c => { c.limit = null }) })
@@ -716,7 +717,7 @@ function SectorTable({ rows, onPick }: { rows: SectorRow[]; onPick: (sector: str
 function StockDetail({ row, stock, data, action, onAll, onBack }: {
   row: StockRow | undefined; stock: string; data: MoversData; action: MoversState['action']; onAll: () => void; onBack: () => void
 }) {
-  const name = row?.name ?? data.stocks.find(x => x[0] === stock)?.[1] ?? stock
+  const name = row?.name ?? displayStockName(stock, data.stocks.find(x => x[0] === stock)?.[1] ?? stock)
   return (
     <div className="mt-2">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">

@@ -1,5 +1,5 @@
 {
-  "doc": "Stock display names, keyed by stock slug (the source holding key, lowercased, non-alphanumerics to '-'). renames: verified company renames (name now, formerly then), each with a source. display: cleaner spelling of the same company where the only source name is a raw registry string. Used by scripts/research-pages.mjs and the app.",
+  "doc": "Stock display names, keyed by stock slug (the source holding key, lowercased, non-alphanumerics to '-'). renames: verified company renames (name now, formerly then), each with a source. display: cleaner spelling of the same company where the only source name is a raw registry string. Used by scripts/research-pages.mjs and the app. aliases: an old registry spelling's slug (suffix removed, 'limited' read as 'ltd') to the current key, for data that carries only a name.",
   "renames": {
     "zomato-ltd": {
       "name": "Eternal Ltd",
@@ -30,5 +30,9 @@
     "inox-india-ltd": "INOX India Ltd",
     "afcons-infrastructure-ltd": "Afcons Infrastructure Ltd",
     "dr-agarwals-health-care-ltd": "Dr. Agarwal's Health Care Ltd"
+  },
+  "aliases": {
+    "dewan-housing-finance-corp-ltd": "dewan-housing-finance-corporation-ltd",
+    "dhfl-vysya-housing-finance-ltd": "aadhar-housing-finance-ltd"
   }
 }

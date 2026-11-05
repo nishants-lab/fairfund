@@ -7,6 +7,7 @@ import type { Fund } from '../types'
 import { addMonths, fundSearchText, monthLabel, type MoversData, type StocksData } from './moversData'
 import { nameMatches } from './moversQuery'
 import { THEMES } from './moversVocab'
+import { displayStockName } from './stockNames'
 import type { FilterField, Measure, MoversState, Threshold } from './moversState'
 
 export interface FundVals {
@@ -399,7 +400,7 @@ export function stockRows(funds: Fund[], data: MoversData, sd: StocksData, s: Mo
       const valueChange = a0 != null && a1 != null ? ((after ?? 0) * a1 - (before ?? 0) * a0) / 100 : null
       let row = acc.get(idx)
       if (!row) {
-        row = { key: st[0], name: cleanStockName(st[1]), sector: st[2] || 'Unspecified', buyers: 0, sellers: 0, added: 0, exited: 0, netBuyers: 0,
+        row = { key: st[0], name: displayStockName(st[0], cleanStockName(st[1])), sector: st[2] || 'Unspecified', buyers: 0, sellers: 0, added: 0, exited: 0, netBuyers: 0,
           valueChange: 0, priceMove: px ? Math.round((px - 1) * 1000) / 10 : null, value: 0, moves: [], movers: 0 }
         acc.set(idx, row)
       }

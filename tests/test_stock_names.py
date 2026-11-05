@@ -15,7 +15,7 @@ const out = {
   aadhar: currentStock({ key: 'aadhar-housing-finance-ltd', name: 'DHFL VYSYA HOUSING FINANCE LIMITED EQ' }),
   hdb: displayStockName('hdb-financial-services-ltd', 'HDB FINANCIAL SERVICES LIMITED EQ'),
   suffix: displayStockName('new-co-ltd', 'New Co Ltd EQ NEW FV RS.2/-'),
-  equity: displayStockName('x-ltd', 'X Exchange Ltd Equity'),
+  equity: displayStockName('x-exchange-ltd', 'X Exchange Ltd Equity'),
   plain: displayStockName('infosys-ltd', 'Infosys Ltd.'),
   raw: [isRawStockName('TATA CAPITAL LIMITED EQ'), isRawStockName('Infosys Ltd'), isRawStockName('ITC Ltd'), isRawStockName('DOMS Industries Ltd.')],
   slug: stockSlug('Aadhar Housing Finance Ltd'),
