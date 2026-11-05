@@ -8,8 +8,11 @@ import { createServer } from 'vite'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const data = JSON.parse(readFileSync(resolve(root, 'src/data/funds.json'), 'utf8'))
-const fund = data.funds.find(f => f.code === 149107)
-assert(fund && fund.sebiRisk === 'Very High' && fund.riskLevel !== fund.sebiRisk)
+// A fund whose SEBI riskometer differs from its category's house risk level. Prefer
+// 149107 (the 320px overflow case); fall back to any such fund after a data refresh.
+const differs = f => f.sebiRisk && f.riskLevel && f.riskLevel !== f.sebiRisk && !f.dataQuality && f.metrics?.['3Y']?.windowEnd
+const fund = data.funds.find(f => f.code === 149107 && differs(f)) ?? data.funds.find(differs)
+assert(fund, 'a fund whose SEBI risk differs from its category risk')
 const nav = { d: [], v: [] }
 for (let t = Date.parse('2021-11-01'), i = 0; t <= Date.parse('2026-11-05'); t += 86400000, i++) {
   nav.d.push(new Date(t).toISOString().slice(0, 10)); nav.v.push(100 + i * 0.02)
@@ -46,8 +49,8 @@ try {
     assert.equal(await legend.count(), 1)
     assert.equal(await page.locator('.recharts-legend-wrapper').count(), 0)
     assert.match(await legend.innerText(), /Top-ranked peer:/)
-    assert.equal(await page.getByTitle('SEBI riskometer: Very High').innerText(), 'Very High risk')
-    assert.equal(await page.getByText('Moderate risk', { exact: true }).count(), 0)
+    assert.equal(await page.getByTitle(`SEBI riskometer: ${fund.sebiRisk}`).innerText(), `${fund.sebiRisk} risk`)
+    assert.equal(await page.getByText(`${fund.riskLevel} risk`, { exact: true }).count(), 0)
     const headline = page.locator('.card').filter({ has: page.getByRole('button', { name: 'About 3Y CAGR', exact: true }) }).first()
     assert.match(await headline.innerText(), /to 5 Nov 2026/)
     assert.match(await page.locator('[data-ranking]').first().innerText(), new RegExp(`Through ${fund.metrics['3Y'].windowEnd}`))

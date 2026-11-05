@@ -86,12 +86,22 @@ export const STOCK_DISPLAY = STOCK_NAMES.display
 export const isRawStockName = name => /\s(EQ|Equity)\b|\bFV\s*RS|\/-/.test(String(name))
   || (String(name) === String(name).toUpperCase() && /[A-Z]{4}/.test(String(name)) && /\s/.test(String(name)))
 
-/** The name to show for a stock: a verified rename, a display spelling, or the
- * source name with a trailing registry suffix (' EQ ...', ' Equity') removed. */
+const SMALL_WORDS = new Set(['and', 'of', 'the', 'for', 'in', 'on'])
+/** 'northern-arc-capital-ltd' -> 'Northern Arc Capital Ltd'. The source key carries the
+ * current company name, so it is the better label when the source name is a raw string. */
+export const slugTitle = slug => String(slug).split('-').filter(Boolean)
+  .map((w, i) => i && SMALL_WORDS.has(w) ? w : w[0].toUpperCase() + w.slice(1)).join(' ')
+
+/** The name to show for a stock: a verified rename, a curated spelling, the source
+ * name, or (for a raw registry string) the key in title case, or failing that the
+ * source name with its registry suffix (' EQ ...', ' Equity') removed. */
 export function displayStockName(slug, sourceName) {
   if (STOCK_RENAMES[slug]) return STOCK_RENAMES[slug].name
   if (STOCK_DISPLAY[slug]) return STOCK_DISPLAY[slug]
-  return String(sourceName ?? '').replace(/\s+(EQ|Equity)\b.*$/, '').trim()
+  const name = String(sourceName ?? '').trim()
+  if (!isRawStockName(name)) return name
+  if (slug && /^[a-z][a-z-]*[a-z]$/.test(slug) && /-(ltd|limited)$/.test(slug)) return slugTitle(slug)
+  return name.replace(/\s+(EQ|Equity)\b.*$/, '').trim()
 }
 
 export function currentStock(h) {
