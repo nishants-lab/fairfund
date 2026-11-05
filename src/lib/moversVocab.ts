@@ -265,7 +265,7 @@ export const RISK_WORDS: [string, string[]][] = [
   ['moderately high risk|moderately high', ['Moderately High']],
   ['moderate risk|medium risk', ['Moderate']],
   ['low to moderate risk|low to moderate', ['Low to Moderate']],
-  ['low risk|low risk funds|lower risk|conservative', ['Low to Moderate', 'Moderate']],
+  ['low risk|low risk funds|lower risk|conservative', ['Low', 'Low to Moderate', 'Moderate']],
 ]
 
 /** Comparators; the third field marks the ones that include the bound ("at least 1,000 cr"). */

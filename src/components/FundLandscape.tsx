@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import { useTheme } from '../lib/theme'
 import { funds as ALL } from '../lib/data'
-import { fundSlug } from '../lib/format'
+import { fundSlug, categoryFundsLabel } from '../lib/format'
 import { formatAumCr, landscapeAum } from '../lib/landscape'
 import type { Fund, Horizon } from '../types'
 
@@ -97,7 +97,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
     <div className="mt-6 card p-5">
       <div className="mb-1 flex items-center justify-between gap-3">
         <h3 className="font-bold text-fg">{fund ? 'Where it stands' : `${catDisplay} landscape`}</h3>
-        <span className="text-xs text-faint">{n} {catDisplay} funds</span>
+        <span className="text-xs text-faint">{n} {categoryFundsLabel(catDisplay)}</span>
       </div>
       {horizons.length > 1 && (
         <div className="mb-3 inline-flex rounded-lg border border-line bg-surface2 p-0.5" title="Risk-vs-return window">
@@ -105,7 +105,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
             <button
               key={h}
               onClick={() => setSel(h)}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${sel === h ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+              className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${sel === h ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
             >
               {h}
             </button>

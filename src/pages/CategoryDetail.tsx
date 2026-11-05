@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import { data, funds as allFunds, categoryOrder } from '../lib/data'
-import { pct, signedPct, alphaColor, fundSlug } from '../lib/format'
+import { pct, signedPct, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import { REGIMES } from '../lib/regimes'
 import ShareButton from '../components/ShareButton'
@@ -101,8 +101,8 @@ export default function CategoryDetail() {
   const catInfo = catKey ? data.categories[catKey] : undefined
 
   usePageMeta(
-    catInfo ? `${catInfo.display} Funds` : 'Category not found',
-    catInfo ? `Explore ${catInfo.fundCount} ${catInfo.display} funds, their historical returns and category comparisons.` : undefined
+    catInfo ? categoryFundsLabel(catInfo.display) : 'Category not found',
+    catInfo ? `Explore ${catInfo.fundCount} ${categoryFundsLabel(catInfo.display)}, their historical returns and category comparisons.` : undefined
   )
 
   const catFunds = useMemo(() =>
@@ -243,11 +243,11 @@ export default function CategoryDetail() {
             <h1 className="text-3xl font-bold text-fg">{catInfo.display}</h1>
           </div>
           <p className="mt-2 text-sm text-muted">
-            {catInfo.fundCount} funds &middot; {catInfo.riskLevel} risk &middot; Data as of{' '}
+            {catInfo.fundCount} funds &middot; Typical for category: {catInfo.riskLevel} risk &middot; Data as of{' '}
             {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        <ShareButton title={`${catInfo.display} funds`} text={`${catInfo.fundCount} ${catInfo.display} mutual funds compared on FairFund`} className="mt-1 shrink-0" />
+        <ShareButton title={categoryFundsLabel(catInfo.display)} text={`${catInfo.fundCount} ${categoryFundsLabel(catInfo.display)} compared on FairFund`} className="mt-1 shrink-0" />
       </div>
 
       {/* Key numbers */}

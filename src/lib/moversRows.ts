@@ -139,7 +139,7 @@ export function passesFundFilters(f: Fund, s: MoversState): boolean {
   if (s.type === 'active' && isIndexFund(f)) return false
   if (s.young === 'only' && !f.isYoung) return false
   if (s.young === 'exclude' && f.isYoung) return false
-  if (s.risk.length && !s.risk.includes(f.riskLevel)) return false
+  if (s.risk.length && !s.risk.includes(f.sebiRisk ?? '')) return false
   if (s.names.length && !nameMatches(fundSearchText(f), s.names)) return false
   return true
 }
@@ -256,8 +256,10 @@ export function measureValue(v: FundVals, measure: Measure, mode: MoversState['m
 
 export function fundRows(funds: Fund[], data: MoversData, s: MoversState): FundRow[] {
   const out: FundRow[] = []
+  const oneYearAgo = `${Number(data.generatedAt.slice(0, 4)) - 1}${data.generatedAt.slice(4, 10)}`
   for (const f of funds) {
     if (!passesFundFilters(f, s)) continue
+    if (s.measure === 'terChange' && (f.isYoung || (f.inceptionDate && f.inceptionDate > oneYearAgo))) continue
     const vals = fundVals(f, data, s)
     const raw = s.view === 'debt' ? (vals.aum ?? vals.ter) : measureValue(vals, s.measure, s.mode)
     // "kotak mid cap" should show that fund even where it lacks this window's figure

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { data, fundsByCategory, categoryOrder } from '../lib/data'
-import { pct, signedPct, num, riskColor, alphaColor, fundSlug } from '../lib/format'
+import { pct, signedPct, num, riskColor, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
 import FundLandscape from '../components/FundLandscape'
@@ -223,7 +223,7 @@ export default function Explore() {
               key={c}
               onClick={() => setCat(c)}
               data-active={cat === c ? 'true' : undefined}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              className={`min-h-10 shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                 cat === c
                   ? 'bg-brand-600 text-white'
                   : 'border border-line bg-surface text-muted hover:border-brand-300'
@@ -272,7 +272,7 @@ export default function Explore() {
           </div>
           <div className="h-8 w-px bg-line" />
           <div>
-            <div className="text-xs text-faint">Risk level</div>
+            <div className="text-xs text-faint">Typical for category</div>
             <span className={`pill ${riskColor(summary.riskLevel)}`}>{summary.riskLevel}</span>
           </div>
           <div className="hidden sm:block">
@@ -300,7 +300,7 @@ export default function Explore() {
           the table instead. */}
       {isDebtCat ? (
         <div className="mt-5 rounded-xl border border-line bg-surface2/40 px-4 py-3 text-xs text-faint">
-          Risk-vs-return positioning is not meaningful for {data.categories[cat]?.display ?? cat} funds: returns cluster and volatility is near zero. Use the horizon toggle to rank the table below on {horizon} return alongside cost and size.
+          Risk-vs-return positioning is not meaningful for {categoryFundsLabel(data.categories[cat]?.display ?? cat)}: returns cluster and volatility is near zero. Use the horizon toggle to rank the table below on {horizon} return alongside cost and size.
         </div>
       ) : (
         <FundLandscape category={cat} horizon={horizon} />

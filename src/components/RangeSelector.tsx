@@ -60,7 +60,7 @@ export default function RangeSelector({ earliest, latest, start, end, onChange, 
           <button
             key={p}
             onClick={() => setPreset(p)}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+            className={`min-h-10 min-w-10 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
               activePreset === p
                 ? 'bg-brand-600 text-white'
                 : 'bg-surface2 text-muted hover:text-fg'

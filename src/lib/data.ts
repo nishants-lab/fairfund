@@ -5,6 +5,10 @@ import { FILLER, MODIFIERS, amcAliases, normalizeSearch, otherNames, wantsIndex 
 export const data = fundsJson as unknown as FundsData
 export const funds: Fund[] = data.funds
 
+export function categoryDisplay(category: string): string {
+  return data.categories[category]?.display ?? category
+}
+
 /**
  * Funds that use the reduced, honest analytics surface: debt (cash-equivalent)
  * and arbitrage (fully hedged, market-neutral). For both, equity risk-adjusted

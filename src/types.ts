@@ -26,8 +26,7 @@ export interface Fund {
   category: string
   categoryDisplay: string
   riskLevel: string
-  // SEBI regulatory riskometer (from Groww). Distinct from our own riskLevel:
-  // post-2021 nearly all equity funds are "Very High". Shown for reference only.
+  // Primary fund risk: SEBI regulatory riskometer. riskLevel is a category default.
   sebiRisk?: string
   benchmark?: string
   launchDate?: string

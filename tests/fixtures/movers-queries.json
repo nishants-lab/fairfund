@@ -104,7 +104,7 @@
 {"q": "large cap not hdfc", "state": {"view": "flows", "categories": ["Large Cap"], "notAmcs": ["HDFC"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
 {"q": "mid cap except sbi and hdfc", "state": {"view": "flows", "categories": ["Mid Cap"], "notAmcs": ["SBI", "HDFC"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
 {"q": "very high risk funds inflow", "state": {"view": "flows", "sign": "pos", "risk": ["Very High"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
-{"q": "low risk funds", "state": {"view": "flows", "risk": ["Low to Moderate", "Moderate"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
+{"q": "low risk funds", "state": {"view": "flows", "risk": ["Low", "Low to Moderate", "Moderate"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
 {"q": "smallcap inflow", "state": {"view": "flows", "sign": "pos", "categories": ["Small Cap"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
 {"q": "smal cap inflw", "state": {"view": "flows", "sign": "pos", "categories": ["Small Cap"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
 {"q": "midcap outfow", "state": {"view": "flows", "order": "asc", "sign": "neg", "categories": ["Mid Cap"]}, "notes": [], "unknown": [], "advice": false, "understood": true},
