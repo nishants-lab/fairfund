@@ -76,17 +76,29 @@ export function stockSlug(key) {
   return String(key).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
 }
 
-/** Companies renamed after the name used in the source disclosures. Verified
- * renames only, keyed by stock slug; the page URL keeps the source slug. */
-export const STOCK_RENAMES = {
-  // Ministry of Corporate Affairs approved Zomato Ltd -> Eternal Ltd on 20 Mar 2025.
-  'zomato-ltd': { name: 'Eternal Ltd', formerly: 'Zomato Ltd' },
-  // Renamed in Dec 2022 after the Shriram City Union merger; same ISIN INE721A01013.
-  'shriram-transport-finance-company-ltd': { name: 'Shriram Finance Ltd', formerly: 'Shriram Transport Finance Company Ltd' },
+/** Verified company renames and cleaner display spellings, keyed by stock slug
+ * (src/data/stock_names.json, shared with the app). The page URL keeps the source slug. */
+const STOCK_NAMES = JSON.parse(readFileSync(new URL('../src/data/stock_names.json', import.meta.url), 'utf-8'))
+export const STOCK_RENAMES = Object.fromEntries(Object.entries(STOCK_NAMES.renames).map(([k, v]) => [k, { name: v.name, formerly: v.formerly }]))
+export const STOCK_DISPLAY = STOCK_NAMES.display
+
+/** A source name that still looks like a raw registry string. */
+export const isRawStockName = name => /\s(EQ|Equity)\b|\bFV\s*RS|\/-/.test(String(name))
+  || (String(name) === String(name).toUpperCase() && /[A-Z]{4}/.test(String(name)) && /\s/.test(String(name)))
+
+/** The name to show for a stock: a verified rename, a display spelling, or the
+ * source name with a trailing registry suffix (' EQ ...', ' Equity') removed. */
+export function displayStockName(slug, sourceName) {
+  if (STOCK_RENAMES[slug]) return STOCK_RENAMES[slug].name
+  if (STOCK_DISPLAY[slug]) return STOCK_DISPLAY[slug]
+  return String(sourceName ?? '').replace(/\s+(EQ|Equity)\b.*$/, '').trim()
 }
+
 export function currentStock(h) {
-  const r = h?.key ? STOCK_RENAMES[stockSlug(h.key)] : null
-  return r ? { name: r.name, formerly: r.formerly } : { name: h?.name ?? '', formerly: null }
+  const slug = h?.key ? stockSlug(h.key) : null
+  const r = slug ? STOCK_RENAMES[slug] : null
+  if (r) return { name: r.name, formerly: r.formerly }
+  return { name: slug ? displayStockName(slug, h?.name) : (h?.name ?? ''), formerly: null }
 }
 
 export function pairPath(codeA, codeB) {
@@ -157,7 +169,7 @@ export function buildResearch(root, funds) {
   const mostCommon = m => [...m.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0]?.[0] ?? null
   const stocks = [...byStock.values()]
     .filter(s => s.holders.length >= STOCK_MIN_HOLDERS)
-    .map(s => ({ slug: s.slug, name: STOCK_RENAMES[s.slug]?.name ?? mostCommon(s.names), formerly: STOCK_RENAMES[s.slug]?.formerly ?? null, sector: mostCommon(s.sectors),
+    .map(s => ({ slug: s.slug, name: displayStockName(s.slug, mostCommon(s.names)), formerly: STOCK_RENAMES[s.slug]?.formerly ?? null, sector: mostCommon(s.sectors),
       holders: s.holders.sort((a, b) => b.pct - a.pct || a.fund.name.localeCompare(b.fund.name)) }))
     .sort((a, b) => b.holders.length - a.holders.length || a.name.localeCompare(b.name))
   const stockBySlug = new Map(stocks.map(s => [s.slug, s]))

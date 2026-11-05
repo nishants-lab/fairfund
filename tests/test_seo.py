@@ -22,6 +22,7 @@ class SeoTests(unittest.TestCase):
             (self.base/folder).mkdir(parents=True)
         for name in ['gen-sitemap.mjs','gen-unfurls.mjs','site-config.mjs','research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
+        shutil.copyfile(ROOT/'src/data/stock_names.json', self.base/'src/data/stock_names.json')
         self.data = {'funds':[{'code':1,'name':'Example Fund','amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','metrics':{}}], 'totalFunds':1,'categories':{'Large Cap':{'fundCount':1,'display':'Large Cap'}}}
         self.save_data()
         (self.base/'dist/index.html').write_text('<html><body><h1>FairFund</h1></body></html>')
@@ -148,8 +149,47 @@ class SeoTests(unittest.TestCase):
         html=(self.base/'dist/f/1/index.html').read_text()
         scripts=re.findall(r'<script\b[^>]*>(.*?)</script>',html,re.S|re.I)
         self.assertEqual(len(scripts),1)
-        self.assertEqual(json.loads(scripts[0])['name'],name)
+        graph=json.loads(scripts[0])['@graph']
+        self.assertEqual(graph[0]['name'],name)
+        self.assertEqual(graph[1]['itemListElement'][-1]['name'],name)
         self.assertNotIn('<script>alert',html)
+
+    def test_fund_page_targets_search_and_links_into_the_app(self):
+        f=self.data['funds'][0]
+        f.update({'expenseRatio':0.55,'aum':{'current':12345.6},'metrics':{'3Y':{'cagr':14.21,'catRank':2,'catSize':9,'windowStart':'2023-11-04','windowEnd':'2026-11-04'}}})
+        self.save_data()
+        result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
+        html=(self.base/'dist/f/1/index.html').read_text()
+        self.assertIn('<title>Example Fund Direct Growth: returns, expense ratio | FairFund</title>',html)
+        desc=re.search(r'<meta name="description" content="([^"]*)"',html).group(1)
+        self.assertTrue(desc.startswith('Example Fund (Example, Large Cap, direct plan): 3Y return 14.2% a year, rank #2 of 9'),desc)
+        self.assertIn('expense ratio 0.55%',desc)
+        graph=json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>',html,re.S).group(1))['@graph']
+        self.assertEqual([c['name'] for c in graph[1]['itemListElement']],['FairFund','Large Cap','Example Fund'])
+        self.assertEqual(graph[1]['itemListElement'][1]['item'],SITE+'/c/large-cap/')
+        h1=html.index('<h1'); app=html.index('href="../../#/fund/1/')
+        self.assertLess(app-h1,1200,'app link sits right under the title')
+        self.assertIn('https://wa.me/?text=',html)
+        self.assertNotRegex(html,r'<script(?![^>]*application/ld\+json)')
+
+    def test_category_page_ranks_funds_and_shows_sebi_risk(self):
+        base={'amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','sebiRisk':'Very High'}
+        self.data['funds']=[
+            {**base,'code':1,'name':'Alpha Fund','expenseRatio':0.5,'metrics':{'3Y':{'cagr':15.0,'catRank':1,'catSize':2,'windowEnd':'2026-11-04'}}},
+            {**base,'code':2,'name':'Beta Fund','expenseRatio':0.9,'metrics':{'3Y':{'cagr':12.0,'catRank':2,'catSize':2,'windowEnd':'2026-11-04'}}},
+            {**base,'code':3,'name':'Young Fund','metrics':{}},
+        ]
+        self.data['categories']['Large Cap']={'fundCount':3,'display':'Large Cap','riskLevel':'Moderate'}
+        self.save_data()
+        result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
+        html=(self.base/'dist/c/large-cap/index.html').read_text()
+        self.assertIn('<title>Large Cap funds compared: 3Y returns, ranks, expense ratios | FairFund</title>',html)
+        self.assertIn('SEBI riskometer for most: Very High',html)
+        self.assertNotIn('Moderate risk',html)
+        self.assertLess(html.index('Alpha Fund'),html.index('Beta Fund'))
+        self.assertIn('#1 of 2',html)
+        for code in (1,2,3): self.assertIn(f'{SITE}/f/{code}/',html)
+        self.assertIn('Funds without a 3-year rank yet',html)
 
 if __name__ == '__main__':
     unittest.main()
