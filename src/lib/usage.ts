@@ -1,4 +1,10 @@
-export type UsageEvent = 'comparison_completed' | 'portfolio_import_completed'
+export type CompletionEvent = 'comparison_completed' | 'portfolio_import_completed'
+/** Where a shared link was posted. Only these fixed names are ever sent, and only
+ *  when the link a visitor opened carries ?ref=<name>; nothing else about the
+ *  visitor or the page they came from is read. */
+export const REFERRAL_SOURCES = ['x', 'reddit', 'whatsapp', 'telegram', 'linkedin', 'email'] as const
+export type ReferralSource = typeof REFERRAL_SOURCES[number]
+export type UsageEvent = CompletionEvent | `ref_${ReferralSource}`
 
 const ROUTES = ['/', '/explore', '/movers', '/compare', '/methodology', '/wishlist', '/signin', '/my', '/my/portfolio'] as const
 export type UsageRoute = typeof ROUTES[number] | '/fund' | '/category'
@@ -18,9 +24,20 @@ export function usageRoute(pathname: string): UsageRoute | undefined {
   if (/^\/category\/[^/]+$/.test(path)) return '/category'
 }
 
+/** The allowlisted ?ref= value from a page query (before or inside the hash route). */
+export function usageReferral(...searches: (string | undefined)[]): ReferralSource | undefined {
+  for (const search of searches) {
+    if (!search) continue
+    const ref = new URLSearchParams(search.startsWith('?') ? search : search.slice(search.indexOf('?') + 1)).get('ref')
+    const source = ref?.trim().toLowerCase()
+    if (source && (REFERRAL_SOURCES as readonly string[]).includes(source)) return source as ReferralSource
+  }
+}
+
 export function createUsageTracker(environment: UsageEnvironment) {
   const queue: UsageHit[] = []
   let lastNavigation: string | symbol | undefined
+  let landed = false
   const flush = () => {
     if (!environment.enabled()) { queue.length = 0; return }
     const sink = environment.sink()
@@ -44,8 +61,15 @@ export function createUsageTracker(environment: UsageEnvironment) {
       const path = usageRoute(pathname)
       if (path) send(path, false)
     },
-    event(event: UsageEvent) {
+    event(event: CompletionEvent) {
       if (event === 'comparison_completed' || event === 'portfolio_import_completed') send(event, true)
+    },
+    /** Once per page load: the landing link's ?ref= source, if allowlisted. */
+    landing(...searches: (string | undefined)[]) {
+      if (landed) return
+      landed = true
+      const source = usageReferral(...searches)
+      if (source) send(`ref_${source}`, true)
     },
   }
 }
@@ -99,10 +123,12 @@ function tracker() {
   return browserTracker
 }
 
-export function trackUsageRoute(pathname: string, navigationKey: string | symbol) {
-  tracker()?.route(pathname, navigationKey)
+export function trackUsageRoute(pathname: string, navigationKey: string | symbol, routeSearch?: string) {
+  const t = tracker()
+  t?.landing(window.location.search, routeSearch)
+  t?.route(pathname, navigationKey)
 }
 
-export function trackUsageEvent(event: UsageEvent) {
+export function trackUsageEvent(event: CompletionEvent) {
   tracker()?.event(event)
 }

@@ -1,5 +1,5 @@
 {
-  "doc": "Source-verified corrections to AMFI/mfapi NAV history. Applied to every source response (pipeline fetches and the app's live fetch) before quality checks; stored public/nav files already hold corrected values. A split divides every NAV dated before firstNewDate by factor, so the history is in today's units. Add an entry only with a citation that confirms it.",
+  "doc": "Source-verified corrections to AMFI/mfapi NAV history. Applied to every source response (pipeline fetches and the app's live fetch) before quality checks; stored public/nav files already hold corrected values. A split divides every NAV dated before firstNewDate by factor, so the history is in today's units. A point replaces one published value with the verified nav, or drops that day when nav is null (the published value is wrong and no correct value exists). Add an entry only with a citation that confirms it.",
   "splits": [
     {
       "code": 120304,
@@ -10,6 +10,30 @@
       "sources": [
         "https://www.utimf.com/static/digitalfactsheet/june2026/Debt-funds/liquid.html",
         "https://www.utimf.com/static/digitalfactsheet/july2026/Debt-funds/liquid.html"
+      ],
+      "verified": "2026-11-06"
+    }
+  ],
+  "points": [
+    {
+      "code": 119517,
+      "name": "Aditya Birla Sun Life International Equity Fund - Growth - Direct Plan",
+      "date": "2019-04-10",
+      "nav": 21.5909,
+      "evidence": "AMFI NAV history report: Direct Growth NAV 21.7136 on 09-Apr-2019, 21.5909 on 10-Apr-2019, 21.5441 on 11-Apr-2019. mfapi.in carries 70.5334 for 10-Apr-2019, a +224.8% move that reverses the next day.",
+      "sources": [
+        "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?tp=1&frmdt=09-Apr-2019&todt=11-Apr-2019"
+      ],
+      "verified": "2026-11-06"
+    },
+    {
+      "code": 120826,
+      "name": "quant Large & Mid Cap Fund - Growth Option - Direct Plan",
+      "date": "2015-05-27",
+      "nav": null,
+      "evidence": "AMFI NAV history report shows 25.1163 on 26-May-2015, 42.6479 on 27-May-2015 and 25.0450 on 28-May-2015 for Direct Growth (+69.8% then -41.3%). The Regular Growth and both IDCW plans jump the same day and revert, while both Bonus options of the same portfolio move normally (Direct Bonus 24.8653, 24.8238, 24.7948). The published 27-May value is a publishing error with no corrected value, so the day is dropped.",
+      "sources": [
+        "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?tp=1&frmdt=26-May-2015&todt=28-May-2015"
       ],
       "verified": "2026-11-06"
     }

@@ -46,6 +46,7 @@ test('stored anomalous history rejected when live API is unavailable',async()=>{
 
 test('sticky published quarantine blocks even a clean live response before any request',async(t)=>{
  const held=(fundsJson as {funds:Fund[]}).funds.find(f=>f.dataQuality?.status==='quarantined')
+ // Fund data is frozen at import; reliability-browser.mjs covers holds with synthetic data.
  if(!held){t.skip('no published hold in the current data');return}
  const old=globalThis.fetch; let calls=0
  try {
@@ -72,5 +73,28 @@ test('a verified unit split puts the live source history in today\'s units',asyn
    :new Response('',{status:404})
   const got=await fetchNavHistory(120304)
   assert.deepEqual(got.map(p=>p.nav),[458.8297,458.9124,458.9915,459.0706])
+ }finally{globalThis.fetch=old}
+})
+
+test('verified point corrections replace or drop one published value in the live source',async()=>{
+ const pts=(corrections as {points:{code:number,date:string,nav:number|null,sources:string[]}[]}).points
+ assert(pts.every(p=>p.sources.length>0&&p.sources.every(u=>u.startsWith('https://'))))
+ const spike=[{date:'2019-04-09',nav:21.7136},{date:'2019-04-10',nav:70.5334},{date:'2019-04-11',nav:21.5441}]
+ assert.match(navQualityIssue(spike)!,/50%/)
+ const fixed=correctSourceNav(119517,spike)
+ assert.deepEqual(fixed.map(p=>p.nav),[21.7136,21.5909,21.5441])
+ assert.equal(navQualityIssue(fixed),null)
+ assert.equal(spike[1].nav,70.5334,'input is not mutated')
+ const dropped=correctSourceNav(120826,[{date:'2015-05-26',nav:25.1163},{date:'2015-05-27',nav:42.6479},{date:'2015-05-28',nav:25.045}])
+ assert.deepEqual(dropped.map(p=>p.date),['2015-05-26','2015-05-28'])
+ assert.equal(navQualityIssue(dropped),null)
+ for(const code of [119517,120826]) assert.notEqual((fundsJson as {funds:Fund[]}).funds.find(f=>f.code===code)?.dataQuality?.status,'quarantined',`hold released for ${code}`)
+ const old=globalThis.fetch
+ try {
+  globalThis.fetch=async(input)=>String(input).startsWith('https://api.mfapi.in/mf/119517')
+   ?new Response(JSON.stringify({data:spike.map(p=>({date:p.date.split('-').reverse().join('-'),nav:String(p.nav)})).reverse()}))
+   :new Response('',{status:404})
+  const got=await fetchNavHistory(119517)
+  assert.deepEqual(got.map(p=>p.nav),[21.7136,21.5909,21.5441],'raw live spike is corrected, not rejected')
  }finally{globalThis.fetch=old}
 })

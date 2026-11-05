@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { createUsageTracker, usageEnabled, usageRequest, usageRoute, type UsageEvent, type UsageHit } from '../src/lib/usage'
+import { createUsageTracker, usageEnabled, usageReferral, usageRequest, usageRoute, type CompletionEvent, type UsageHit } from '../src/lib/usage'
 
 function fixture() {
   const hits: UsageHit[] = []
@@ -44,7 +44,7 @@ test('only two fixed completion names are accepted and neither accepts propertie
   load()
   tracker.event('comparison_completed')
   tracker.event('portfolio_import_completed')
-  tracker.event('SECRET' as UsageEvent)
+  tracker.event('SECRET' as CompletionEvent)
   assert.deepEqual(hits, [
     { path: 'comparison_completed', event: true, title: '', referrer: '' },
     { path: 'portfolio_import_completed', event: true, title: '', referrer: '' },
@@ -114,4 +114,36 @@ test('HTML disables automatic page and click counting without changing palette l
   assert.deepEqual(settings, { no_onload: true, no_events: true, path: '/', title: '', referrer: '' })
   assert.match(tag, /referrerpolicy="no-referrer"/)
   assert.match(html, /<script src="\.\/palette.js"><\/script>/)
+})
+
+test('referral source is read only from an allowlisted ?ref= value', () => {
+  for (const [searches, expected] of [
+    [['?ref=x'], 'x'], [['?ref=X'], 'x'], [['?a=1&ref=reddit'], 'reddit'], [['', '?ref=whatsapp'], 'whatsapp'],
+    [['?ref=SECRET'], undefined], [['?ref=x.com'], undefined], [['?ref='], undefined], [['?REF=x'], undefined],
+    [['?q=ref=x'], undefined], [[undefined, undefined], undefined], [['?pan=ABCDE1234F'], undefined],
+  ] as [(string | undefined)[], string | undefined][]) assert.equal(usageReferral(...searches), expected, JSON.stringify(searches))
+})
+
+test('landing sends one fixed referral event before the first page, never again', () => {
+  const { tracker, hits, load } = fixture()
+  tracker.landing('?ref=X&pan=ABCDE1234F')
+  tracker.route('/fund/123456', 'a')
+  tracker.landing('?ref=reddit')
+  tracker.route('/compare', 'b')
+  load()
+  assert.deepEqual(hits, [
+    { path: 'ref_x', event: true, title: '', referrer: '' },
+    { path: '/fund', event: false, title: '', referrer: '' },
+    { path: '/compare', event: false, title: '', referrer: '' },
+  ])
+  const unknown = fixture()
+  unknown.load()
+  unknown.tracker.landing('?ref=SECRET')
+  unknown.tracker.landing('?ref=x')
+  assert.deepEqual(unknown.hits, [], 'only the landing link counts, and an unknown source sends nothing')
+  const dnt = fixture()
+  dnt.disable()
+  dnt.load()
+  dnt.tracker.landing('?ref=x')
+  assert.deepEqual(dnt.hits, [])
 })
