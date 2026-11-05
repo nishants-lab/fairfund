@@ -51,13 +51,13 @@ export default function Navbar() {
   const wishlistActive = loc.pathname === '/wishlist'
   const compareActive = loc.pathname.startsWith('/compare')
 
-  const iconBtn = 'inline-flex h-9 w-9 items-center justify-center rounded-lg border transition'
+  const iconBtn = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition'
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600">
+        <Link to="/" aria-label="FairFund home" className="flex items-center gap-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600">
             <svg viewBox="0 0 32 32" className="h-6 w-6">
               <rect x="6" y="18" width="5" height="8" rx="1.5" fill="#fff" />
               <rect x="13.5" y="13" width="5" height="13" rx="1.5" fill="#fff" />
@@ -65,9 +65,9 @@ export default function Navbar() {
               <rect x="4" y="26.5" width="24" height="2" rx="1" fill="#fff" opacity=".9" />
             </svg>
           </div>
-          <div className="leading-tight">
+          <div className="hidden leading-tight min-[390px]:block">
             <div className="font-display text-lg font-bold leading-none text-fg"><span className="text-brand-600 dark:text-brand-400">Fair</span>Fund</div>
-            <div className="text-xs font-medium uppercase tracking-wider text-faint">Mutual fund research</div>
+            <div className="hidden text-xs font-medium uppercase tracking-wider text-faint sm:block">Mutual fund research</div>
           </div>
         </Link>
 

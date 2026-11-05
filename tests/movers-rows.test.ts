@@ -158,7 +158,7 @@ test('returns, rank, momentum and cost views', () => {
   assert.equal(mom[0].fund.code, 5)                                // 15 vs 10: +5 pts
   assert.equal(mom[0].value, 5)
   const cost = fundRows(F, DATA, st('cost', { measure: 'terChange' }))
-  assert.deepEqual(cost.map(r => [r.fund.code, r.value]), [[1, 0.05], [2, -0.1]])
+  assert.deepEqual(cost.map(r => [r.fund.code, r.value]), [[1, 0.05]])
   assert.deepEqual(names(fundRows(F, DATA, st('cost', { order: 'asc' }))).slice(0, 2), [1, 2])
 })
 

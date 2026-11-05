@@ -14,7 +14,7 @@ interface Props {
  */
 export default function RiskBadge({ level, showWord = true, icon = true }: Props) {
   return (
-    <span className={`pill ${riskColor(level)}`} title={`${level} risk`}>
+    <span className={`pill ${riskColor(level)}`} title={`SEBI riskometer: ${level}`}>
       {icon && (
         <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />

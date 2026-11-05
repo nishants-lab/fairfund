@@ -5,6 +5,7 @@ import type { SpectrumModel } from '../lib/spectrum'
 interface Props {
   label: string
   value: string
+  valueDate?: string
   sub?: string
   tone?: 'default' | 'good' | 'bad' | 'warn'
   hint?: string
@@ -35,10 +36,10 @@ const verdictTone: Record<string, string> = {
   neutral: 'text-muted',
 }
 
-export default function MetricCard({ label, value, sub, tone = 'default', hint, note, subTone = 'default', spectrum }: Props) {
+export default function MetricCard({ label, value, valueDate, sub, tone = 'default', hint, note, subTone = 'default', spectrum }: Props) {
   return (
     <div className="card p-4">
-      <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-faint">
+      <div className="flex flex-wrap items-center gap-1 text-xs font-medium uppercase tracking-wide text-faint">
         {label}
         {hint && (
           <InfoTip width={240} label={`About ${label}`}>
@@ -51,7 +52,10 @@ export default function MetricCard({ label, value, sub, tone = 'default', hint, 
           </span>
         )}
       </div>
-      <div className={`mt-1 text-2xl font-bold ${toneClasses[tone]}`}>{value}</div>
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+        <span className={`text-2xl font-bold ${toneClasses[tone]}`}>{value}</span>
+        {valueDate && <span className="text-xs text-muted">· {valueDate}</span>}
+      </div>
       {sub && <div className={`mt-0.5 text-xs ${subToneClasses[subTone]}`}>{sub}</div>}
       {spectrum && <Spectrum model={spectrum} />}
       {note && <div className="mt-1 text-xs leading-snug text-faint">{note}</div>}

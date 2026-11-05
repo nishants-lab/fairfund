@@ -6,7 +6,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
 } from 'recharts'
 import { useMemo } from 'react'
 import { drawdownSeries } from '../lib/nav'
@@ -24,6 +23,7 @@ interface Props {
 
 const FUND_COLOR = '#2563eb'
 const PEER_COLOR = '#94a3b8'
+const DRAWDOWN_COLOR = '#f43f5e'
 
 /** Rebase a NAV series to start at 100, so a peer on a different price level is
  *  comparable to this fund on the same axis (relative growth, not rupees). */
@@ -98,11 +98,21 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
     borderRadius: 12,
     fontSize: 12,
   }
-  const legendFmt = (val: string) => (val === 'fund' ? 'This fund' : peerName ?? 'Top peer')
+  const legend = (
+    <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Chart legend">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="w-4 shrink-0 border-t-2" style={{ borderColor: mode === 'drawdown' ? DRAWDOWN_COLOR : FUND_COLOR }} />This fund
+      </span>
+      {hasPeer && <span className="inline-flex min-w-0 items-start gap-1.5">
+        <span className="mt-2 w-4 shrink-0 border-t-2 border-dashed" style={{ borderColor: PEER_COLOR }} />
+        <span className="min-w-0 break-words">{peerName ?? 'Top-ranked peer'}</span>
+      </span>}
+    </div>
+  )
 
   if (mode === 'drawdown') {
     return (
-      <ResponsiveContainer width="100%" height={264}>
+      <div>{legend}<ResponsiveContainer width="100%" height={264}>
         <LineChart data={ddMerged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={grid} />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={(d) => d.slice(0, 7)} minTickGap={40} />
@@ -111,16 +121,15 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
             contentStyle={tooltipStyle}
             formatter={(v: number, key: string) => [`${v.toFixed(1)}%`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
           />
-          {hasPeer && <Legend formatter={legendFmt} wrapperStyle={{ fontSize: 12 }} />}
           {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
-          <Line type="monotone" dataKey="fund" stroke="#f43f5e" strokeWidth={1.8} dot={false} connectNulls />
+          <Line type="monotone" dataKey="fund" stroke={DRAWDOWN_COLOR} strokeWidth={1.8} dot={false} connectNulls />
         </LineChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer></div>
     )
   }
 
   return (
-    <ResponsiveContainer width="100%" height={264}>
+    <div>{legend}<ResponsiveContainer width="100%" height={264}>
       <LineChart data={navMerged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={grid} />
         <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={(d) => d.slice(0, 7)} minTickGap={40} />
@@ -130,10 +139,9 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
           formatter={(v: number, key: string) => [`₹${(v as number).toFixed(1)}`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
           labelFormatter={(d) => `${d} · growth of ₹100`}
         />
-        {hasPeer && <Legend formatter={legendFmt} wrapperStyle={{ fontSize: 12 }} />}
         {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
         <Line type="monotone" dataKey="fund" stroke={FUND_COLOR} strokeWidth={2} dot={false} connectNulls />
       </LineChart>
-    </ResponsiveContainer>
+    </ResponsiveContainer></div>
   )
 }

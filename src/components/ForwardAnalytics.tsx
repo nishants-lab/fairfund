@@ -319,7 +319,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   key={h}
                   onClick={() => setHorizon(h)}
                   aria-pressed={horizon === h}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`min-h-10 min-w-10 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     horizon === h ? 'bg-brand-600 text-white' : 'border border-line text-muted hover:border-brand-300'
                   }`}
                 >

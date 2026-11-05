@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
-import { funds } from '../lib/data'
+import { funds, categoryDisplay } from '../lib/data'
 import { fundSlug } from '../lib/format'
 import { normalizeSearch } from '../lib/searchText'
 import type { Fund } from '../types'
@@ -268,7 +268,7 @@ export default function Movers() {
         )}
         {!s.stock && (
           <button onClick={() => patch({ order: s.order === 'desc' ? 'asc' : 'desc' })}
-            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-muted transition hover:text-fg"
+            className="min-h-10 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-muted transition hover:text-fg"
             aria-label={`Order: ${s.order === 'desc' ? 'highest first' : 'lowest first'}. Tap to flip.`}>
             {s.order === 'desc' ? 'Highest first ▼' : 'Lowest first ▲'}
           </button>
@@ -279,7 +279,7 @@ export default function Movers() {
         <Select label="Show" value={s.groupBy} onChange={v => patch({ groupBy: v as GroupBy, stock: null, count: false })}
           options={GROUPS[isStocks ? 'stocks' : s.view === 'debt' ? 'debt' : 'fund']} />
         <Select label="Add category" value="" onChange={v => v && patch({ categories: [...new Set([...s.categories, v])] })}
-          options={[['', 'Category'], ...ctx.categories.filter(c => s.view !== 'debt' || CASH.includes(c)).map(c => [c, c] as [string, string])]} />
+          options={[['', 'Category'], ...ctx.categories.filter(c => s.view !== 'debt' || CASH.includes(c)).map(c => [c, categoryDisplay(c)] as [string, string])]} />
         <Select label="Add fund house" value="" onChange={v => v && patch({ amcs: [...new Set([...s.amcs, v])] })}
           options={[['', 'Fund house'], ...ctx.amcs.map(a => [a, a] as [string, string])]} />
         {s.view !== 'debt' && (
@@ -327,6 +327,7 @@ export default function Movers() {
             <FundTable rows={limitRows(fRows, s)} s={s} shown={shown} onMore={() => setShown(n => n + PAGE)}
               local={local} setLocal={setLocal} onSort={patch} highlight={!!parsed?.singular} />
           )}
+          {s.measure === 'terChange' && <p className="mt-3 text-xs text-muted">Expense ratio changes exclude funds under one year old and funds flagged as new (without a full 3Y track record).</p>}
           <Empty s={s} n={shownCount} winChoices={winChoices} onChange={patch} />
           <Footnote s={s} data={data!} />
         </>
@@ -376,14 +377,14 @@ function FilterChips({ s, data, onChange }: { s: MoversState; data: MoversData |
   const list = (k: ListKey, label: (v: string) => string) => {
     for (const v of s[k]) chips.push({ key: k + v, label: label(v), next: without(c => { c[k] = c[k].filter(x => x !== v) }) })
   }
-  list('categories', v => v)
-  list('notCategories', v => `Not ${v}`)
+  list('categories', categoryDisplay)
+  list('notCategories', v => `Not ${categoryDisplay(v)}`)
   list('amcs', v => v)
   list('notAmcs', v => `Not ${v}`)
   list('themes', v => `Theme: ${THEMES[v]?.label ?? v}`)
   list('notThemes', v => `Not ${THEMES[v]?.label ?? v}`)
   list('stockSectors', v => `Sector: ${v}`)
-  list('risk', v => `Risk: ${v}`)
+  list('risk', v => `SEBI risk: ${v}`)
   if (s.type !== 'all') chips.push({ key: 'type', label: s.type === 'index' ? 'Index funds' : 'Active funds', next: without(c => { c.type = 'all' }) })
   if (s.young !== 'all') chips.push({ key: 'young', label: s.young === 'only' ? 'New funds' : 'Established funds', next: without(c => { c.young = 'all' }) })
   s.thresholds.forEach((t, i) => chips.push({ key: 'th' + i, label: thresholdLabel(t), next: without(c => { c.thresholds.splice(i, 1) }) }))
@@ -401,7 +402,7 @@ function FilterChips({ s, data, onChange }: { s: MoversState; data: MoversData |
       {chips.map(c => <Chip key={c.key} onRemove={() => onChange(c.next)}>{c.label}</Chip>)}
       {chips.length > 1 && (
         <button onClick={() => onChange({ ...freshState(s.view), measure: s.measure, order: s.order, mode: s.mode, win: s.win, horizon: s.horizon })}
-          className="px-1 text-xs text-faint underline-offset-2 hover:text-fg hover:underline">Clear all</button>
+          className="min-h-10 px-1 text-xs text-faint underline-offset-2 hover:text-fg hover:underline">Clear all</button>
       )}
     </div>
   )
@@ -850,7 +851,7 @@ function Chip({ children, onRemove }: { children: ReactNode; onRemove: () => voi
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface2 py-0.5 pl-2.5 pr-1 text-xs text-fg">
       {children}
-      <button onClick={onRemove} className="rounded-full px-1.5 text-faint hover:bg-surface hover:text-fg" aria-label="Remove filter">×</button>
+      <button onClick={onRemove} className="min-h-10 min-w-10 rounded-full px-1.5 text-faint hover:bg-surface hover:text-fg" aria-label="Remove filter">×</button>
     </span>
   )
 }
@@ -861,7 +862,7 @@ function Seg({ label, children }: { label: string; children: ReactNode }) {
 function SegBtn({ active, disabled, onClick, title, children }: { active: boolean; disabled?: boolean; onClick: () => void; title?: string; children: ReactNode }) {
   return (
     <button onClick={onClick} disabled={disabled} title={title} aria-pressed={active}
-      className={`px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'bg-brand-600 text-white' : 'bg-surface text-muted hover:text-fg'}`}>
+      className={`min-h-10 min-w-10 px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'bg-brand-600 text-white' : 'bg-surface text-muted hover:text-fg'}`}>
       {children}
     </button>
   )
@@ -869,7 +870,7 @@ function SegBtn({ active, disabled, onClick, title, children }: { active: boolea
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
   return (
     <select aria-label={label} value={value} onChange={e => onChange(e.target.value)}
-      className="w-full min-w-0 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-fg sm:w-auto">
+      className="min-h-10 w-full min-w-0 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-fg sm:w-auto">
       {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   )

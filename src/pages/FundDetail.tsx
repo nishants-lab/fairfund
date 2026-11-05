@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getFund, fundsByCategory, categoryMetricStats, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
 import { data } from '../lib/data'
-import { pct, signedPct, num, alphaColor, fundSlug } from '../lib/format'
+import { pct, signedPct, num, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import { fetchNavHistory, fetchCategoryMedian } from '../lib/nav'
 import { benchmarkForCategory, medianKeyForCategory } from '../lib/benchmarks'
@@ -196,7 +196,7 @@ export default function FundDetail() {
       ? `${fund.categoryDisplay} category median`
       : overlay === 'index'
         ? benchmark ? `${benchmark.index} (proxy)` : ''
-        : benchmarkPeer?.name ?? ''
+        : benchmarkPeer ? `Top-ranked peer: ${benchmarkPeer.name}` : ''
   const catStats = useMemo(
     () => ({
       volatility: fund ? categoryMetricStats(fund.category, 'volatility', false) : null,
@@ -315,13 +315,8 @@ export default function FundDetail() {
       <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/category/${catSlug(fund.category)}`} className={`pill ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
-            <RiskBadge level={fund.riskLevel} />
-            {fund.sebiRisk && fund.sebiRisk !== fund.riskLevel && (
-              <span className="pill border border-line bg-surface2/60 text-muted" title="SEBI regulatory riskometer, as published by the AMC. Post-2021 nearly all equity funds are rated Very High, so this label rarely differentiates funds - FairFund's own risk grade (left) is the more useful comparison.">
-                SEBI: {fund.sebiRisk}
-              </span>
-            )}
+            <Link to={`/category/${catSlug(fund.category)}`} className={`pill min-h-10 ${getCategoryColor(fund.category).bg} ${getCategoryColor(fund.category).text} hover:opacity-80 transition-opacity`}>{fund.categoryDisplay}</Link>
+            {fund.sebiRisk ? <RiskBadge level={fund.sebiRisk} /> : <span className="pill bg-surface2 text-muted">SEBI risk unavailable</span>}
             <RankingPeriod fund={fund} horizon="3Y" compact withheld={navHeld} />
             {fund.isYoung && fund.inceptionDate && !fund.isDebt && !fund.isArbitrage && (
               <span
@@ -334,7 +329,7 @@ export default function FundDetail() {
           </div>
           <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
-          <Link to={`/category/${catSlug(fund.category)}`} className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">See all {fund.metrics['3Y']?.catSize ?? ''} {fund.categoryDisplay} funds →</Link>
+          <Link to={`/category/${catSlug(fund.category)}`} className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">See all {fund.metrics['3Y']?.catSize ?? ''} {categoryFundsLabel(fund.categoryDisplay)} →</Link>
           <div className='text-xs text-faint'>Data as of {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
           {/* Latest NAV with day change */}
@@ -410,8 +405,9 @@ export default function FundDetail() {
         <>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <MetricCard
-              label={live.years >= 1 ? 'CAGR' : 'Return (period)'}
+              label={live.years >= 1 ? `${preset === 'CUSTOM' ? 'Selected period' : preset} CAGR` : 'Return (period)'}
               value={live.years >= 1 ? pct(live.cagr) : pct(live.totalReturn)}
+              valueDate={`to ${fmtDate(live.endDate)}`}
               sub={live.years >= 1 ? `${pct(live.totalReturn)} absolute over ${live.years.toFixed(1)} yrs` : `${live.years.toFixed(2)} yrs`}
               tone={live.cagr >= 0 ? 'good' : 'bad'}
               hint={live.years >= 1
@@ -488,7 +484,7 @@ export default function FundDetail() {
       ) : baseline ? (
         <>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <MetricCard label="CAGR" value={pct(baseline.cagr)} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
+            <MetricCard label={`${baselineHorizon} CAGR`} value={pct(baseline.cagr)} valueDate={`to ${fmtDate(baseline.windowEnd ?? data.anchor)}`} sub={`${baselineHorizon} window`} tone={baseline.cagr >= 0 ? 'good' : 'bad'} />
             {!usesReducedSurface(fund) && (
             <MetricCard label="Alpha vs peers" value={signedPct(baseline.alpha)} tone={baseline.alpha >= 0 ? 'good' : 'bad'} hint="Excess CAGR over the median fund in the same category." />
             )}
@@ -530,17 +526,17 @@ export default function FundDetail() {
       {/* Chart */}
       <div className="mt-6 card p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex rounded-lg border border-line bg-surface2 p-0.5">
+          <div className="inline-flex flex-wrap rounded-lg border border-line bg-surface2 p-0.5">
             <button
               onClick={() => setChartMode('nav')}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'nav' ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+              className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'nav' ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
             >
               NAV Growth
             </button>
             {!usesReducedSurface(fund) && (
             <button
               onClick={() => setChartMode('drawdown')}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
+              className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
             >
               Drawdowns
             </button>
@@ -548,19 +544,19 @@ export default function FundDetail() {
             {fund.analytics?.rollingAlpha && fund.analytics.rollingAlpha.spark.length >= 3 && (
               <button
                 onClick={() => setChartMode('alpha')}
-                className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'alpha' ? 'bg-surface text-emerald-600 shadow-sm dark:text-emerald-400' : 'text-muted'}`}
+                className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'alpha' ? 'bg-surface text-emerald-600 shadow-sm dark:text-emerald-400' : 'text-muted'}`}
               >
                 Alpha vs peers
               </button>
             )}
           </div>
           {chartMode !== 'alpha' && overlayOpts.length > 1 && (
-            <div className="inline-flex rounded-lg border border-line bg-surface2 p-0.5" title="Choose what to compare this fund against">
+            <div className="inline-flex flex-wrap rounded-lg border border-line bg-surface2 p-0.5" title="Choose what to compare this fund against">
               {overlayOpts.map((o) => (
                 <button
                   key={o.key}
                   onClick={() => setOverlay(o.key)}
-                  className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${overlay === o.key ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
+                  className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${overlay === o.key ? 'bg-surface text-brand-700 shadow-sm dark:text-brand-300' : 'text-muted'}`}
                 >
                   {o.label}
                 </button>
@@ -570,16 +566,7 @@ export default function FundDetail() {
         </div>
         {chartMode !== 'alpha' && (
           <p className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-0.5 w-4 rounded bg-brand-600" /> {fund.name.length > 16 ? 'This fund' : fund.name}
-            </span>
-            {peerSlice.length > 1 && overlayName && (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-0.5 w-4 rounded" style={{ background: 'repeating-linear-gradient(90deg,#94a3b8 0 3px,transparent 3px 6px)' }} />
-                {overlayName}
-              </span>
-            )}
-            <span>· Live, selected range</span>
+            <span>Live, selected range</span>
             {overlay === 'median' && <span>· typical fund in this category (median daily return, chained)</span>}
             {overlay === 'index' && benchmark?.note && <span>· {benchmark.note}</span>}
           </p>
@@ -606,7 +593,7 @@ export default function FundDetail() {
               { id: 'tax', label: 'Tax' },
               { id: 'peers', label: 'Peers' },
             ].map(s => (
-              <button key={s.id} onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className='shrink-0 rounded-full bg-surface2 px-3 py-1 text-xs font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300'>
+              <button key={s.id} onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className='min-h-10 shrink-0 rounded-full bg-surface2 px-3 py-1 text-xs font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300'>
                 {s.label}
               </button>
             ))}

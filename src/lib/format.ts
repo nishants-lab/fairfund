@@ -45,6 +45,10 @@ export function riskColor(level: string): string {
   }
 }
 
+export function categoryFundsLabel(display: string): string {
+  return /\bfunds$/i.test(display.trim()) ? display.trim() : `${display.trim()} funds`
+}
+
 export function fundSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 }

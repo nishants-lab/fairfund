@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import { funds, getFund } from '../lib/data'
-import { fundSlug } from '../lib/format'
+import { fundSlug, categoryFundsLabel } from '../lib/format'
 import { fmtDate } from '../lib/metrics'
 import { getCategoryColor } from '../lib/categoryColors'
 import ShareButton from '../components/ShareButton'
@@ -67,7 +67,7 @@ function Existing({ n, today }: { n: Nfo; today: string }) {
   if (ctx) {
     return (
       <div className="mt-3 rounded-lg bg-surface2/60 px-3 py-2.5 text-sm text-muted" data-testid="nfo-category">
-        FairFund covers {ctx.count} {ctx.display} funds; {ctx.withThreeYears} have a 3-year record.{' '}
+        FairFund covers {ctx.count} {categoryFundsLabel(ctx.display)}; {ctx.withThreeYears} have a 3-year record.{' '}
         <Link to={`/category/${catSlug(ctx.category)}`} className="font-semibold text-brand-600 hover:underline dark:text-brand-400">See the category</Link>
       </div>
     )
