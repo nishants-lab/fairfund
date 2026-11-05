@@ -47,5 +47,23 @@ class StockNameTests(unittest.TestCase):
         self.assertEqual(out['slug'], 'aadhar-housing-finance-ltd')
 
 
+    def test_plan_suffix_names_only_a_stated_option(self):
+        probe = """
+import { planSuffix } from './scripts/research-pages.mjs'
+console.log(JSON.stringify([
+  planSuffix({ name: 'Sundaram Multi Cap Fund - Income Distribution CUM Capital Withdrawal ( )', fullName: 'Sundaram Multi Cap Fund - Direct Plan - Income Distribution CUM Capital Withdrawal Option (IDCW)' }),
+  planSuffix({ name: 'X Multi Cap Fund', fullName: 'X Multi Cap Fund - Direct Plan - IDCW' }),
+  planSuffix({ name: 'UTI - Dividend Yield Fund', fullName: 'UTI-Dividend Yield Fund.-Growth-Direct' }),
+  planSuffix({ name: 'ICICI Prudential Nifty 50 Index Fund', fullName: 'ICICI Prudential Nifty 50 Index Fund - Direct Plan Cumulative Option' }),
+  planSuffix({ name: 'HDFC Nifty 50 Index Fund', fullName: 'HDFC Nifty 50 Index Fund - Direct Plan' }),
+  planSuffix({ name: 'Kotak Dividend Yield Fund', fullName: 'Kotak Dividend Yield Fund' }),
+  planSuffix({ name: 'Y Fund Direct', fullName: 'Y Fund Direct Growth' }),
+]))
+"""
+        r = subprocess.run([NODE, '--input-type=module', '-e', probe], cwd=ROOT, text=True, capture_output=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout), [' Direct', ' Direct IDCW', ' Direct Growth', ' Direct Growth', ' Direct', ' Direct', ''])
+
+
 if __name__ == '__main__':
     unittest.main()

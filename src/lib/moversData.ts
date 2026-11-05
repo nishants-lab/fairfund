@@ -7,6 +7,7 @@ import type { Fund } from '../types'
 import { amcAliases, normalizeSearch, otherNames } from './searchText'
 import type { ParseContext } from './moversQuery'
 import type { Win } from './moversState'
+import { displayStockName, formerStockName } from './stockNames'
 
 /** [month YYYY-MM, AUM crore, estimated net flow crore | null, NAV return % | null] */
 export type MonthRow = [string, number, number | null, number | null]
@@ -52,7 +53,11 @@ export function buildContext(funds: Fund[], data: MoversData | null): ParseConte
     categories: [...new Set(funds.map(f => f.category))].sort(),
     amcs: [...new Set(funds.map(f => f.amc).filter(Boolean))].sort(),
     fundNames: funds.map(fundSearchText),
-    stocks: (data?.stocks ?? []).map(([key, name, sector]) => ({ key, name, sector })),
+    stocks: (data?.stocks ?? []).map(([key, raw, sector]) => {
+      const name = displayStockName(key, raw)
+      const aliases = [...new Set([raw.replace(/\s+(EQ|Equity)\b.*$/, '').trim(), formerStockName(key, raw)])].filter((a): a is string => !!a && a !== name)
+      return { key, name, sector, aliases }
+    }),
     refMonth: data?.refMonth ?? null,
     firstMonth: firstFlowMonth(data),
     ...availableWindows(data),

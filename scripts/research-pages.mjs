@@ -12,6 +12,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import STOCK_NAMES_JSON from '../src/data/stock_names.json' with { type: 'json' }
 
 /** Actively managed equity categories that get fund-vs-fund overlap pages. */
 export const OVERLAP_CATEGORIES = ['Large Cap', 'Mid Cap', 'Small Cap', 'Flexi Cap', 'Multi Cap', 'Large & Mid Cap', 'Focused', 'Value/Contra', 'ELSS', 'Dividend Yield']
@@ -78,7 +79,7 @@ export function stockSlug(key) {
 
 /** Verified company renames and cleaner display spellings, keyed by stock slug
  * (src/data/stock_names.json, shared with the app). The page URL keeps the source slug. */
-const STOCK_NAMES = JSON.parse(readFileSync(new URL('../src/data/stock_names.json', import.meta.url), 'utf-8'))
+const STOCK_NAMES = STOCK_NAMES_JSON
 export const STOCK_RENAMES = Object.fromEntries(Object.entries(STOCK_NAMES.renames).map(([k, v]) => [k, { name: v.name, formerly: v.formerly }]))
 export const STOCK_DISPLAY = STOCK_NAMES.display
 
@@ -102,6 +103,26 @@ export function displayStockName(slug, sourceName) {
   if (!isRawStockName(name)) return name
   if (slug && /^[a-z][a-z-]*[a-z]$/.test(slug) && /-(ltd|limited)$/.test(slug)) return slugTitle(slug)
   return name.replace(/\s+(EQ|Equity)\b.*$/, '').trim()
+}
+
+const IDCW_RE = /\bIDCW\b|income distribution|dividend\s*(payout|re-?invest|option|plan)|-\s*dividend\b(?!\s*yield)/i
+/** The option ('Growth' or 'IDCW') when the AMFI full name states it, else null. */
+export function fundOption(f) {
+  const full = String(f?.fullName ?? '')
+  if (IDCW_RE.test(full)) return 'IDCW'
+  if (/growth|cumulative/i.test(full)) return 'Growth'
+  return null
+}
+
+/** Title suffix naming the plan and option. Every fund here is a direct plan; the option
+ * is named only when the full name states it, and not repeated when the short name
+ * already carries it. */
+export function planSuffix(f) {
+  const name = String(f?.name ?? '')
+  if (/direct/i.test(name)) return ''
+  const option = fundOption(f)
+  if (!option || (option === 'IDCW' && IDCW_RE.test(name))) return ' Direct'
+  return ` Direct ${option}`
 }
 
 export function currentStock(h) {

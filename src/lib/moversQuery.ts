@@ -25,7 +25,8 @@ export interface ParseContext {
   amcs: string[]
   /** Normalised (normalizeSearch) fund names, for words left over at the end. */
   fundNames: string[]
-  stocks: { key: string; name: string; sector: string }[]
+  /** name: the display name; aliases: the source spelling and a verified former name. */
+  stocks: { key: string; name: string; sector: string; aliases?: string[] }[]
   refMonth: string | null
   /** Earliest month with a flow figure. */
   firstMonth?: string | null
@@ -198,9 +199,21 @@ function build(ctx: ParseContext): Built {
     if (w.length > 2 && twoCount.get(w.slice(0, 2).join(' ')) === 1) entries.push({ words: w.slice(0, 2), p: { k: 'stock', v: s.key }, stockOnly: true })
     if (w.length > 1 && firstCount.get(w[0]) === 1 && w[0].length >= 4 && !common.has(w[0])) entries.push({ words: [w[0]], p: { k: 'stock', v: s.key }, stockOnly: true })
   }
+  // A stock's source spelling and former name find it too ("zomato", "dewan housing finance").
+  const aliasCleaned = ctx.stocks.flatMap(s => (s.aliases ?? []).map(a => ({ s, w: cleanStockName(a) }))).filter(c => c.w.length)
+  const prefixUse = new Map<string, Set<string>>()
+  for (const { s, w } of [...cleaned, ...aliasCleaned]) for (let n = 2; n < w.length; n++) {
+    const k = w.slice(0, n).join(' '), set = prefixUse.get(k) ?? new Set<string>()
+    set.add(s.key); prefixUse.set(k, set)
+  }
+  for (const { s, w } of aliasCleaned) {
+    entries.push({ words: w, p: { k: 'stock', v: s.key }, stockOnly: true, full: true })
+    // "dewan housing finance" for Dewan Housing Finance Corporation: a longer prefix only one stock has.
+    for (let n = w.length - 1; n >= 3; n--) if (prefixUse.get(w.slice(0, n).join(' '))?.size === 1) { entries.push({ words: w.slice(0, n), p: { k: 'stock', v: s.key }, stockOnly: true }); break }
+  }
   for (const [ph, target] of STOCK_ALIASES) {
     const tw = tokenize(target).join(' ')
-    const hitStock = cleaned.find(c => c.w.join(' ').startsWith(tw))
+    const hitStock = [...cleaned, ...aliasCleaned].find(c => c.w.join(' ').startsWith(tw))
     if (hitStock) for (const w of ph.split('|')) entries.push({ words: tokenize(w), p: { k: 'stock', v: hitStock.s.key }, stockOnly: true, full: true })
   }
   const byFirst = new Map<string, Entry[]>()

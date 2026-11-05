@@ -13,7 +13,7 @@ import { readFileSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SITE, SHELL_UP, COVER_IMAGE } from './site-config.mjs'
-import { buildResearch, PAIR_TOP_N, isIndexFund, median, hasMonthOnMonth, hasUsableHoldings, isLiveFund, stockSlug, pairPath, currentStock, isRawStockName } from './research-pages.mjs'
+import { planSuffix, fundOption, buildResearch, PAIR_TOP_N, isIndexFund, median, hasMonthOnMonth, hasUsableHoldings, isLiveFund, stockSlug, pairPath, currentStock, isRawStockName } from './research-pages.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -342,7 +342,7 @@ for (const f of funds) {
   const topHolding = (detail?.holdings ?? []).filter(h => h.instrument === 'Equity').sort((x, y) => y.pct - x.pct)[0]
   if (topHolding && detail?.holdingsMeta?.coverage === 'stock_level') descFacts.push(`top holding ${currentStock(topHolding).name.replace(/\s+(Ltd\.?|Limited)\s*$/i, '')} ${fixed(topHolding.pct)}%`)
   const desc = `${f.name} (${f.amc ? `${f.amc}, ` : ''}${cat}, direct plan): ${descFacts.length ? descFacts.join(', ') : 'returns, costs and holdings'}.`
-  const plan = /direct/i.test(f.name) ? '' : ' Direct Growth'
+  const plan = planSuffix(f)
   const hasHoldings = detail?.holdingsMeta?.coverage === 'stock_level' || detail?.holdingsMeta?.coverage === 'fof_level'
   const title = `${f.name}${plan}: returns, expense ratio${hasHoldings ? ', holdings' : ''} | FairFund`
   const image = existsSync(join(DIST, 'og', `${f.code}.png`)) ? `${SITE}/og/${f.code}.png` : COVER_IMAGE
@@ -361,7 +361,7 @@ for (const f of funds) {
   // Visible/crawlable body. Lead sentence + metrics table for long windows only
   // (drop 1Y from the shell: it swings hard and misrepresents a fund in search).
   const aum = fmtAum(f.aum?.current)
-  const subline = [cat && esc(cat), f.amc && esc(f.amc), 'Direct', 'Growth', aum].filter(Boolean).join(' &middot; ')
+  const subline = [cat && esc(cat), f.amc && esc(f.amc), 'Direct', fundOption(f), aum].filter(Boolean).join(' &middot; ')
 
   let leadSentence = `${esc(f.name)} is a ${esc(cat)} fund.`
   if (lead?.catRank && lead?.catSize && lead?.cagr != null && leadWin) {

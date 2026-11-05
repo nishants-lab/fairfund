@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { displayStockName, formerStockName, isRawStockName, stockSlug } from '../src/lib/stockNames'
+import { funds } from '../src/lib/data'
+import { buildContext, type MoversData } from '../src/lib/moversData'
+import { parseQuery } from '../src/lib/moversQuery'
+import movers from '../src/data/movers.json'
 
 test('holding keys resolve renames and curated spellings', () => {
   assert.equal(displayStockName('zomato-ltd', 'Zomato Ltd'), 'Eternal Ltd')
@@ -25,4 +29,27 @@ test('name-only portfolio moves resolve through the suffix-free slug and aliases
 test('raw-name detection and slugs match the static pages', () => {
   assert.deepEqual(['TATA CAPITAL LIMITED EQ', 'Infosys Ltd', 'ITC Ltd', 'DOMS Industries Ltd.'].map(isRawStockName), [true, false, false, false])
   assert.equal(stockSlug('Aadhar Housing Finance Ltd'), 'aadhar-housing-finance-ltd')
+})
+
+test('the movers question box finds a stock by its shown name and by its old name', () => {
+  const ctx = buildContext(funds, movers as unknown as MoversData)
+  const stockOf = (q: string) => parseQuery(q, ctx).state.stock
+  const keyOf = (name: string) => ctx.stocks.find(s => s.name === name)?.key
+  let checked = 0
+  for (const [q, name] of [
+    ['who bought piramal finance', 'Piramal Finance Ltd'],
+    ['who bought dewan housing finance', 'Piramal Finance Ltd'],
+    ['who bought aadhar housing finance', 'Aadhar Housing Finance Ltd'],
+    ['who bought shriram finance', 'Shriram Finance Ltd'],
+    ['who bought eternal', 'Eternal Ltd'],
+    ['who bought zomato', 'Eternal Ltd'],
+  ] as const) {
+    const key = keyOf(name)
+    if (!key) continue // not in this month's stock list
+    assert.equal(stockOf(q), key, q)
+    checked++
+  }
+  assert.ok(checked >= 4, `only ${checked} renamed stocks in the movers list`)
+  const pharma = ctx.stocks.find(s => /piramal pharma/i.test(s.name))?.key
+  if (pharma && keyOf('Piramal Finance Ltd')) assert.notEqual(stockOf('who bought piramal finance'), pharma)
 })
