@@ -23,7 +23,7 @@ class SeoTests(unittest.TestCase):
         for name in ['gen-sitemap.mjs','gen-unfurls.mjs','site-config.mjs','research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
         shutil.copyfile(ROOT/'src/data/stock_names.json', self.base/'src/data/stock_names.json')
-        self.data = {'funds':[{'code':1,'name':'Example Fund','amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','metrics':{}}], 'totalFunds':1,'categories':{'Large Cap':{'fundCount':1,'display':'Large Cap'}}}
+        self.data = {'funds':[{'code':1,'name':'Example Fund','fullName':'Example Fund - Direct Plan - Growth','amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','metrics':{}}], 'totalFunds':1,'categories':{'Large Cap':{'fundCount':1,'display':'Large Cap'}}}
         self.save_data()
         (self.base/'dist/index.html').write_text('<html><body><h1>FairFund</h1></body></html>')
         self.assertEqual(self.run_script('gen-unfurls.mjs').returncode,0)
@@ -161,6 +161,7 @@ class SeoTests(unittest.TestCase):
         result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
         html=(self.base/'dist/f/1/index.html').read_text()
         self.assertIn('<title>Example Fund Direct Growth: returns, expense ratio | FairFund</title>',html)
+        self.assertIn('Large Cap &middot; Example &middot; Direct &middot; Growth &middot;',html)
         desc=re.search(r'<meta name="description" content="([^"]*)"',html).group(1)
         self.assertTrue(desc.startswith('Example Fund (Example, Large Cap, direct plan): 3Y return 14.2% a year, rank #2 of 9'),desc)
         self.assertIn('expense ratio 0.55%',desc)
