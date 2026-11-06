@@ -23,6 +23,7 @@ class CrawlSurfaceTests(unittest.TestCase):
             (self.base/folder).mkdir(parents=True)
         for name in ['gen-sitemap.mjs', 'gen-unfurls.mjs', 'gen-home.mjs', 'site-config.mjs', 'indexnow-submit.mjs', 'research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
+        shutil.copyfile(ROOT / 'src/data/stock_names.json', self.base / 'src/data/stock_names.json')
         self.data = {'funds': [{'code': 1, 'name': 'Example Fund', 'amc': 'Example', 'category': 'Large Cap', 'categoryDisplay': 'Large Cap', 'metrics': {}},
                                {'code': 2, 'name': 'Other Fund', 'amc': 'Other', 'category': 'Mid Cap', 'categoryDisplay': 'Mid Cap', 'metrics': {}}],
                      'totalFunds': 2,

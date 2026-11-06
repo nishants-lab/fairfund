@@ -313,7 +313,10 @@ ${dataTable(`${cat} ranking`, [['Rank', 'num'], ['Fund'], [`${win} return a year
 
 // ---- Per-fund shells --------------------------------------------------------
 let n = 0
-for (const f of funds) {
+for (const source of funds) {
+  // A held fund's page says returns and ranks are withheld, so it shows none, even if
+  // older metrics are still in the record.
+  const f = isQuarantined(source) ? { ...source, metrics: {} } : source
   const slug = fundSlug(f.name)
   const cat = catLabel(f)
   const hash = `/fund/${f.code}/${slug}`
