@@ -7,9 +7,10 @@ const {funds}=require('../src/data/funds.json');
 const eligible=funds.find(f=>!f.dataQuality&&(f.metrics?.['3Y']||f.metrics?.['5Y']));
 const unavailable=funds.find(f=>!f.dataQuality&&!f.metrics?.['3Y']&&!f.metrics?.['5Y']);
 const held=funds.find(f=>f.dataQuality?.status==='quarantined');
-assert(eligible&&unavailable&&held,'SEO fixtures require eligible, unavailable-period and quarantined fund pages');
+assert(eligible&&unavailable,'SEO fixtures require eligible and unavailable-period fund pages');
+if(!held)console.log('SKIP held fund page: no fund is held in this data (tests/test_seo.py covers the held copy)');
 const routes=[
- ...[eligible,unavailable,held].map(f=>({route:'f/'+f.code+'/',app:'/fund/'+f.code,table:!!(f.metrics?.['3Y']||f.metrics?.['5Y']),held:f===held})),
+ ...[eligible,unavailable,held].filter(Boolean).map(f=>({route:'f/'+f.code+'/',app:'/fund/'+f.code,table:!!(f.metrics?.['3Y']||f.metrics?.['5Y']),held:f===held})),
  {route:'c/flexi-cap/',app:'/category/flexi-cap',table:false},
  {route:'s/explore/',app:'/explore',table:true},
 ];

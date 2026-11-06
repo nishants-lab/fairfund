@@ -129,6 +129,16 @@ class SeoTests(unittest.TestCase):
             self.assertNotIn('Sharpe ratio',html);self.assertNotIn('-8.4',html);self.assertNotIn('max drawdown',html)
             self.assertIn('#3 of 30',html)
 
+    def test_held_fund_page_withholds_returns_and_ranks(self):
+        # The live data may have no held fund (seo-browser then skips its held page), so this keeps the copy covered.
+        m={'3Y':{'cagr':14.2,'catRank':2,'catSize':9,'windowStart':'2023-11-04','windowEnd':'2026-11-04'}}
+        self.data['funds']=[dict(self.data['funds'][0],metrics=m,dataQuality={'status':'quarantined'})];self.save_data()
+        result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
+        html=(self.base/'dist/f/1/index.html').read_text(encoding='utf-8')
+        self.assertIn('<p role="status">NAV history needs source verification.',html)
+        main=html[html.index('<main>'):]
+        self.assertNotRegex(main,r'ranks #|CAGR [+-]?[0-9]|14\.2%')
+
     def test_nfo_table_has_two_columns_that_fit_a_phone(self):
         nfo={'generatedAt':'2026-11-05','nfos':[{'code':9,'name':'Example Nifty Realty Index Fund','amc':'Example AMC','category':'Index-Sectoral/Thematic',
              'launchDate':'2026-10-26','closeDate':'2099-11-09','nav':None,'details':{'benchmark':'NIFTY Realty TRI'}}]}

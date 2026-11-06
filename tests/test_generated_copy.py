@@ -22,6 +22,7 @@ class GeneratedCopyTests(unittest.TestCase):
             (self.base / directory).mkdir(parents=True)
         for name in ('gen-unfurls.mjs', 'gen-og-images.mjs', 'site-config.mjs', 'research-pages.mjs'):
             shutil.copyfile(ROOT / 'scripts' / name, self.base / 'scripts' / name)
+        shutil.copyfile(ROOT / 'src/data/stock_names.json', self.base / 'src/data/stock_names.json')
         self.funds = [self.fund(1, '3Y'), self.fund(2, '5Y'), self.fund(3, '1Y')]
         self.write_data()
 
@@ -81,14 +82,14 @@ class GeneratedCopyTests(unittest.TestCase):
             self.assertIn('<main>', text)
             structured = json.loads(re.search(
                 r'<script type="application/ld\+json">(.*?)</script>', text).group(1))
-            self.assertIn('description', structured)
+            self.assertIn('description', structured['@graph'][0] if '@graph' in structured else structured)
         for fund, window in zip(self.funds, ('3Y', '5Y', '1Y')):
             text = (self.base / f'dist/f/{fund["code"]}/index.html').read_text(encoding='utf-8')
-            self.assertIn(f'{window} CAGR 12.3%', text)
-            self.assertIn('Mutual fund research on FairFund.', text)
+            self.assertIn(f'{window} return 12.3% a year', text)
+            self.assertIn(f'content="Example Fund {fund["code"]} (Example AMC, Large Cap, direct plan): {window} return 12.3% a year', text)
             self.assertIn(f'#/fund/{fund["code"]}/example-fund-{fund["code"]}', text)
         category = (self.base / 'dist/c/large-cap/index.html').read_text(encoding='utf-8')
-        self.assertIn('Explore 3 Large Cap funds, their historical returns and category comparisons.', category)
+        self.assertIn('content="3 Large Cap funds (direct plans) side by side: 3-year return, category rank and expense ratio', category)
 
     def test_methodology_and_compare_explain_period_limits(self):
         result = self.run_script('gen-unfurls.mjs')
