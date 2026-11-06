@@ -112,7 +112,7 @@ def parse_universe(raw):
         line = line.strip()
         if not line:
             continue
-        if ";" not in line and not line[0].isdigit():
+        if ";" not in line:  # scheme rows always have ";"; an AMC name can start with a digit ("360 ONE")
             if "mutual fund" in line.lower():
                 current_amc = line
             else:
