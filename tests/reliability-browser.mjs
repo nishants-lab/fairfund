@@ -12,7 +12,8 @@ const HELD=[120304,120826]
 const hold=r=>{r.metrics={};r.analytics={};delete r.si;delete r.previousRankings;r.dataQuality={status:'quarantined',issues:[{reason:'unverified_nav_jump',date:'2026-01-02',previousDate:'2026-01-01',changePct:-90}]};return r}
 const server=await createServer({root,plugins:[{name:'observe-events',enforce:'pre',transform(code,id){
  const file=id.split('?')[0]
- if(file.endsWith('/src/lib/usage.ts'))return code.replace('export function trackUsageEvent(event: UsageEvent) {','export function trackUsageEvent(event: UsageEvent) { (window as any).__events ??= []; (window as any).__events.push(event);')
+ // Fail loudly if the hook stops matching; a silent miss makes the 'no events' check pass vacuously.
+ if(file.endsWith('/src/lib/usage.ts')){const re=/export function trackUsageEvent\(event: [^)]*\) \{/;if(!re.test(code))throw new Error('trackUsageEvent signature not found');return code.replace(re,m=>m+' (window as any).__events ??= []; (window as any).__events.push(event);')}
  if(file.endsWith('/src/data/funds.json')){const d=JSON.parse(code);for(const f of d.funds)if(HELD.includes(f.code))hold(f);return JSON.stringify(d)}
 }}],server:{host:'127.0.0.1',port:0}})
 let browser
