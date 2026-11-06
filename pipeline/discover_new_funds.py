@@ -69,7 +69,11 @@ def fetch_amfi_universe():
     req = urllib.request.Request(AMFI_URL, headers=H)
     with urllib.request.urlopen(req, timeout=120) as r:
         raw = r.read().decode("utf-8", errors="replace")
+    return parse_amfi_universe(raw)
 
+
+def parse_amfi_universe(raw):
+    """Direct-Growth schemes in NAVAll.txt text, keyed by code, with AMC and category."""
     schemes = {}
     current_category = None
     current_amc = None
@@ -80,7 +84,7 @@ def fetch_amfi_universe():
             continue
 
         # Category headers are standalone lines without semicolons
-        if ";" not in line and not line[0].isdigit():
+        if ";" not in line:  # scheme rows always have ";"; an AMC name can start with a digit ("360 ONE")
             # AMC lines contain "Mutual Fund" typically
             if "mutual fund" in line.lower():
                 current_amc = line
