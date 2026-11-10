@@ -10,6 +10,8 @@ This eliminates the need for a manual admin page for fund additions.
 Usage:
   python pipeline/discover_new_funds.py            # discover and add
   python pipeline/discover_new_funds.py --dry-run  # show what would be added
+  python pipeline/discover_new_funds.py --add-only # daily intake: add new funds only,
+                                                   # no lifecycle/rename changes
 """
 import os
 import json
@@ -23,6 +25,7 @@ ROOT = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(ROOT, "scripts"))
 from nav_corrections import correct_history  # noqa: E402
+from market_date import is_usable_nav_date  # noqa: E402
 
 from config import (
     ELIGIBLE_AMFI_CATEGORIES as ELIGIBLE_CATEGORIES,
@@ -44,6 +47,15 @@ FUNDS_JSON = os.path.join(ROOT, "src", "data", "funds.json")
 NAV_DIR = os.path.join(ROOT, "public", "nav")
 
 H = {"User-Agent": "Mozilla/5.0"}
+
+# The daily refresh admits new funds without review, so a run that suddenly sees
+# many "new" schemes (an AMFI format change, a mass re-coding) adds none and
+# leaves them to the monthly reviewed run (discover-funds.yml opens a PR).
+MAX_DAILY_ADDS = 15
+
+# Plan/option text of AMFI rows that hold unclaimed investor money, not a
+# purchasable plan ("Unclaimed Dividend-Growth Option", "... I.E.F - Growth Plan").
+_JUNK_OPTION_KEYWORDS = ("unclaimed", "investor education", "i.e.f", "segregated")
 
 _NAME_SUFFIXES = [
     " - Direct Plan - Growth", " - Direct Plan-Growth",
@@ -110,21 +122,62 @@ def parse_amfi_universe(raw):
             option = parts[5].strip().lower()
             if "direct" not in plan or "growth" not in option:
                 continue
+            if any(k in option for k in _JUNK_OPTION_KEYWORDS):
+                continue
+            nav_text, date_text = parts[6], parts[7]
         else:
             name_lower = name.lower()
             if "direct" not in name_lower:
                 continue
             if "growth" not in name_lower:
                 continue
+            nav_text, date_text = parts[4], parts[5]
 
         schemes[int(code)] = {
             "code": int(code),
             "name": name,
             "amc": current_amc or "",
             "amfi_category": current_category or "",
+            # Today's AMFI price: the first NAV of a fund mfapi has not indexed yet.
+            "nav": _parse_nav(nav_text),
+            "nav_date": _parse_amfi_date(date_text),
         }
 
     return schemes
+
+
+def _parse_nav(text):
+    try:
+        value = round(float(text.strip()), 4)
+    except (ValueError, AttributeError):
+        return None
+    return value if value > 0 else None
+
+
+def _parse_amfi_date(text):
+    try:
+        return datetime.strptime(text.strip(), "%d-%b-%Y").strftime("%Y-%m-%d")
+    except (ValueError, AttributeError):
+        return None
+
+
+def nav_history_with_amfi(scheme, fetch=None):
+    """NAV history for a candidate fund: mfapi's full history, completed with
+    today's AMFI price. mfapi indexes a new scheme a day or more after AMFI first
+    prices it, so a fund that started trading this week used to be skipped as
+    "fetch failed" and wait a month. AMFI's own NAV is enough to admit it; the
+    daily refresh appends every later NAV."""
+    dates, navs = (fetch or fetch_nav_history)(scheme["code"])
+    # One point per usable day, oldest first: mfapi can repeat a day or carry a
+    # future-dated point, which would defeat the staleness check and be stored.
+    series = {d: v for d, v in zip(dates or [], navs or []) if is_usable_nav_date(d) and v}
+    day, nav = scheme.get("nav_date"), scheme.get("nav")
+    if day and nav and is_usable_nav_date(day) and (not series or day > max(series)):
+        series[day] = nav
+    if not series:
+        return None, None
+    ordered = sorted(series)
+    return ordered, [series[d] for d in ordered]
 
 
 def fetch_amfi_raw_codes():
@@ -419,6 +472,9 @@ def main_with_lifecycle():
     """Extended main that also detects closed/merged/renamed funds."""
     dry_run = "--dry-run" in sys.argv
     lifecycle_only = "--lifecycle-only" in sys.argv
+    # Daily intake: only add funds that started trading. Closures and renames stay
+    # with the monthly reviewed run, so a daily run never edits existing funds.
+    add_only = "--add-only" in sys.argv
 
     if not os.path.exists(FUNDS_JSON):
         print(f"ERROR: {FUNDS_JSON} not found")
@@ -431,12 +487,15 @@ def main_with_lifecycle():
     print("Fetching AMFI universe...")
     amfi_schemes = fetch_amfi_universe()
     print(f"AMFI Direct-Growth schemes: {len(amfi_schemes)}")
-    raw_codes = fetch_amfi_raw_codes()
-    print(f"AMFI raw NAVAll codes (all plans): {len(raw_codes)}")
-
-    # === Lifecycle detection (closed/renamed/stale) ===
-    print("\n--- Lifecycle Detection ---")
-    findings = detect_stale_merged_closed(data, amfi_schemes, raw_codes)
+    if add_only:
+        findings = {}
+        print("\n--add-only: lifecycle detection skipped (monthly run handles it)")
+    else:
+        raw_codes = fetch_amfi_raw_codes()
+        print(f"AMFI raw NAVAll codes (all plans): {len(raw_codes)}")
+        # === Lifecycle detection (closed/renamed/stale) ===
+        print("\n--- Lifecycle Detection ---")
+        findings = detect_stale_merged_closed(data, amfi_schemes, raw_codes)
 
     closed = [f for f in findings.values() if f["status"] == "closed"]
     renamed = [f for f in findings.values() if f["status"] == "renamed"]
@@ -462,13 +521,13 @@ def main_with_lifecycle():
             if len(stale) > 10:
                 print(f"    ... and {len(stale)-10} more")
 
-    else:
+    elif not add_only:
         print("  No lifecycle changes detected.")
 
     # Always (re)write the lifecycle report so a month with nothing to flag resets
     # it to {} rather than leaving a stale report from a previous run.
     report_path = os.path.join(ROOT, "src", "data", "lifecycle_report.json")
-    if not dry_run:
+    if not dry_run and not add_only:
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(findings, f, indent=2, ensure_ascii=False)
         print(f"\n  Wrote lifecycle report ({len(findings)} findings): {report_path}")
@@ -477,7 +536,7 @@ def main_with_lifecycle():
     # every other fund is (re)set to "active" so a previously mis-flagged fund that
     # is now clearly alive has its stale tag cleared automatically.
     status_changed = False
-    if not dry_run:
+    if not dry_run and not add_only:
         for fund in data["funds"]:
             code = fund["code"]
             new_status = findings[code]["status"] if code in findings else "active"
@@ -521,6 +580,8 @@ def main_with_lifecycle():
 
     if not equity_new and not findings:
         print("No changes needed.")
+        print("  Added: 0")
+        _report_added(0)
         return
 
     # Fetch NAV for new funds and add them
@@ -533,9 +594,11 @@ def main_with_lifecycle():
     stale_before = (datetime.now() - timedelta(days=STALE_NAV_DAYS)).strftime("%Y-%m-%d")
     seen_namecat = {(_clean_scheme_name(f["name"]).lower(), f["category"]) for f in data["funds"]}
 
+    accepted = []
     for i, scheme in enumerate(equity_new):
         code = scheme["code"]
-        dates, navs = fetch_nav_history(code)
+        dates, navs = nav_history_with_amfi(scheme)
+        time.sleep(0.3)  # throttle mfapi requests
 
         if not dates:
             skipped_fetch += 1
@@ -558,6 +621,17 @@ def main_with_lifecycle():
             continue
         seen_namecat.add(_key)
 
+        accepted.append((scheme, cat, dates, navs))
+
+    skipped_cap = 0
+    if add_only and len(accepted) > MAX_DAILY_ADDS:
+        skipped_cap = len(accepted)
+        print(f"\nWARNING: {len(accepted)} new funds exceed the daily cap of {MAX_DAILY_ADDS}; "
+              "adding none. The monthly discovery run (reviewed PR) will take them.")
+        accepted = []
+
+    for scheme, cat, dates, navs in accepted:
+        code = scheme["code"]
         if dry_run:
             print(f"  Would add: {scheme['name'][:50]} ({cat}, {len(dates)} points)")
             added += 1
@@ -566,6 +640,7 @@ def main_with_lifecycle():
         nav_file = {"d": dates, "v": navs, "u": dates[-1]}
         with open(os.path.join(NAV_DIR, f"{code}.json"), "w") as f:
             json.dump(nav_file, f, separators=(",", ":"))
+        print(f"  Adding: {code} {scheme['name'][:60]} ({cat}, {len(dates)} NAV points, first {dates[0]})")
 
         clean_name = scheme["name"]
         for suffix in [" - Direct Plan - Growth", " - Direct Plan-Growth",
@@ -601,10 +676,6 @@ def main_with_lifecycle():
         data["funds"].append(fund_entry)
         added += 1
 
-        if (i + 1) % 20 == 0:
-            print(f"  Progress: {i+1}/{len(equity_new)} | added={added}")
-        time.sleep(0.3)
-
     # totalFunds = the served universe (all funds present, including closed-but-retained
     # ones that still carry NAV history). prune_pending later recomputes this over the
     # post-prune keep set, so keep the same "all present funds" semantics here.
@@ -616,8 +687,11 @@ def main_with_lifecycle():
     print(f"  Skipped (stale/wound-up): {skipped_stale}")
     print(f"  Skipped (duplicate name+category): {skipped_dup}")
     print(f"  Skipped (fetch failed): {skipped_fetch}")
+    if skipped_cap:
+        print(f"  Skipped (over daily cap): {skipped_cap}")
     if findings:
         print(f"  Lifecycle changes: {len(findings)}")
+    _report_added(0 if dry_run else added)
 
     if dry_run:
         print("\n--dry-run: no files written.")
@@ -631,8 +705,17 @@ def main_with_lifecycle():
             print("Run compute_metrics.py + compute_rankings.py next to rank the new funds.")
 
 
+def _report_added(n):
+    """Expose the count to GitHub Actions (steps.<id>.outputs.added)."""
+    out = os.environ.get("GITHUB_OUTPUT")
+    if out:
+        with open(out, "a", encoding="utf-8") as fh:
+            fh.write(f"added={n}\n")
+
+
 if __name__ == "__main__":
-    if "--lifecycle-only" in sys.argv or len(sys.argv) <= 1 or "--dry-run" in sys.argv:
+    if ("--lifecycle-only" in sys.argv or len(sys.argv) <= 1 or "--dry-run" in sys.argv
+            or "--add-only" in sys.argv):
         main_with_lifecycle()
     else:
         main()
