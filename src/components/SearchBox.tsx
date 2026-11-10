@@ -192,7 +192,10 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
             'data-idx': idx,
             tabIndex: -1,
             onMouseDown: (event: React.MouseEvent) => event.preventDefault(),
-            onMouseEnter: () => setActiveIdx(idx),
+            // Movement, not entry: a list that opens under a resting cursor fires
+            // mouseenter, which would move the keyboard highlight and make Enter
+            // open the option under the pointer instead of the top result.
+            onMouseMove: () => { if (idx !== activeIdx) setActiveIdx(idx) },
             onClick: () => choose(opt),
           }
           if (opt.kind === 'intent') {

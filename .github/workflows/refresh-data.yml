@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   daily-nav:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +40,51 @@ jobs:
 
       - name: Append daily NAV from AMFI
         run: python scripts/update_nav_daily.py
+
+      # New funds join the morning after their first NAV instead of waiting for
+      # the monthly discovery PR. Add-only: closures and renames stay with the
+      # monthly reviewed run (discover-funds.yml), and a day that shows more than
+      # discover_new_funds.MAX_DAILY_ADDS new funds adds none and leaves them to
+      # it. Any failure here restores the pre-intake files, so a broken intake
+      # never blocks the NAV refresh of the funds already listed. Manager data is
+      # optional (as in the monthly run): its failure only warns. The finalize
+      # sequence matches the monthly run: prune_pending gives a fund with no
+      # holdings yet its "new fund" stub and recounts categories; the next two
+      # steps rank the final cohort.
+      - name: Admit and onboard funds that started trading
+        id: intake
+        run: |
+          set -o pipefail
+          git add -A src/data/ public/nav/ public/fund-data/ public/holdings-history/ public/category-median/
+          n=0
+          if python pipeline/discover_new_funds.py --add-only | tee "$RUNNER_TEMP/intake.txt"; then
+            n=$(grep -oE 'Added: [0-9]+' "$RUNNER_TEMP/intake.txt" | tail -1 | grep -oE '[0-9]+' || echo 0)
+          else
+            n=failed
+          fi
+          if [ "$n" != "0" ] && [ "$n" != "failed" ]; then
+            {
+              python pipeline/build_matcher_universe.py &&
+              python migrations/split-analytics/split_funds.py &&
+              python scripts/onboard_new_funds.py &&
+              { python scripts/fetch_managers.py || echo "::warning::Manager fetch failed; the monthly run retries"; } &&
+              { python scripts/build_manager_signals.py || echo "::warning::Manager signals failed"; } &&
+              python scripts/enrich_fund_data.py &&
+              python pipeline/compute_metrics.py &&
+              python pipeline/compute_rankings.py &&
+              python migrations/split-analytics/split_funds.py &&
+              python scripts/prune_pending.py
+            } || n=failed
+          fi
+          if [ "$n" = "failed" ]; then
+            echo "::warning::Daily fund intake failed; restored the pre-intake data, listed funds refresh as usual"
+            git checkout -- src/data/ public/nav/ public/fund-data/ public/holdings-history/ public/category-median/
+            git clean -fdq -- src/data/ public/nav/ public/fund-data/ public/holdings-history/ public/category-median/
+            n=0
+          fi
+          git reset -q
+          echo "admitted=$n" >> "$GITHUB_OUTPUT"
+          echo "Funds admitted today: $n" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Recompute metrics from fresh NAV
         run: python pipeline/compute_metrics.py
@@ -91,7 +136,7 @@ jobs:
         run: |
           git config user.name fairfund-bot
           git config user.email 52659071+nishants-lab@users.noreply.github.com
-          git add src/data/ public/nav/ public/fund-data/ public/category-median/
+          git add src/data/ public/nav/ public/fund-data/ public/category-median/ public/holdings-history/
           if git diff --staged --quiet; then
             echo "No data changes"
           else
@@ -113,7 +158,7 @@ jobs:
 
   deploy-pages:
     needs: daily-nav
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -123,7 +168,7 @@ jobs:
 
   monthly-holdings:
     if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 120
     needs: daily-nav
     steps:

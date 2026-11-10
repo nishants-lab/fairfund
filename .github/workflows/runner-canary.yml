@@ -1,7 +1,8 @@
 name: Runner canary (newest Ubuntu)
 
-# Every other workflow pins ubuntu-24.04, because the jump of ubuntu-latest to
-# 26.04 broke Playwright's Chromium install and the daily refresh with it.
+# Every other workflow pins an Ubuntu version (ubuntu-26.04 since 2026-11-10;
+# the earlier jump of ubuntu-latest to 26.04 broke Playwright 1.60's Chromium
+# install and the daily refresh with it, fixed by Playwright 1.65, issue #19).
 # This job runs the full release gate on ubuntu-latest once a week, so the next
 # image move shows up here, as an open issue, before the pin has to change.
 # It publishes nothing and commits nothing.
@@ -41,7 +42,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title="Runner canary failed on ubuntu-latest"
-          body="The weekly release gate failed on ${OS_LABEL:-ubuntu-latest}. Pinned workflows (ubuntu-24.04) are not affected yet; check this run before moving the pin: $RUN_URL"
+          body="The weekly release gate failed on ${OS_LABEL:-ubuntu-latest}. Pinned workflows (ubuntu-26.04) are not affected yet; check this run before moving the pin: $RUN_URL"
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
           if [ -n "$num" ]; then gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
           else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi

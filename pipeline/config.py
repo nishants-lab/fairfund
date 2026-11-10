@@ -298,6 +298,26 @@ def map_amfi_category(amfi_cat, name=None):
         return None
     low = amfi_cat.lower()
 
+    # The asset class in AMFI's header decides scope before any keyword does.
+    # "Income/Debt Oriented Schemes - Sectoral Fund" (SEBI's sectoral debt funds)
+    # would otherwise reach Sectoral/Thematic through the "sectoral" fallback, and
+    # "Index Funds - Debt Funds" / "Index Funds - Hybrid Fund" through "index".
+    # Debt headers admit only Liquid and Money Market, hybrid headers only
+    # Arbitrage, and closed-ended or interval schemes nothing.
+    if "close ended" in low or "interval fund" in low:
+        return None
+    if "debt" in low or "income" in low:
+        allowed = {"Liquid", "Money Market"}
+    elif "hybrid" in low:
+        allowed = {"Arbitrage"}
+    else:
+        allowed = None
+    if allowed is not None:
+        for key in sorted(AMFI_TO_FAIRFUND_CATEGORY, key=len, reverse=True):
+            if key.lower() in low and AMFI_TO_FAIRFUND_CATEGORY[key] in allowed:
+                return AMFI_TO_FAIRFUND_CATEGORY[key]
+        return None
+
     # Direct mapping, longest key first. Keys overlap ("Mid Cap Fund" is a
     # substring of "Large & Mid Cap Fund"), so a shorter key must never be
     # tried before a longer one that contains it.

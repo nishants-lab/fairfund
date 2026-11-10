@@ -58,7 +58,7 @@ class WorkflowIdentityTests(unittest.TestCase):
                         'deploy is dispatched after the analytics commit is pushed')
 
     def test_only_the_canary_runs_on_the_moving_ubuntu_image(self):
-        # ubuntu-latest moving to 26.04 broke the daily refresh; everything that
+        # ubuntu-latest moving to 26.04 broke the daily refresh (Playwright 1.60); everything that
         # publishes stays pinned, and one read-only canary watches the new image.
         for wf in WORKFLOWS:
             text = wf.read_text(encoding='utf-8')
@@ -71,7 +71,7 @@ class WorkflowIdentityTests(unittest.TestCase):
                 self.assertNotRegex(text, r'git push|git commit|deploy-pages|upload-pages-artifact|contents:\s*write')
                 self.assertIn('npm run test:browser:built', text)
             else:
-                self.assertEqual(set(runners), {'ubuntu-24.04'}, wf.name)
+                self.assertEqual(set(runners), {'ubuntu-26.04'}, wf.name)
 
 
 if __name__ == '__main__':

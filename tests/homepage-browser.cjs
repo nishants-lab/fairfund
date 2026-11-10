@@ -87,15 +87,16 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    assert.equal(await search.getAttribute('placeholder'),'Fund name, AMC or category');
    const inputBox=await search.boundingBox();
    assert(inputBox.y+inputBox.height<height,`${name}: search above fold`);
-   // Park the pointer: Chromium fires mouseenter on options that open under a resting cursor, which would move the keyboard highlight.
-   await page.mouse.move(0,0);
    await search.fill('Parag Parikh Flexi Cap');
    const option=page.getByRole('option',{name:/Parag Parikh Flexi Cap Fund/}).first();
    await option.waitFor();
    const panel=await page.getByRole('listbox').boundingBox();
    assert(panel.x>=0 && panel.x+panel.width<=width,`${name}: search dropdown outside viewport`);
+   // A resting mouse over where the second result reopens must not steal Enter from the top result.
+   const second=await page.getByRole('option').nth(1).boundingBox();
    await search.press('Escape');
    assert.equal(await search.getAttribute('aria-expanded'),'false');
+   await page.mouse.move(second.x+second.width/2,second.y+second.height/2);
    await search.press('ArrowDown');
    assert.equal(await search.getAttribute('aria-expanded'),'true');
    await search.press('Home');
