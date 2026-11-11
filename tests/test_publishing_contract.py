@@ -117,8 +117,42 @@ class PublishingContractTests(unittest.TestCase):
         action = (ROOT / '.github/actions/validate/action.yml').read_text(encoding='utf-8')
         for command in ('actions/setup-node@v4', 'actions/setup-python@v5',
                         'python -m pip install -r pipeline/requirements.txt',
-                        'npm ci', 'playwright install --with-deps chromium', 'npm run check:release'):
+                        'npm ci', 'bash scripts/ci/install-browser.sh', 'npm run check:release'):
             self.assertIn(command, action)
+        self.assertLess(action.index('npm ci'), action.index('scripts/ci/install-browser.sh'))
+        self.assertLess(action.index('scripts/ci/install-browser.sh'), action.index('npm run check:release'))
+        # --with-deps fails the whole gate when Ubuntu's archive is unreachable (2026-11-11).
+        self.assertNotIn('--with-deps', action)
+
+    def test_browser_install_survives_an_unreachable_package_archive(self):
+        script = (ROOT / 'scripts/ci/install-browser.sh').read_text(encoding='utf-8')
+        self.assertTrue(script.startswith('#!/usr/bin/env bash'))
+        code = '\n'.join(l for l in script.splitlines() if not l.lstrip().startswith('#'))
+        self.assertNotIn('--with-deps', code)
+        self.assertNotIn('set -e', script.replace('set -uo pipefail', ''))
+        # Browser download is retried and a failure there still fails the gate.
+        self.assertIn('retry npx playwright install chromium || {', script)
+        download = script.index('retry npx playwright install chromium')
+        self.assertIn('exit 1', script[download:download + 200])
+        # System packages: normal archive first, a second mirror on failure.
+        self.assertIn('npx playwright install-deps chromium', script)
+        self.assertIn('http://mirrors.edge.kernel.org/ubuntu/', script)
+        self.assertIn('getent hosts', script)
+        self.assertIn('timeout --kill-after', script)
+        flow = script[download:]
+        self.assertLess(flow.index('install_deps'), flow.index('use_fallback_mirror\n  install_deps'))
+        # The gate continues without packages only once Chromium has rendered a page,
+        # and fails when it cannot.
+        self.assertIn('await page.screenshot()', script)
+        self.assertIn('if chromium_renders; then', flow)
+        self.assertTrue(flow.rstrip().endswith('exit 1'))
+        self.assertEqual(flow.count('exit 0'), 1)
+        self.assertLess(flow.index('if chromium_renders; then'), flow.index('exit 0'))
+
+    def test_every_workflow_installs_browsers_through_the_resilient_script(self):
+        for path in sorted(WORKFLOWS.glob('*.yml')):
+            text = path.read_text(encoding='utf-8')
+            self.assertNotIn('--with-deps', text, path.name)
 
     def test_browser_gate_includes_all_supported_journeys(self):
         runner = (ROOT / 'tests/run-browser-regressions.mjs').read_text(encoding='utf-8')
