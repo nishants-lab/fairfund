@@ -87,6 +87,32 @@ class PublishingContractTests(unittest.TestCase):
         self.assertLess(body.index('scripts/enrich_fund_data.py'), body.index('pipeline/compute_metrics.py'))
         self.assertLess(body.index('scripts/build_manager_signals.py'), body.index('pipeline/compute_rankings.py'))
 
+    def test_monthly_holdings_are_published_in_the_same_run(self):
+        # A push made with GITHUB_TOKEN does not start deploy.yml, so without its own
+        # deploy the monthly holdings went live only with the next daily refresh.
+        text = (WORKFLOWS / 'refresh-data.yml').read_text(encoding='utf-8')
+        jobs = re.split(r'^  ([a-zA-Z0-9_-]+):\s*$', text.split('jobs:', 1)[1], flags=re.M)
+        bodies = {jobs[i]: jobs[i + 1] for i in range(1, len(jobs), 2)}
+        monthly = bodies['monthly-holdings']
+        self.assertIn('changed: ${{ steps.commit-holdings.outputs.changed }}', monthly)
+        self.assertIn('id: commit-holdings', monthly)
+        push = monthly.index('git push')
+        self.assertLess(push, monthly.index('echo "changed=true" >> "$GITHUB_OUTPUT"'))
+        build = monthly.index('npm run build')
+        upload = monthly.index('actions/upload-pages-artifact@')
+        self.assertLess(push, build)
+        self.assertLess(build, upload)
+        self.assertIn('name: github-pages-holdings', monthly[upload:])
+        # Artifact names must be unique within a run; the daily job uses the default.
+        self.assertNotIn('github-pages-holdings', bodies['daily-nav'])
+        deploy = bodies['deploy-holdings']
+        self.assertRegex(deploy, r'needs:\s*\[deploy-pages, monthly-holdings\]')
+        self.assertIn("needs.monthly-holdings.outputs.changed == 'true'", deploy)
+        self.assertIn("needs.monthly-holdings.result == 'success'", deploy)
+        self.assertIn('actions/deploy-pages@v4', deploy)
+        self.assertIn('artifact_name: github-pages-holdings', deploy)
+        self.assertIn('name: github-pages', deploy)
+
     def test_common_action_runs_the_release_gate(self):
         action = (ROOT / '.github/actions/validate/action.yml').read_text(encoding='utf-8')
         for command in ('actions/setup-node@v4', 'actions/setup-python@v5',
