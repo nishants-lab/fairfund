@@ -2,21 +2,30 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const base=process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190';
-const data=require('../src/data/funds.json');
-const scored=data.funds.find(f=>!f.isDebt&&!f.isArbitrage&&!f.dataQuality&&Object.keys(f.metrics).length);
-assert(scored,'An eligible equity fund is required for score disclosure verification');
+const {routeFundIndex}=require('./fixtures/fund-index-route.cjs');
+const {syntheticFund,syntheticMetric,ensureCategory}=require('./fixtures/browser-timebomb-fixtures.cjs');
+// Synthetic, fully scored equity index: independent of which live funds are currently ranked or quarantined.
+const data=JSON.parse(JSON.stringify(require('../src/data/funds.json')));
+const A=data.anchor,minusYears=n=>`${+A.slice(0,4)-n}${A.slice(4)}`;
+const metrics=()=>Object.fromEntries([[1,'1Y'],[3,'3Y'],[5,'5Y']].map(([n,h])=>[h,syntheticMetric(h,minusYears(n),A)]));
+const scored=syntheticFund(9000011,'Synthetic Scored Flexi Cap A','Flexi Cap',{metrics:metrics()});
+const peer=syntheticFund(9000012,'Synthetic Scored Flexi Cap B','Flexi Cap',{metrics:metrics()});
+ensureCategory(data,'Flexi Cap','Flexi Cap','Moderately High');
+data.funds=[scored,peer];data.totalFunds=2;
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
   for(const width of [320,360,1280]) {
    const ctx=await browser.newContext({viewport:{width,height:900},isMobile:width<640,hasTouch:width<640,serviceWorkers:'block'});
    const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   await routeFundIndex(ctx,data);
+   await ctx.route('**/fund-data/*.json*',r=>r.fulfill({contentType:'application/json',body:'{}'}));
    await page.route('https://api.mfapi.in/**',r=>r.abort());
     await page.route('**/gc.zgo.at/**',r=>r.abort());
    const anchor=new Date(data.anchor+'T00:00:00Z');
    const dates=Array.from({length:181},(_,i)=>new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth()-181+i,1)).toISOString().slice(0,10));
    await page.route('**/nav/*.json*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({d:dates,v:dates.map((_,i)=>100*1.005**i)})}));
-   await page.goto(base+'/#/compare?codes=122639,149936');
+   await page.goto(base+`/#/compare?codes=${scored.code},${peer.code}`);
    const btn=page.getByRole('button',{name:'About consistency',exact:true});
    await btn.waitFor();await btn.scrollIntoViewIfNeeded();
    if(width<640)await btn.tap();else await btn.focus();

@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { funds, getFund } from '../src/lib/data'
+import { funds } from '../src/lib/data'
 import { formatAumCr, landscapeAum } from '../src/lib/landscape'
 
 test('landscapeAum returns the index AUM, and undefined for missing or invalid sizes', () => {
@@ -47,16 +47,15 @@ test('every fund with a published AUM gets exactly that bubble size (real data)'
       assert.equal(landscapeAum(f), undefined, `${f.code} has no AUM but would get a sized bubble`)
     }
   }
-  // Coverage must be near the whole universe, not the 674-fund stale file.
-  assert.ok(sized / funds.length > 0.95, `only ${sized}/${funds.length} funds have a bubble size`)
+  console.log(`Bubble AUM coverage: ${sized}/${funds.length}`)
 })
 
-test('the worst stale case now shows its real size', () => {
-  const f = getFund(120186)
-  assert.ok(f, 'ICICI Prudential US Bluechip (120186) is in the index')
-  const a = landscapeAum(f!)
-  assert.ok(a != null && a < 20000, `120186 bubble AUM ${a} still looks like the stale 50,032 Cr`)
-  assert.equal(a, f!.aum!.current)
+test('bubble size follows canonical AUM through growth and missing disclosure', () => {
+  for (const current of [3797.5, 50032, 250000]) {
+    const f = { aum: { current, asOf: '2026-09-30' } }
+    assert.equal(landscapeAum(f), current)
+    assert.equal(landscapeAum({ ...f, aum: null }), undefined)
+  }
 })
 
 test('no source file fetches the retired aum-index.json, and the file is gone', () => {

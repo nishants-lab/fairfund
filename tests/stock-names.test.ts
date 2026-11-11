@@ -5,6 +5,7 @@ import { funds } from '../src/lib/data'
 import { buildContext, type MoversData } from '../src/lib/moversData'
 import { parseQuery } from '../src/lib/moversQuery'
 import movers from '../src/data/movers.json'
+import stockNames from '../src/data/stock_names.json'
 
 test('holding keys resolve renames and curated spellings', () => {
   assert.equal(displayStockName('zomato-ltd', 'Zomato Ltd'), 'Eternal Ltd')
@@ -31,25 +32,29 @@ test('raw-name detection and slugs match the static pages', () => {
   assert.equal(stockSlug('Aadhar Housing Finance Ltd'), 'aadhar-housing-finance-ltd')
 })
 
-test('the movers question box finds a stock by its shown name and by its old name', () => {
-  const ctx = buildContext(funds, movers as unknown as MoversData)
-  const stockOf = (q: string) => parseQuery(q, ctx).state.stock
-  const keyOf = (name: string) => ctx.stocks.find(s => s.name === name)?.key
-  let checked = 0
-  for (const [q, name] of [
-    ['who bought piramal finance', 'Piramal Finance Ltd'],
-    ['who bought dewan housing finance', 'Piramal Finance Ltd'],
-    ['who bought aadhar housing finance', 'Aadhar Housing Finance Ltd'],
-    ['who bought shriram finance', 'Shriram Finance Ltd'],
-    ['who bought eternal', 'Eternal Ltd'],
-    ['who bought zomato', 'Eternal Ltd'],
-  ] as const) {
-    const key = keyOf(name)
-    if (!key) continue // not in this month's stock list
-    assert.equal(stockOf(q), key, q)
-    checked++
+test('the movers question box finds current and former names even when monthly stocks rotate out', () => {
+  const synthetic: MoversData = {
+    generatedAt: '2026-10-01', refMonth: '2026-09', windows: [1], stockWindows: [1], funds: {}, mgrLog: [],
+    stocks: [...Object.entries(stockNames.renames).map(([key, value]): [string, string, string] => [key, value.formerly, 'Financial']),
+      ['piramal-pharma-ltd', 'Piramal Pharma Ltd', 'Healthcare']],
   }
-  assert.ok(checked >= 4, `only ${checked} renamed stocks in the movers list`)
-  const pharma = ctx.stocks.find(s => /piramal pharma/i.test(s.name))?.key
-  if (pharma && keyOf('Piramal Finance Ltd')) assert.notEqual(stockOf('who bought piramal finance'), pharma)
+  for (const data of [movers as unknown as MoversData, synthetic, { ...synthetic, stocks: [] }]) {
+    const ctx = buildContext(funds, data)
+    let checked = 0
+    for (const stock of ctx.stocks) {
+      const former = formerStockName(stock.key, stock.name)
+      if (!former) continue
+      for (const name of [stock.name, former]) {
+        assert.equal(parseQuery(`who bought ${name}`, ctx).state.stock, stock.key, name)
+      }
+      checked++
+    }
+    if (data === synthetic) {
+      assert.equal(checked, Object.keys(stockNames.renames).length)
+      for (const name of ['piramal finance', 'dewan housing finance']) {
+        assert.equal(parseQuery(`who bought ${name}`, ctx).state.stock, 'dewan-housing-finance-corporation-ltd')
+      }
+    }
+    console.log(`Renamed stock lookup: ${checked}/${ctx.stocks.length}`)
+  }
 })

@@ -10,6 +10,20 @@ const path = require('node:path');
 const base = process.env.FF_TEST_BASE_URL || 'http://127.0.0.1:4190';
 const capture = process.env.FF_SCREENSHOT_DIR;
 const data = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/data/funds.json'), 'utf8'));
+const {routeFundIndex}=require('./fixtures/fund-index-route.cjs');
+const {syntheticFund,syntheticMetric,ensureCategory}=require('./fixtures/browser-timebomb-fixtures.cjs');
+const fixtureFunds=[
+ syntheticFund(9100001,'Zyxel Small Cap Fund','Small Cap'),
+ syntheticFund(9100002,'Zyxel Small Cap Opportunities Fund','Small Cap'),
+ syntheticFund(9100003,'Quorvex Flexi Cap Fund','Flexi Cap'),
+].map((f,i)=>({...f,metrics:{'1Y':syntheticMetric('1Y','2025-01-02','2026-01-02'), '3Y':syntheticMetric('3Y','2023-01-02','2026-01-02',{cagr:10+i,catRank:i+1})},analytics:{battingAverage:{pct:70,n:42,windowM:36,limited:false}}}));
+if(process.env.FF_TEST_DATA_CHURN==='1')data.funds=data.funds.filter(f=>f.code!==122639).map(f=>({...f,metrics:{},analytics:{}}));
+data.funds=[...data.funds.filter(f=>!fixtureFunds.some(x=>x.code===f.code)),...fixtureFunds];
+for(const category of ['Small Cap','Flexi Cap'])ensureCategory(data,category,category,'High',{fundCount:data.funds.filter(f=>f.category===category).length});
+data.totalFunds=data.funds.length;
+const pool=data.funds.filter(f=>!f.isYoung&&!f.isDebt&&!f.isArbitrage&&Number.isFinite(f.metrics['3Y']?.cagr));
+const factCount=Number(Object.keys(data.categories).some(c=>pool.filter(f=>f.category===c).length>=2))+Number(pool.some(f=>{const b=f.analytics?.battingAverage;return b&&Number.isFinite(b.pct)&&b.pct>=0&&b.pct<=100&&Number.isInteger(b.n)&&b.n>0&&b.windowM===36}));
+
 // Selection correctness is covered by independent synthetic unit fixtures.
 // Browser integration must follow the current dataset, including changed winners.
 const { buildSync } = require('esbuild');
@@ -31,6 +45,7 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
   const errors=[];
   for (const [name,width,height,theme] of [['desktop',1440,1024,'light'],['mobile',360,800,'light'],['narrow',320,760,'light'],['tablet',768,1024,'light'],['dark',1440,1024,'dark']]) {
    const context=await browser.newContext({viewport:{width,height},colorScheme:theme,reducedMotion:'reduce',serviceWorkers:'block'});
+   await routeFundIndex(context,data);
    await context.route('https://api.mfapi.in/**',r=>r.abort());
    await context.route('**/gc.zgo.at/**',r=>r.abort());
    const page=await context.newPage();
@@ -70,9 +85,9 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
    if(capture){fs.mkdirSync(capture,{recursive:true});}
    if(capture)await page.locator('[aria-labelledby="categories-title"]').screenshot({path:path.join(capture,`category-badges-${name}.png`)});
-   assert.equal(await page.getByRole('article',{name:'Fund spotlight'}).count(),1);
+   assert.equal(await page.getByRole('article',{name:'Fund spotlight'}).count(),Number(pool.length>0));
    const facts=page.locator('[aria-label="Research facts"] > article');
-   assert.equal(await facts.count(),2);
+   assert.equal(await facts.count(),factCount);
    assert.doesNotMatch(text,/The periods overlap|These periods overlap|analysis coverage|year-labelled/);
    assert.equal(await page.locator('a button').count(),0,'tooltip controls must not nest inside links');
    // The static research hubs sit beside the app, so their links resolve against the page, not the hash route.
@@ -87,9 +102,10 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    assert.equal(await search.getAttribute('placeholder'),'Fund name, AMC or category');
    const inputBox=await search.boundingBox();
    assert(inputBox.y+inputBox.height<height,`${name}: search above fold`);
-   await search.fill('Parag Parikh Flexi Cap');
-   const option=page.getByRole('option',{name:/Parag Parikh Flexi Cap Fund/}).first();
+   await search.fill('Zyxel');
+   const option=page.getByRole('option',{name:/Zyxel Small Cap Fund/}).first();
    await option.waitFor();
+   assert.equal(await page.getByRole('option').first().innerText(),await option.innerText(),'fixture fund must rank first');
    const panel=await page.getByRole('listbox').boundingBox();
    assert(panel.x>=0 && panel.x+panel.width<=width,`${name}: search dropdown outside viewport`);
    // A resting mouse over where the second result reopens must not steal Enter from the top result.
@@ -101,8 +117,9 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    assert.equal(await search.getAttribute('aria-expanded'),'true');
    await search.press('Home');
    assert.equal(await search.evaluate(el=>el.selectionStart),0);
+   assert.equal(await page.locator('[aria-selected=true][role=option]').innerText(),await option.innerText(),'keyboard must retain top synthetic result under a resting mouse');
    await search.press('Enter');
-   await page.waitForURL(/#\/fund\/122639/);
+   await page.waitForURL(/#\/fund\/9100001/);
    await page.goto(base,{waitUntil:'networkidle'});
    const tipButton=page.getByRole('button',{name:'About spotlight consistency',exact:true});
    if(await tipButton.count()) {
@@ -126,7 +143,8 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
    console.log('PASS '+name+': responsive search, keyboard navigation and accessible tooltip');
    await context.close();
   }
-  const context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'});
+  const context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce',serviceWorkers:'block'});
+   await routeFundIndex(context,data);
   await context.route('https://api.mfapi.in/**',r=>r.abort());
   const page=await context.newPage(); page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base,{waitUntil:'networkidle'});
@@ -151,9 +169,9 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
   await page.getByRole('link',{name:/Start a comparison/}).click();
   await page.waitForURL(/#\/compare/);
   const add=page.getByRole('combobox').filter({visible:true});
-  await add.fill('Parag Parikh Flexi Cap');
-  await page.getByRole('option',{name:/Parag Parikh Flexi Cap Fund/}).first().click();
-  await page.waitForURL(/codes=122639/);
+  await add.fill('Zyxel Small Cap');
+  await page.getByRole('option',{name:/Zyxel Small Cap Fund/}).first().click();
+  await page.waitForURL(/codes=9100001/);
   await page.goto(base,{waitUntil:'networkidle'});
   await page.getByRole('link',{name:/Open portfolio review/}).click();
   await page.waitForURL(/#\/my\/portfolio/);
@@ -168,8 +186,8 @@ assert(expectedBadges.size <= Math.min(9, Math.floor(shown.length / 2)));
   await search.press('Enter');
   await page.waitForURL(/#\/explore\?cat=Small(?:%20|\+)Cap/);
   await page.goto(base,{waitUntil:'networkidle'});
-  await search.fill('compare Parag Parikh Flexi Cap and HDFC Flexi Cap');
-  await page.getByRole('option',{name:/^Compare Parag/}).waitFor();
+  await search.fill('compare Zyxel Small Cap and Quorvex Flexi Cap');
+  await page.getByRole('option',{name:/^Compare Zyxel/}).waitFor();
   await search.press('Enter');
   await page.waitForURL(/#\/compare\?codes=\d+,\d+/);
   console.log('PASS rotating edition, period/category returns, category badge, Compare onPick, portfolio landing, search intents');

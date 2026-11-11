@@ -241,12 +241,18 @@ class IndexBenchmarkTests(unittest.TestCase):
         data = json.loads((ROOT / "src" / "data" / "funds.json").read_text(encoding="utf-8"))
         self.funds = {f["code"]: f for f in data["funds"]}
 
-    def test_six_mislabels_are_corrected(self):
-        want = {118741: "NIFTY 50 Total Return Index", 118791: "BSE Sensex Total Return Index",
-                153161: "NIFTY 500 Total Return Index", 153320: "NIFTY IT Total Return Index",
-                152041: "NIFTY IT Total Return Index", 151814: "Nifty Microcap 250 Total Return Index"}
-        for code, bench in want.items():
-            self.assertEqual(self.funds[code]["benchmark"], bench, code)
+    def test_corrected_benchmarks_agree_with_synthetic_scheme_names(self):
+        cases = [
+            ("Nippon India Index Fund - Nifty 50", "NIFTY 50 Total Return Index"),
+            ("Nippon India Index Fund - BSE Sensex", "BSE Sensex Total Return Index"),
+            ("ICICI Prudential Nifty 500 Index Fund", "NIFTY 500 Total Return Index"),
+            ("SBI Nifty IT Index Fund", "NIFTY IT Total Return Index"),
+            ("Axis Nifty IT Index Fund", "NIFTY IT Total Return Index"),
+            ("Motilal Oswal Nifty Microcap 250 Index Fund", "Nifty Microcap 250 Total Return Index"),
+        ]
+        for name, benchmark in cases:
+            with self.subTest(name=name):
+                self.assertTrue(name_agrees(name, benchmark))
 
     def test_every_index_fund_name_agrees_with_its_benchmark(self):
         bad = {c for c, f in self.funds.items()

@@ -2,20 +2,62 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { chromium } from 'playwright'
 import { preview } from 'vite'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 assert.ok(existsSync(join(dist, 'index.html')), 'Run the approved full build before this built-artifact test.')
-const codes = [111549, 120503]
+const require = createRequire(import.meta.url)
+const fundData = require('../src/data/funds.json')
+const { routeFundIndex } = require('./fixtures/fund-index-route.cjs')
+const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
 const now = new Date()
 const today = now.toISOString().slice(0, 10)
-const navDates = codes.map(code => JSON.parse(readFileSync(join(dist, 'nav', `${code}.json`), 'utf8')).d.filter(date => date <= today))
-const commonStart = navDates.map(dates => dates[0]).sort().at(-1)
-const end = navDates.map(dates => dates.at(-1)).sort()[0]
-const start = new Date(Math.max(Date.parse(commonStart), Date.parse(end) - 400 * 86400000)).toISOString().slice(0, 10)
-assert.ok(start < end && end <= today, 'The built comparison fixtures need a valid overlapping NAV window.')
+const day = 86400000
+const isoDay = ms => new Date(ms).toISOString().slice(0, 10)
+const MIN_WINDOW_DAYS = 90
+/** Window shared by a set of NAV date lists, clipped to 400 days, or null when too short. */
+function commonWindow(dateLists) {
+  const lists = dateLists.map(dates => dates.filter(date => date <= today))
+  if (lists.some(dates => dates.length === 0)) return null
+  const commonStart = lists.map(dates => dates[0]).sort().at(-1)
+  const end = lists.map(dates => dates.at(-1)).sort()[0]
+  const start = isoDay(Math.max(Date.parse(commonStart), Date.parse(end) - 400 * day))
+  return end <= today && Date.parse(end) - Date.parse(start) >= MIN_WINDOW_DAYS * day ? { start, end } : null
+}
+function builtNavDates(code) {
+  const file = join(dist, 'nav', `${code}.json`)
+  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).d : null
+}
+// Live pair: two currently published, unheld funds from one category whose built NAV files
+// share a usable window, preferring the historical pair. Otherwise a synthetic pair with
+// synthetic NAV is served, so a lost scheme cannot remove the journey.
+function livePair() {
+  const usable = fundData.funds.filter(f => !f.dataQuality && builtNavDates(f.code))
+  const preferred = [111549, 120503].map(code => usable.find(f => f.code === code))
+  const pairs = preferred.every(Boolean) ? [preferred] : []
+  for (const first of usable) for (const second of usable) {
+    if (pairs.length > 20) break
+    if (first.code < second.code && first.category === second.category) pairs.push([first, second])
+  }
+  for (const pair of pairs) {
+    const window = commonWindow(pair.map(f => builtNavDates(f.code)))
+    if (window) return { codes: pair.map(f => f.code), ...window, live: true }
+  }
+  return null
+}
+const synthetic = {
+  codes: [990021, 990022],
+  start: isoDay(Date.parse(today) - 400 * day),
+  end: isoDay(Date.parse(today) - day),
+  live: false,
+}
+const fixture = (process.env.FF_FORCE_SYNTHETIC_FIXTURE ? null : livePair()) ?? synthetic
+const { codes, start, end } = fixture
+assert.ok(start < end && end <= today, 'The comparison fixtures need a valid overlapping NAV window.')
+console.log(`fixture: ${fixture.live ? 'built' : 'synthetic'} funds ${codes.join(',')} window ${start}..${end}`)
 const transactionDate = new Date(Date.parse(end) - 370 * 86400000).toISOString().slice(0, 10)
 function camsDate(iso) {
   const date = new Date(`${iso}T00:00:00Z`)
@@ -58,6 +100,14 @@ try {
       }
       return route.continue()
     })
+    if (!fixture.live) {
+      const data = { ...fundData, funds: [...fundData.funds, ...codes.map((code, i) => syntheticFund(code, `Synthetic Compare Fund ${i + 1}`, 'Synthetic Compare', { metrics: { '3Y': syntheticMetric('3Y', start, end, { catRank: i + 1, catSize: 2 }) } }))], categories: { ...fundData.categories } }
+      ensureCategory(data, 'Synthetic Compare', 'Synthetic Compare', 'Moderately High', { fundCount: 2 })
+      const dates = Array.from({ length: 460 }, (_, i) => isoDay(Date.parse(end) - (459 - i) * day))
+      await routeFundIndex(context, data)
+      await context.route('**/fund-data/*.json*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ investInfo: { exit_load: 'Nil', min_lumpsum: 100 } }) }))
+      await context.route('**/nav/*.json*', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ d: dates, v: dates.map((_, i) => 100 + i * 0.1 + Math.sin(i)) }) }))
+    }
     const page = await context.newPage()
     page.setDefaultTimeout(15_000)
     page.on('pageerror', error => errors.push(error.message))

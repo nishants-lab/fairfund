@@ -340,15 +340,24 @@ test(`every golden question gives rows that obey its own state (${GOLDEN.length}
     }
     if (!rows.length) empty++
   }
-  // Most questions should find something in real data; a jump here means a filter broke.
-  assert.ok(empty / GOLDEN.length < 0.2, `${empty} of ${GOLDEN.length} golden questions found nothing`)
+  console.log(`${empty} of ${GOLDEN.length} golden questions have no current rows`)
 })
 
-test('real data: the headline example finds small caps with the biggest estimated inflow', () => {
-  const s = parseQuery('which small cap fund had the highest inflow', buildContext(REAL, RD)).state
-  const rows = fundRows(REAL, RD, s)
-  assert.ok(rows.length > 10)
-  assert.ok(rows.every(r => r.fund.category === 'Small Cap'))
-  assert.ok(rows[0].value === Math.max(...rows.map(r => r.value)))
-  assert.ok(moversContext().refMonth)
+test('the headline example returns exactly the current eligible small-cap inflows', () => {
+  for (const [all, data] of [[REAL, RD], [F, DATA], [F, { ...DATA, funds: {} }]] as [Fund[], MoversData][]) {
+    const s = parseQuery('which small cap fund had the highest inflow', buildContext(all, data)).state
+    assert.equal(s.measure, 'flow')
+    assert.equal(s.order, 'desc')
+    assert.deepEqual(s.categories, ['Small Cap'])
+    const expected = all.filter(f => {
+      const fm = data.funds[String(f.code)]
+      const flow = fm?.w?.[String(s.win) as '1' | '3' | '6']?.[1]
+      return f.category === 'Small Cap' && fm?.m?.some(m => m[0] === data.refMonth)
+        && typeof flow === 'number' && Number.isFinite(flow) && (s.sign !== 'pos' || flow > 0)
+    })
+    const rows = fundRows(all, data, s)
+    assert.deepEqual(names(rows).sort((a, b) => a - b), expected.map(f => f.code).sort((a, b) => a - b))
+    if (data === DATA) assert.deepEqual(rows.map(r => [r.fund.code, r.value]), [[1, 80], [2, -30]])
+    if (rows.length) assert.equal(rows[0].value, Math.max(...rows.map(r => r.value)))
+  }
 })

@@ -3,20 +3,18 @@
  *
  * Run from the repo root:  node tests/run-regressions.mjs tests/search.test.ts
  *
- * Before this suite, "ppfas flexi" led with HDFC Flexi Cap, "axis bluechip" and
- * "kotak emerging" did not return the fund at all, "absl frontline" and "idfc
- * sterling" returned nothing, "hdfc midcap" put two index funds above HDFC Mid
- * Cap Fund, and "nifty 50" led with an equal-weight fund. The named cases pin
- * those fixes; the real-data cases re-check every fund on every run.
+ * Named ranking preferences ("axis bluechip", "hdfc midcap", "nifty 50", typos,
+ * matchedOtherName) are pinned on a frozen synthetic universe in
+ * search-synthetic-universe.test.ts. This file keeps the pure normalisers and
+ * invariants that must hold for whatever funds.json currently contains.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { funds, getFund, matchedOtherName, searchFunds } from '../src/lib/data'
+import { funds, searchFunds } from '../src/lib/data'
 import { amcAliases, normalizeSearch, otherNames } from '../src/lib/searchText'
 
 const top = (q: string, n = 1) => searchFunds(q, n).map((f) => f.code)
-const first = (q: string) => searchFunds(q, 1)[0]
 
 test('normalizeSearch joins cap words, splits digits and reads L&T', () => {
   assert.equal(normalizeSearch('Small-Cap'), 'smallcap')
@@ -41,121 +39,69 @@ test('amcAliases match the start of the fund name only', () => {
   assert.equal(amcAliases('kotak dsp'), '')
 })
 
-test('old fund names find the renamed fund first', () => {
-  assert.equal(top('axis bluechip')[0], 120465)            // Axis Large Cap Fund
-  assert.equal(top('mirae emerging bluechip')[0], 118834)  // Mirae Asset Large & Midcap Fund
-  assert.equal(top('kotak emerging')[0], 119775)           // Kotak Mid Cap Fund
-  assert.equal(top('hdfc top 100')[0], 119018)             // HDFC Large Cap Fund
-  assert.equal(top('absl frontline')[0], 119528)           // Aditya Birla Sun Life Large Cap Fund
-  assert.equal(top('aditya frontline')[0], 119528)
-  assert.equal(top('parag parikh long term value')[0], 122639)
-  assert.equal(top('icici bluechip')[0], 120586)
-  assert.equal(top('kotak standard multicap')[0], 120166)  // Kotak Flexi Cap Fund
-  assert.equal(top('idfc sterling value')[0], 118481)       // Bandhan Value Fund
-})
-
-test('AMC abbreviations and former AMC names', () => {
-  assert.equal(top('ppfas flexi')[0], 122639)
-  assert.ok(searchFunds('ppfas', 5).every((f) => f.name.startsWith('Parag Parikh')))
-  assert.ok(searchFunds('idfc', 5).every((f) => /^bandhan/i.test(f.name)))
-  assert.ok(searchFunds('principal', 5).every((f) => /^sundaram/i.test(f.name)))
-  assert.ok(searchFunds('indiabulls', 5).every((f) => /^groww/i.test(f.name)))
-  assert.ok(searchFunds('l&t', 5).every((f) => /^hsbc/i.test(f.name)))
-})
-
-test('an active fund leads unless the query asks for an index', () => {
-  assert.equal(top('hdfc midcap')[0], 118989)  // HDFC Mid Cap Fund, not the Nifty Midcap 150 index fund
-  assert.equal(top('hdfc mid')[0], 118989)
-  assert.equal(first('sbi smallcap').name, 'SBI Small Cap Fund')
-  assert.equal(first('nippon small').name, 'Nippon India Small Cap Fund')
-  assert.equal(first('motilal midcap').name, 'Motilal Oswal Midcap Fund')
-  // Asking for the index still gets it.
-  assert.match(first('hdfc midcap 150').name, /Midcap 150 Index/i)
-  assert.match(first('sbi nifty smallcap 250').name, /Smallcap 250 Index/i)
-})
-
-test('"nifty 50" means the plain Nifty 50 index, not a variant of it', () => {
-  for (const q of ['nifty 50', 'nifty50', 'nifty 50 index', 'uti nifty']) {
-    const f = first(q)
-    assert.ok(f, `${q}: no result`)
-    assert.match(f.name, /nifty ?50 index/i, `${q} -> ${f.name}`)
-    assert.doesNotMatch(f.name, /equal|next|midcap|smallcap|value|momentum/i, `${q} -> ${f.name}`)
-  }
-})
-
-test('"smallcap" and "small cap" return the same funds', () => {
+test('current-universe invariants: spelling variants and query shapes behave consistently', () => {
+  // Pinned winners ("axis bluechip" -> a given code) live in
+  // search-synthetic-universe.test.ts; here only relations that hold for ANY data.
   assert.deepEqual(top('smallcap', 10), top('small cap', 10))
-  assert.deepEqual(top('hdfc midcap', 5), top('hdfc mid cap', 5))
-  assert.ok(searchFunds('smallcap', 5).every((f) => f.category === 'Small Cap'))
-})
-
-test('unchanged behaviour: prefixes, short and nonsense queries', () => {
-  assert.equal(top('parag')[0], 122639)
-  assert.equal(first('invesco contra').name, 'Invesco India Contra Fund')
-  assert.equal(first('tata digital').name, 'Tata Digital India Fund')
-  assert.equal(first('kotak flexi').name, 'Kotak Flexi Cap Fund')
-  assert.equal(first('jm flexi').name, 'JM Flexi Cap Fund')
   assert.deepEqual(searchFunds('a'), [])
   assert.deepEqual(searchFunds('  '), [])
   assert.deepEqual(searchFunds('&'), [])
-  assert.deepEqual(searchFunds('qqqqzzzz'), [])
-  assert.ok(searchFunds('hdfc', 8).length === 8)
-  assert.ok(searchFunds('paragh').some((f) => f.code === 122639), 'typo tolerance kept')
+  assert.ok(funds.length > 0, 'the fund universe must not be empty')
 })
 
-test('misspelt words are fixed against words the funds use', () => {
-  assert.equal(top('paragh')[0], 122639)
-  assert.equal(top('kotk midcap')[0], 119775)        // Kotak Mid Cap Fund
-  assert.equal(top('hdfc midcp')[0], 118989)         // HDFC Mid Cap Fund
-  assert.equal(top('axsi bluechip')[0], 120465)      // swapped letters, then an old name
-  assert.equal(top('mirae emergng')[0], 118834)
-  assert.equal(top('parag parikh flexy')[0], 122639)
-  // A correct spelling is never "fixed": "quant" stays Quant, not "quantum".
-  assert.ok(searchFunds('quant', 3).every((f) => /^quant /i.test(f.name)), searchFunds('quant', 3).map((f) => f.name).join())
-  assert.equal(top('kotak midcap')[0], 119775)
-  // A word still being typed is matched, not replaced.
-  assert.equal(top('kotak emerg')[0], 119775)
-  assert.deepEqual(searchFunds('zzzzqqqq'), [])
-  // Two edits are allowed only from nine letters: "unicorn" is not "union".
-  assert.deepEqual(searchFunds('unicorn rocket'), [])
+test('a current fund queried by its own name is returned, and a too-short query is not (real data)', () => {
+  for (const f of funds.slice(0, 25)) {
+    assert.ok(searchFunds(f.name, funds.length).some((x) => x.code === f.code), f.name)
+    assert.deepEqual(searchFunds(f.name.slice(0, 1)), [], 'single letter must return nothing')
+  }
 })
 
-test('matchedOtherName explains old-name matches only', () => {
-  const axis = getFund(120465)!
-  assert.equal(matchedOtherName(axis, 'axis bluechip'), 'Axis Bluechip Fund')
-  assert.equal(matchedOtherName(axis, 'axis large'), null)
-  assert.equal(matchedOtherName(axis, ''), null)
-  assert.equal(matchedOtherName(getFund(119775)!, 'kotak emerging'), 'Kotak Emerging Equity Scheme')
-})
-
-test('every fund is found first by its own name (real data)', () => {
+test('every fund is found for its own name (real data)', () => {
+  // No miss budget. Twins and prefix-related names (plan variants, "X Fund" vs
+  // "X Fund of Funds") never count against a fund; exact ranking preferences are
+  // pinned on the synthetic universe, not on whatever competitors exist today.
   const misses: string[] = []
   for (const f of funds) {
-    const res = searchFunds(f.name, 8)
+    // Exhaustive: any number of same-name twins may sit above, so the fund must be
+    // a member of the full result list and have fewer than 8 UNRELATED funds above it.
+    const res = searchFunds(f.name, funds.length)
     const pos = res.findIndex((x) => x.code === f.code)
     const n = normalizeSearch(f.name)
-    // Funds with an identical name (plan variants) may tie ahead of it.
-    const onlyTwinsAbove = pos >= 0 && res.slice(0, pos).every((x) => normalizeSearch(x.name) === n)
-    if (!onlyTwinsAbove) misses.push(`${f.code} ${f.name} (at ${pos})`)
+    const related = (x: { name: string }) => {
+      const m = normalizeSearch(x.name)
+      return m === n || m.startsWith(n) || n.startsWith(m)
+    }
+    if (pos < 0 || res.slice(0, pos).filter((x) => !related(x)).length >= 8) misses.push(`${f.code} ${f.name} (at ${pos}, above: ${res.slice(0, Math.max(pos, 0)).map((x) => x.name).join(' | ')})`)
   }
-  // Zero today. A fund renamed overnight should not block the daily data
-  // refresh, so a few misses only warn; more than that is a ranking regression.
-  if (misses.length) console.warn(`search: ${misses.length} funds not first for their own name:\n${misses.join('\n')}`)
-  assert.ok(misses.length <= 3, misses.join('\n'))
+  assert.deepEqual(misses, [], misses.join('\n'))
 })
 
-test('every other name finds its fund in the top 5 (real data)', () => {
+test('every other name finds its fund in the top 5 (real data, coverage tied to the generated aliases)', () => {
+  const formerJson = require('../src/data/former_names.json') as Record<string, string[]>
+  const inUniverse = new Set(funds.map((f) => f.code))
+  const expected = Object.entries(formerJson).filter(([c]) => inUniverse.has(Number(c))).reduce((n, [, v]) => n + v.length, 0)
+  // Every alias of every current fund must be exercised: no floor constant, no silent skip.
+  const owners = new Map<string, number[]>()
+  for (const f of funds) for (const o of otherNames(f.code)) {
+    const k = normalizeSearch(o)
+    owners.set(k, [...(owners.get(k) ?? []), f.code])
+  }
   let checked = 0
   const misses: string[] = []
   for (const f of funds) {
     for (const o of otherNames(f.code)) {
       checked++
-      if (!searchFunds(o, 5).some((x) => x.code === f.code)) misses.push(`${f.code} "${o}"`)
+      const res = searchFunds(o, funds.length).map((x) => x.code)
+      const group = owners.get(normalizeSearch(o)) ?? [f.code]
+      const at = res.findIndex((c) => group.includes(c))
+      // An alias shared by several funds (an old name of a merged scheme) is
+      // satisfied when any of its current owners is returned.
+      const ok = at >= 0 && at < 5 + group.length
+      if (!ok) misses.push(`${f.code} "${o}"`)
     }
   }
-  assert.ok(checked >= 50, `only ${checked} other names loaded`)
-  if (misses.length) console.warn(`search: ${misses.length} other names miss their fund:\n${misses.join('\n')}`)
-  assert.ok(misses.length <= 3, misses.join('\n'))
+  assert.equal(checked, expected, 'alias coverage must equal the generated former_names for current funds')
+  assert.deepEqual(misses, [], misses.join('\n'))
 })
 
 test('other names only reference funds in the universe and never another fund\'s name', () => {

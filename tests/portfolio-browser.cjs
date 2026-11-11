@@ -25,14 +25,35 @@ const matcherMatch = matcherSource.match(/^export const MATCHER_VERSION = (\d+)\
 assert.ok(matcherMatch, 'MATCHER_VERSION must be a numeric source constant');
 const matcherVersion = Number(matcherMatch[1]);
 
-// Three funds that exist in the bundled index, so every row is "covered" and the
-// holdings table renders it.
-const DATED_CODE = 122639;        // dated statement, complete history: a number
-const UNDATED_CODE = 149936;      // no statement date: the re-import prompt
-const DATED_NO_NUMBER_CODE = 125497; // dated, but the history cannot support a number
-const DATED_NAME = 'Parag Parikh Flexi Cap Fund';
-const UNDATED_NAME = 'Axis Nifty Midcap 50 Index Fund';
-const DATED_NO_NUMBER_NAME = 'SBI Small Cap Fund';
+// Three funds that exist in the index, so every row is "covered" and the holdings
+// table renders it. Display names come from the current index: the historical trio is
+// preferred, then any other live funds whose names do not contain one another (rows are
+// located by name substring). With fewer than three, a synthetic index is served instead.
+const fundData = require('../src/data/funds.json');
+const { routeFundIndex } = require('./fixtures/fund-index-route.cjs');
+const { syntheticFund, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs');
+function pickFunds() {
+  const live = fundData.funds.filter(f => !f.dataQuality && f.name);
+  const ordered = [122639, 149936, 125497].map(code => live.find(f => f.code === code)).filter(Boolean)
+    .concat(live.filter(f => ![122639, 149936, 125497].includes(f.code)));
+  const chosen = [];
+  for (const f of ordered) {
+    if (chosen.every(c => !c.name.includes(f.name) && !f.name.includes(c.name)) && live.filter(o => o.name.includes(f.name)).length === 1) chosen.push(f);
+    if (chosen.length === 3) return { funds: chosen, data: null };
+  }
+  return null;
+}
+const synthetic = [990031, 990032, 990033].map((code, i) => syntheticFund(code, ['Synthetic Dated Fund', 'Synthetic Legacy Fund', 'Synthetic Partial Fund'][i], 'Synthetic Portfolio'));
+const syntheticData = { ...fundData, funds: [...fundData.funds, ...synthetic], totalFunds: fundData.funds.length + 3, categories: { ...fundData.categories } };
+ensureCategory(syntheticData, 'Synthetic Portfolio', 'Synthetic Portfolio', 'Moderately High', { fundCount: 3 });
+const picked = (process.env.FF_FORCE_SYNTHETIC_FIXTURE ? null : pickFunds()) ?? { funds: synthetic, data: syntheticData };
+const [DATED_FUND, UNDATED_FUND, DATED_NO_NUMBER_FUND] = picked.funds;
+const DATED_CODE = DATED_FUND.code;                    // dated statement, complete history: a number
+const UNDATED_CODE = UNDATED_FUND.code;                // no statement date: the re-import prompt
+const DATED_NO_NUMBER_CODE = DATED_NO_NUMBER_FUND.code; // dated, but the history cannot support a number
+const DATED_NAME = DATED_FUND.name;
+const UNDATED_NAME = UNDATED_FUND.name;
+const DATED_NO_NUMBER_NAME = DATED_NO_NUMBER_FUND.name;
 // Fixture dates only. The valuation date is deliberately old, so a clock-dated
 // terminal flow would be visibly wrong rather than merely stale, and so a label
 // without a year would misread as this year.
@@ -88,6 +109,7 @@ async function openPortfolio(context, { clockOffsetDays = 0 } = {}) {
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  if (picked.data) await routeFundIndex(context, picked.data);
   await page.route('https://api.mfapi.in/**', route => route.abort());
   // Statement values are the source of truth for this table; no NAV history
   // keeps the 1-day column out of the assertions.
