@@ -138,6 +138,9 @@ class PublishingContractTests(unittest.TestCase):
         self.assertIn('npx playwright install-deps chromium', script)
         self.assertIn('http://mirrors.edge.kernel.org/ubuntu/', script)
         self.assertIn('getent hosts', script)
+        # The fallback replaces the mirror list; keeping dead hosts made apt time out.
+        self.assertIn("printf '%s\\tpriority:1\\n' \"$FALLBACK_MIRROR\" | sudo tee /etc/apt/apt-mirrors.txt", script)
+        self.assertNotIn('cat /etc/apt/apt-mirrors.txt', script)
         self.assertIn('timeout --kill-after', script)
         flow = script[download:]
         self.assertLess(flow.index('install_deps'), flow.index('use_fallback_mirror\n  install_deps'))

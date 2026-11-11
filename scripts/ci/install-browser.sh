@@ -37,9 +37,10 @@ use_fallback_mirror() {
   [ "$SWITCHED" = 1 ] && return 0
   SWITCHED=1
   echo "Switching apt to $FALLBACK_MIRROR"
+  # Only the fallback: apt would otherwise keep waiting on the unreachable hosts
+  # (about 20s per lookup in a real DNS outage) and run out of time.
   if [ -f /etc/apt/apt-mirrors.txt ]; then
-    { echo "$FALLBACK_MIRROR"; cat /etc/apt/apt-mirrors.txt; } > /tmp/apt-mirrors.txt
-    sudo cp /tmp/apt-mirrors.txt /etc/apt/apt-mirrors.txt
+    printf '%s\tpriority:1\n' "$FALLBACK_MIRROR" | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
   fi
   local f
   for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
