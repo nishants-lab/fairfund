@@ -31,12 +31,24 @@ jobs:
           . /etc/os-release
           echo "Runner OS: $PRETTY_NAME (image ${ImageOS:-unknown} ${ImageVersion:-unknown})"
           echo "OS_LABEL=$PRETTY_NAME" >> "$GITHUB_ENV"
+      # The canary warns about a future image through an issue; its own run stays
+      # green so a warning is never mistaken for a failed deploy.
       - name: Validate research contracts
+        id: gate
+        continue-on-error: true
         uses: ./.github/actions/validate
-      - run: npm run build
-      - run: npm run test:browser:built
+      - name: Build
+        id: build
+        if: steps.gate.outcome == 'success'
+        continue-on-error: true
+        run: npm run build
+      - name: Browser journeys on the built site
+        id: built
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: npm run test:browser:built
       - name: Open or update the canary issue
-        if: failure()
+        if: steps.gate.outcome != 'success' || steps.build.outcome != 'success' || steps.built.outcome != 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -46,3 +58,12 @@ jobs:
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
           if [ -n "$num" ]; then gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
           else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
+      - name: Close the canary issue once the newest image passes
+        if: steps.gate.outcome == 'success' && steps.build.outcome == 'success' && steps.built.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Runner canary failed on ubuntu-latest"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$num" ]; then gh issue close "$num" --repo "$GITHUB_REPOSITORY" --comment "Passed on ${OS_LABEL:-ubuntu-latest}: $RUN_URL"; fi
