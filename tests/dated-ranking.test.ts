@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import RankingPeriod, { hasDatedRanking, PreviousRankings } from '../src/components/RankingPeriod'
 import VerdictCard from '../src/components/VerdictCard'
 import { buildVerdict } from '../src/lib/verdict'
+import { funds } from '../src/lib/data'
 import type { Fund, WindowMetrics } from '../src/types'
 
 const today = new Date()
@@ -78,12 +79,16 @@ test('long-history excluded equity and debt retain factual since-launch returns 
   }
 })
 
-test('debt scored card displays persisted rank evidence and separate excluded horizon history', async () => {
-  const { funds } = await import('../src/lib/data')
-  const debt = funds.find(f => f.category === 'Liquid' && !f.dataQuality && hasDatedRanking(f.metrics['1Y']))
-  assert.ok(debt)
-  const f = { ...debt, metrics: { '1Y': debt.metrics['1Y'] }, previousRankings: { '3Y': metric } }
-  const html = renderToStaticMarkup(createElement(VerdictCard, { fund: f }))
+test('debt scored card displays persisted rank evidence and separate excluded horizon history', () => {
+  const f = fund({ isDebt: true, category: 'Liquid', categoryDisplay: 'Liquid', metrics: { '1Y': metric }, previousRankings: { '3Y': metric } })
+  const current = funds.slice()
+  let html: string
+  try {
+    funds.splice(0, funds.length, f)
+    html = renderToStaticMarkup(createElement(VerdictCard, { fund: f }))
+  } finally {
+    funds.splice(0, funds.length, ...current)
+  }
   const m = f.metrics['1Y']!
   assert.ok(html.includes(`Rank #${m.catRank} of ${m.catSize} (1Y)`))
   assert.ok(html.includes(`${m.windowStart} to ${m.windowEnd}`))

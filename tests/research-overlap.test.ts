@@ -18,7 +18,9 @@ const fund = (holdings: { key?: string; name: string; pct: number }[], coverage 
 test('overlap matches the Compare page, including repeated and unkeyed lines', () => {
   const a = fund([{ key: 'x', name: 'X', pct: 5 }, { key: 'x', name: 'X', pct: 2 }, { name: 'Cash', pct: 3 }, { key: 'y', name: 'Y', pct: 4 }])
   const b = fund([{ key: 'X', name: 'X', pct: 6 }, { key: 'x', name: 'X', pct: 9 }, { name: 'cash ', pct: 1 }, { key: 'z', name: 'Z', pct: 8 }])
-  for (const [p, q] of [[a, b], [b, a]]) {
+  for (const [p, q, expected] of [[a, b, 7], [b, a, 6]] as const) {
+    assert.equal(appUsable(p), true)
+    assert.equal(overlapPct(weightMap(p.holdings), weightMap(q.holdings)), expected)
     assert.equal(overlapPct(weightMap(p.holdings), weightMap(q.holdings)), pairOverlapPct(p, q))
   }
 })
@@ -31,9 +33,8 @@ test('usable-holdings rule matches the app', () => {
 
 test('real disclosed portfolios give the same overlap on both paths', () => {
   const codes = (JSON.parse(readFileSync('src/data/funds.json', 'utf-8')).funds as { code: number }[]).map(f => f.code)
-  const loaded = codes.map(c => join('public/fund-data', `${c}.json`)).filter(existsSync).slice(0, 80)
-    .map(p => JSON.parse(readFileSync(p, 'utf-8')) as Fund).filter(f => appUsable(f))
-  assert.ok(loaded.length > 40)
+  const loaded = codes.map(c => join('public/fund-data', `${c}.json`)).filter(existsSync)
+    .map(p => JSON.parse(readFileSync(p, 'utf-8')) as Fund).filter(f => appUsable(f)).slice(0, 80)
   let checked = 0
   for (let i = 0; i < loaded.length; i++) for (let j = 0; j < loaded.length; j++) {
     if (i === j) continue
@@ -41,5 +42,6 @@ test('real disclosed portfolios give the same overlap on both paths', () => {
     assert.ok(Math.abs(overlapPct(weightMap(loaded[i].holdings), weightMap(loaded[j].holdings)) - expected) < 1e-9)
     checked++
   }
-  assert.ok(checked > 1000)
+  assert.equal(checked, loaded.length * Math.max(0, loaded.length - 1))
+  console.log(`Overlap parity: ${loaded.length} usable portfolios, ${checked} ordered pairs`)
 })

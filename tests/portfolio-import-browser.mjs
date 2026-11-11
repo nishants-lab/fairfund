@@ -4,10 +4,28 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
+import { directCode, regularCode, mergeSynthetic } from './portfolio-import-synthetic-data.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
-const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
+// Serve the matcher universe and fund index with two synthetic schemes merged in
+// (in memory only), so the correction journey never depends on live scheme listings.
+const syntheticUniverse = {
+  name: 'portfolio-import-synthetic-universe',
+  enforce: 'pre',
+  load(id) {
+    const file = id.split('?')[0].replace(/\\/g, '/')
+    const isUniverse = file.endsWith('/src/data/matcher_universe.json')
+    const isIndex = file.endsWith('/src/data/funds.json')
+    if (!isUniverse && !isIndex) return null
+    const read = p => JSON.parse(readFileSync(resolve(root, p), 'utf8'))
+    const { universe, indexData } = mergeSynthetic(read('src/data/matcher_universe.json'), read('src/data/funds.json'))
+    return JSON.stringify(isUniverse ? universe : indexData)
+  },
+}
+const amfiButton = code => new RegExp(`AMFI ${code}(?!\\d)`)
+const server = await createServer({ root, plugins: [syntheticUniverse], server: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
 let browser
 try {
   await server.listen()
@@ -66,12 +84,12 @@ Total 10000.00 100000.00`
 
   review = await upload()
   await review.getByText('Correct scheme match', { exact: true }).click()
-  await review.getByRole('textbox', { name: `Search scheme for ${sourceName}` }).fill('100177')
-  await review.getByRole('button', { name: /AMFI 100177/ }).click()
+  await review.getByRole('textbox', { name: `Search scheme for ${sourceName}` }).fill(String(regularCode))
+  await review.getByRole('button', { name: amfiButton(regularCode) }).click()
   assert.match(await review.innerText(), /Plan mismatch/)
   await review.getByRole('checkbox').check()
-  await review.getByRole('textbox', { name: `Search scheme for ${sourceName}` }).fill('120828')
-  await review.getByRole('button', { name: /AMFI 120828/ }).click()
+  await review.getByRole('textbox', { name: `Search scheme for ${sourceName}` }).fill(String(directCode))
+  await review.getByRole('button', { name: amfiButton(directCode) }).click()
   assert.equal(await review.getByRole('checkbox').isChecked(), false, 'correction must reset approval')
   assert.equal(await storage(), original, 'correction must remain an unsaved draft')
   if(process.env.FF_SCREENSHOT_DIR){mkdirSync(process.env.FF_SCREENSHOT_DIR,{recursive:true});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:resolve(process.env.FF_SCREENSHOT_DIR,'portfolio-review-desktop.png'),fullPage:true,animations:'disabled'})}
@@ -91,8 +109,8 @@ Total 10000.00 100000.00`
   await review.getByRole('button', { name: 'Confirm and replace saved portfolio' }).click()
   await review.waitFor({ state: 'detached' })
   const saved = JSON.parse(await storage())
-  assert.equal(saved.fundSummaries[0].fundCode, 120828)
-  assert.equal(saved.transactions[0].fundCode, 120828)
+  assert.equal(saved.fundSummaries[0].fundCode, directCode)
+  assert.equal(saved.transactions[0].fundCode, directCode)
   assert.equal(saved.fundSummaries[0].marketValueDate, '2024-03-28')
   await page.getByRole('columnheader', { name: /XIRR/ }).waitFor()
   assert.equal(errors.length, 0, errors.join('\n'))

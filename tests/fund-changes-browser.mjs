@@ -9,7 +9,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
 const key = 'fairfund_fund_changes_v1'
-const code = 111549
+let code
 let browser
 try {
   await server.listen()
@@ -22,10 +22,18 @@ try {
     if (!route.request().url().startsWith(base)) return route.abort()
     return route.continue()
   })
+  await page.goto(`${base}/#/`)
+  // Any currently indexed fund with a finite canonical TER; no scheme is pinned.
+  code = await page.evaluate(async () => {
+    const { funds } = await import('/src/lib/data.ts')
+    return funds.find(f => Number.isFinite(f.expenseRatio) && !f.dataQuality)?.code ?? funds.find(f => Number.isFinite(f.expenseRatio))?.code
+  })
+  assert.ok(Number.isFinite(code), 'index needs at least one fund with a disclosed canonical TER')
   await page.addInitScript(code => {
     if (!localStorage.getItem('fairfund_wishlist')) localStorage.setItem('fairfund_wishlist', JSON.stringify([code]))
   }, code)
   await page.goto(`${base}/#/wishlist`)
+  await page.reload()
   const panel = page.getByRole('region', { name: 'Since your last review' })
   const noChanges = panel.getByText('No comparable changes recorded.', { exact: false })
   await noChanges.waitFor()

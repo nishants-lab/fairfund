@@ -3,35 +3,36 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { createServer } from 'vite'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
+const require = createRequire(import.meta.url)
+const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
+// Complete synthetic cohort: independent of which live funds are currently ranked, held or quarantined.
 const data = JSON.parse(readFileSync(resolve(root, 'src/data/funds.json'), 'utf8'))
-const eligible = data.funds.filter(f => f.category === 'Flexi Cap' && f.metrics['3Y'] && !f.dataQuality).slice(0, 3)
-assert.equal(eligible.length, 3)
-const [current, previous, held] = eligible
-const metric = { ...current.metrics['3Y'], catRank: 2, catSize: 7 }
-assert(metric.windowStart && metric.windowEnd)
+const mk = (code, name, category, extra = {}) => syntheticFund(code, name, category, { categorySize: 99, ...extra })
+const metric = { ...syntheticMetric('3Y', '2023-11-09', '2026-11-09'), catRank: 2, catSize: 7 }
 const previousMetric = { ...metric, catRank: 1 }
-for (const f of eligible) {
-  f.categorySize = 99
-  f.metrics = { '3Y': { ...metric } }
-  delete f.dataQuality
-  delete f.previousRankings
-}
-previous.metrics = {}
-previous.previousRankings = { '3Y': previousMetric }
-previous.isYoung = false
-previous.navPoints = 2500
-previous.si = { since: previousMetric.windowStart, days: 3650, totalReturn: 120, cagr: 8 }
-held.previousRankings = { '3Y': previousMetric }
-held.dataQuality = { status: 'quarantined', issues: [] }
-const debt = data.funds.find(f => f.category === 'Liquid' && f.metrics['1Y'] && f.metrics['3Y'] && !f.dataQuality)
-assert(debt)
-held.metrics['3Y'] = { ...metric, catRank: 1, alpha: 20, sharpe: 3 }
-current.metrics['3Y'] = { ...metric, alpha: -20, sharpe: -1 }
+const current = mk(9000021, 'Synthetic Ranked Flexi Cap', 'Flexi Cap', { metrics: { '3Y': { ...metric, alpha: -20, sharpe: -1 } } })
+const previous = mk(9000022, 'Synthetic Previously Ranked Flexi Cap', 'Flexi Cap', {
+  metrics: {}, previousRankings: { '3Y': previousMetric }, navPoints: 2500,
+  si: { since: previousMetric.windowStart, days: 3650, totalReturn: 120, cagr: 8 },
+})
+const held = mk(9000023, 'Synthetic Held Flexi Cap', 'Flexi Cap', {
+  metrics: { '3Y': { ...metric, catRank: 1, alpha: 20, sharpe: 3 } }, previousRankings: { '3Y': previousMetric },
+  dataQuality: { status: 'quarantined', issues: [] },
+})
+const eligible = [current, previous, held]
+const debt = mk(9000024, 'Synthetic Liquid Fund', 'Liquid', {
+  isDebt: true, riskLevel: 'Low to Moderate', sebiRisk: 'Low to Moderate',
+  metrics: { '1Y': syntheticMetric('1Y', '2025-11-10', '2026-11-10'), '3Y': syntheticMetric('3Y', '2023-11-10', '2026-11-10') },
+})
+ensureCategory(data, 'Flexi Cap', 'Flexi Cap', 'Moderately High')
+ensureCategory(data, 'Liquid', 'Liquid', 'Low to Moderate')
 data.funds = [...eligible, debt]
+data.totalFunds = data.funds.length
 const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, strictPort: true } })
 await server.listen()
 const base = `http://127.0.0.1:${server.httpServer.address().port}`

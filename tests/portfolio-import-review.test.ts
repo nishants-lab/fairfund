@@ -1,3 +1,5 @@
+import './portfolio-import-synthetic-install'
+import { directCode, regularCode } from './portfolio-import-synthetic-data.mjs'
 import test, { afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { parseCAMSText } from '../src/lib/camsParser'
@@ -6,8 +8,7 @@ import { correctPortfolioScheme, reviewPortfolioValues, reviewHoldingWarnings } 
 
 const realFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = realFetch })
-const directCode = 120828
-const regularCode = 100177
+// directCode/regularCode are synthetic schemes merged into the in-memory universe.
 const sourceName = 'Unknown Synthetic Scheme Direct Growth'
 function block(name = sourceName) {
   return `${name} - ISIN : INF000000001
@@ -18,7 +19,7 @@ Closing Unit Balance: 100.000 Total Cost Value: 10000.00`
 }
 function fixture(text = block()) { return parseCAMSText(text) }
 
-test('correction uses real universe identity and updates summaries, transactions and codes without mutating input', async () => {
+test('correction uses a synthetic universe identity and updates summaries, transactions and codes without mutating input', async () => {
   globalThis.fetch = (() => Promise.resolve({ ok: false })) as never
   const parsed = fixture()
   assert.equal(parsed.fundSummaries[0].fundCode, 0)

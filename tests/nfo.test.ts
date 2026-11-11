@@ -5,6 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
+import type { Fund } from '../src/types'
 import { funds, getFund } from '../src/lib/data'
 import {
   availableFrom, categoryContext, groupNfos, isListed, nameAgreesWithBenchmark, nfoData, normalizeBenchmark, sameIndexFunds, statusOn, todayIst,
@@ -38,19 +39,32 @@ test('benchmark names normalise to one index', () => {
   assert.equal(normalizeBenchmark(null), '')
 })
 
-test('index NFOs list funds already tracking the same index (real data)', () => {
-  const n50 = nfo({ code: 154814, category: 'Index Funds', details: { benchmark: 'NIFTY 50 Total Return Index' } })
-  const same = sameIndexFunds(n50, funds)
-  assert.ok(same.length >= 10, `only ${same.length}`)
-  assert.ok(same.every((f) => f.category.startsWith('Index') && normalizeBenchmark(f.benchmark) === 'nifty 50'))
-  assert.ok(!same.some((f) => /next 50|equal|50 value|midcap|smallcap/i.test(f.name)), same.map((f) => f.name).join())
-  // Longest record first.
-  const starts = same.map((f) => f.inceptionDate ?? '9999')
-  assert.deepEqual(starts, [...starts].sort())
-  // No benchmark, an active NFO, or an unknown index: no list.
-  assert.deepEqual(sameIndexFunds(nfo({ category: 'Index Funds' }), funds), [])
-  assert.deepEqual(sameIndexFunds(nfo({ details: { benchmark: 'NIFTY 50 Total Return Index' } }), funds), [])
-  assert.deepEqual(sameIndexFunds(nfo({ category: 'Index-Other', details: { benchmark: 'Nifty Imaginary 7 TRI' } }), funds), [])
+const peer = (code: number, name: string, extra: Partial<Fund> = {}): Fund => ({
+  code, name, fullName: name, amc: 'Fixture', category: 'Index Funds', categoryDisplay: 'Index Funds',
+  riskLevel: 'High', categorySize: 1, metrics: {}, benchmark: 'Nifty 50 TRI', ...extra,
+})
+const indexPeers = [
+  peer(1, 'Alpha Nifty 50 Index Fund', { inceptionDate: '2020-01-01' }),
+  peer(2, 'Beta Nifty 50 Index Fund', { inceptionDate: '2010-01-01' }),
+  peer(3, 'Wrong Nifty 500 Index Fund'), peer(4, 'Wrong Nifty IT Index Fund'),
+  peer(5, 'Active Nifty 50 Fund', { category: 'Large Cap' }),
+]
+
+test('index NFOs list exactly their compatible current peers, longest record first', () => {
+  const n50 = nfo({ category: 'Index Funds', details: { benchmark: 'NIFTY 50 Total Return Index' } })
+  for (const all of [funds, indexPeers, [], indexPeers.map(f => ({ ...f, benchmark: 'Nifty IT TRI' }))]) {
+    const same = sameIndexFunds(n50, all)
+    const expected = all.filter(f => f.code !== n50.code && f.category.startsWith('Index')
+      && normalizeBenchmark(f.benchmark) === 'nifty 50' && nameAgreesWithBenchmark(f.name, f.benchmark))
+    assert.deepEqual(same.map(f => f.code).sort((a, b) => a - b), expected.map(f => f.code).sort((a, b) => a - b))
+    const starts = same.map(f => f.inceptionDate ?? '9999')
+    assert.deepEqual(starts, [...starts].sort())
+  }
+  assert.deepEqual(sameIndexFunds(n50, indexPeers).map(f => f.code), [2, 1])
+  assert.deepEqual(sameIndexFunds({ ...n50, code: 2 }, indexPeers).map(f => f.code), [1])
+  assert.deepEqual(sameIndexFunds(nfo({ category: 'Index Funds' }), indexPeers), [])
+  assert.deepEqual(sameIndexFunds(nfo({ details: n50.details }), indexPeers), [])
+  assert.deepEqual(sameIndexFunds(nfo({ category: 'Index-Other', details: { benchmark: 'Nifty Imaginary 7 TRI' } }), indexPeers), [])
 })
 
 test('a fund whose name contradicts its stored benchmark is never listed as tracking it', () => {
@@ -61,23 +75,28 @@ test('a fund whose name contradicts its stored benchmark is never listed as trac
   assert.equal(nameAgreesWithBenchmark('SBI Nifty IT Index Fund', 'NIFTY 50 Total Return Index'), false)
   assert.equal(nameAgreesWithBenchmark('Motilal Oswal Nifty Microcap 250 Index Fund', 'NIFTY Smallcap 250 Total Return Index'), false)
   assert.equal(nameAgreesWithBenchmark('Any Fund', null), false)
-  // Real data, 2026-10-22 audit: these two carry a NIFTY 50 label they do not track.
-  const n50 = nfoData.nfos.find((n) => n.details?.benchmark && normalizeBenchmark(n.details.benchmark) === 'nifty 50')
-  if (n50) {
-    const codes = sameIndexFunds(n50, funds).map((f) => f.code)
-    assert.ok(codes.length >= 10)
-    for (const wrong of [153161, 153320]) assert.ok(!codes.includes(wrong), `${wrong} is not a Nifty 50 fund`)
-    for (const f of sameIndexFunds(n50, funds)) assert.match(f.name, /50/)
+  for (const n of nfoData.nfos) for (const f of sameIndexFunds(n, funds)) {
+    assert.equal(normalizeBenchmark(f.benchmark), normalizeBenchmark(n.details?.benchmark))
+    assert.equal(nameAgreesWithBenchmark(f.name, n.details?.benchmark), true)
   }
 })
 
-test('active NFOs get their category size; index NFOs never do', () => {
-  const ctx = categoryContext(nfo({ category: 'Small Cap' }), funds)!
-  assert.equal(ctx.display, 'Small Cap')
-  assert.equal(ctx.count, funds.filter((f) => f.category === 'Small Cap').length)
-  assert.ok(ctx.withThreeYears > 0 && ctx.withThreeYears <= ctx.count)
+test('active NFOs get their current category size and available 3Y count; index NFOs never do', () => {
+  const offer = nfo({ category: 'Small Cap' })
+  const synthetic = [peer(1, 'Scored small cap', { category: 'Small Cap', categoryDisplay: 'Small Cap', metrics: { '3Y': { cagr: 10 } as never } }),
+    peer(2, 'Young small cap', { category: 'Small Cap', categoryDisplay: 'Small Cap' })]
+  for (const all of [funds, synthetic, synthetic.map(f => ({ ...f, metrics: {} })), []]) {
+    const peers = all.filter(f => f.category === offer.category && f.code !== offer.code)
+    const ctx = categoryContext(offer, all)
+    if (!peers.length) { assert.equal(ctx, null); continue }
+    assert.equal(ctx!.display, peers[0].categoryDisplay)
+    assert.equal(ctx!.count, peers.length)
+    assert.equal(ctx!.withThreeYears, peers.filter(f => f.metrics['3Y']?.cagr !== undefined).length)
+    assert.ok(ctx!.withThreeYears >= 0 && ctx!.withThreeYears <= ctx!.count)
+  }
+  assert.equal(categoryContext(offer, synthetic)!.withThreeYears, 1)
   assert.equal(categoryContext(nfo({ category: 'Index-Other' }), funds), null)
-  assert.equal(categoryContext(nfo({ category: 'No Such Category' }), funds), null)
+  assert.equal(categoryContext(nfo({ category: 'No Such Category' }), synthetic), null)
 })
 
 test('yearsSince reads both date formats', () => {

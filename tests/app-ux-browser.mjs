@@ -3,16 +3,26 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { createServer } from 'vite'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
+const require = createRequire(import.meta.url)
+const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
+// Synthetic index: a fund whose SEBI riskometer differs from its category risk, a ranked peer, and index funds,
+// so the UI journey never depends on which live funds currently have a 3Y window or a risk divergence.
 const data = JSON.parse(readFileSync(resolve(root, 'src/data/funds.json'), 'utf8'))
-// A fund whose SEBI riskometer differs from its category's house risk level. Prefer
-// 149107 (the 320px overflow case); fall back to any such fund after a data refresh.
-const differs = f => f.sebiRisk && f.riskLevel && f.riskLevel !== f.sebiRisk && !f.dataQuality && f.metrics?.['3Y']?.windowEnd
-const fund = data.funds.find(f => f.code === 149107 && differs(f)) ?? data.funds.find(differs)
-assert(fund, 'a fund whose SEBI risk differs from its category risk')
+const win = (h, rank) => syntheticMetric(h, `${+data.anchor.slice(0, 4) - parseInt(h)}${data.anchor.slice(4)}`, data.anchor, { catRank: rank, catSize: 3 })
+const equity = (code, name, rank, extra = {}) => syntheticFund(code, name, 'Flexi Cap', { metrics: { '3Y': win('3Y', rank) }, ...extra })
+const fund = equity(9000031, 'Synthetic Risk Divergent Flexi Cap', 2, { riskLevel: 'Moderately High', sebiRisk: 'Very High' })
+const index = syntheticFund(9000034, 'Synthetic Large Cap Index Fund', 'Index Funds', { categoryDisplay: 'Index Funds', riskLevel: 'Very High', metrics: { '3Y': win('3Y', 1) } })
+data.funds = [equity(9000032, 'Synthetic Top Peer Flexi Cap', 1), fund, equity(9000033, 'Synthetic Third Flexi Cap', 3), index,
+  syntheticFund(9000035, 'Synthetic Mid Cap Index Fund', 'Index-MidCap', { categoryDisplay: 'Index - Mid Cap', riskLevel: 'High', metrics: { '3Y': win('3Y', 1) } })]
+data.totalFunds = data.funds.length
+ensureCategory(data, 'Flexi Cap', 'Flexi Cap', 'Moderately High')
+ensureCategory(data, 'Index Funds', 'Index - Large Cap', 'Very High')
+ensureCategory(data, 'Index-MidCap', 'Index - Mid Cap', 'High')
 const nav = { d: [], v: [] }
 for (let t = Date.parse('2021-11-01'), i = 0; t <= Date.parse('2026-11-05'); t += 86400000, i++) {
   nav.d.push(new Date(t).toISOString().slice(0, 10)); nav.v.push(100 + i * 0.02)
@@ -27,6 +37,8 @@ try {
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', e => errors.push(e.message))
+    await page.route('**/src/data/funds.json*', r => r.fulfill({ contentType: 'text/javascript', body: `export default ${JSON.stringify(data)}` }))
+    await page.route('**/fund-data/*.json*', r => r.fulfill({ contentType: 'application/json', body: '{}' }))
     await page.route('https://api.mfapi.in/**', r => r.abort())
     await page.route('**/nav/*.json*', r => r.fulfill({ json: nav }))
     await page.route('**/category-median/*.json*', r => r.fulfill({ json: nav }))
@@ -70,7 +82,6 @@ try {
     await page.getByRole('button', { name: 'Drawdowns', exact: true }).click()
     await checkColors('rgb(244, 63, 94)')
     await noOverflow()
-    const index = data.funds.find(f => f.categoryDisplay === 'Index Funds' && f.metrics['3Y'])
     await page.goto(`${base}/#/fund/${index.code}`)
     await page.getByRole('heading', { name: index.name, exact: true }).waitFor()
     assert.doesNotMatch(await page.getByRole('link', { name: /^See all / }).innerText(), /Funds funds/i)

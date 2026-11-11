@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   FUND_CHANGES_KEY, emptyFundChanges, markFundReviewed, observeFundChanges,
   readFundChanges, snapshotFund, writeFundChanges,
@@ -94,15 +94,32 @@ test('observations persist across reload, return to prior value, and missing dat
   assert.equal(entry(reverted).changes.length, 2)
 })
 
-test('real detail source dates: expense and manager fields have no report date; portfolio does', () => {
-  const detail = JSON.parse(readFileSync('public/fund-data/111549.json', 'utf8'))
-  const snapshot = snapshotFund(detail as Fund)
-  assert.equal(snapshot.cost, detail.expenseRatio)
-  assert.equal(snapshot.holdings?.date, detail.holdingsMeta.portfolioDate)
-  assert.ok(snapshot.managers!.length > 0)
-  assert.ok(snapshot.holdings!.items.length <= 30)
-  assert.equal('expenseRatioDate' in detail, false)
-  assert.equal('asOf' in detail.management, false)
+test('current manager-covered details retain exactly their canonical disclosed managers', () => {
+  let checked = 0
+  for (const file of readdirSync('public/fund-data').filter(f => /^\d+\.json$/.test(f))) {
+    const detail = JSON.parse(readFileSync(`public/fund-data/${file}`, 'utf8')) as Fund
+    if (detail.isDebt || detail.isArbitrage || !detail.management?.available) continue
+    const managers = detail.management.managers
+    if (!managers?.length) { assert.equal(snapshotFund(detail).managers, undefined); continue }
+    assert.deepEqual(snapshotFund(detail).managers, [...new Set(managers.map(m => m.name.trim()))].sort(), file)
+    checked++
+  }
+  console.log(`Manager snapshot parity: ${checked} covered details`)
+})
+
+test('snapshot manager absence and source dates do not invent report dates', () => {
+  const detail = { expenseRatio: 0.5, management: { available: true, managers: [{ name: 'Manager A' }] },
+    holdingsMeta: { coverage: 'stock_level', portfolioDate: day }, holdings: [{ name: 'Example', pct: 5 }] } as Fund
+  assert.deepEqual(snapshotFund(detail), { cost: 0.5, managers: ['Manager A'], holdings: holding(day, 'Example', 5) })
+  const disclosed = { ...detail, expenseRatioDate: day, management: { ...detail.management!, asOf: day } }
+  assert.deepEqual(snapshotFund(disclosed), snapshotFund(detail), 'source metadata does not invent expense or manager report dates')
+  const many = { ...detail, holdings: Array.from({ length: 35 }, (_, i) => ({ name: `Stock ${i}`, pct: i + 1 })) }
+  const reduced = snapshotFund(many).holdings!
+  assert.equal(reduced.items.length, 30)
+  assert.deepEqual(reduced.items.map(h => h.pct).sort((a, b) => a - b), Array.from({ length: 30 }, (_, i) => i + 6))
+  for (const management of [undefined, { available: false, managers: [] }, { available: true, managers: [] }]) {
+    assert.equal(snapshotFund({ ...detail, management } as Fund).managers, undefined)
+  }
 })
 
 test('snapshot validates dates and values, canonicalizes managers and retains reduced-surface limits', () => {
