@@ -73,6 +73,18 @@ class WorkflowIdentityTests(unittest.TestCase):
             else:
                 self.assertEqual(set(runners), {'ubuntu-26.04'}, wf.name)
 
+    def test_canary_reports_through_an_issue_and_its_run_stays_green(self):
+        # A failed canary run emailed the owner like a broken deploy (2026-11-09); the
+        # warning belongs in the issue, which is closed again once the image passes.
+        text = (ROOT / '.github/workflows/runner-canary.yml').read_text(encoding='utf-8')
+        for step in ('id: gate', 'id: build', 'id: built'):
+            block = text.split(step, 1)[1].split('\n      - ', 1)[0]
+            self.assertIn('continue-on-error: true', block, step)
+        self.assertIn("if: steps.gate.outcome != 'success' || steps.build.outcome != 'success' || steps.built.outcome != 'success'", text)
+        self.assertIn('gh issue create', text)
+        self.assertIn('gh issue close', text)
+        self.assertNotIn('if: failure()', text)
+
 
 if __name__ == '__main__':
     unittest.main()
