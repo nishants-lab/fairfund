@@ -14,7 +14,8 @@ runs:
       shell: bash
     - run: npm ci
       shell: bash
-    - run: npx playwright install --with-deps chromium
+    # Retries the download and survives an unreachable Ubuntu archive; see the script.
+    - run: bash scripts/ci/install-browser.sh
       shell: bash
     - run: npm run check:release
       shell: bash
