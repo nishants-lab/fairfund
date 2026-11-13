@@ -3,11 +3,12 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const base=process.env.FF_TEST_BASE_URL||'http://127.0.0.1:4190';
 const nfo=require('../src/data/nfo.json');
-// Same rule as src/lib/nfo.ts: closed or trading NFOs leave 7 days after closing (else after the first NAV).
+// Same rule as src/lib/nfo.ts: a closed NFO waits up to 30 days for its first NAV; a trading one stays 7 days after the later of close and first NAV.
 const today=new Date(Date.now()+330*60000).toISOString().slice(0,10);
 const addDays=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 const statusOf=n=>n.nav?'trading':n.launchDate>today?'upcoming':n.closeDate&&n.closeDate<today?'closed':'offer';
-const listed=nfo.nfos.filter(n=>{const s=statusOf(n);const a=n.closeDate||n.firstNavDate;return !(s==='closed'||s==='trading')||!a||today<=addDays(a,nfo.showDaysAfterClose??7)});
+const until=n=>{if(!n.nav)return n.closeDate?addDays(n.closeDate,nfo.maxAwaitDays??30):null;const ds=[n.closeDate,n.firstNavDate].filter(Boolean).sort();return ds.length?addDays(ds[ds.length-1],nfo.showDaysAfterClose??7):null};
+const listed=nfo.nfos.filter(n=>{const s=statusOf(n);const u=until(n);return !(s==='closed'||s==='trading')||!u||today<=u});
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
@@ -48,7 +49,7 @@ const listed=nfo.nfos.filter(n=>{const s=statusOf(n);const a=n.closeDate||n.firs
      const when=await card.getByTestId('nfo-when').innerText();
      if(s==='offer'&&n.closeDate) assert.match(when,/^Open .+ to .+/,`${n.code} closing date`);
      if(s==='closed'||s==='trading'){
-      if(n.closeDate||n.firstNavDate) assert.match(await card.getByTestId('nfo-until').innerText(),/^On this list until /,`${n.code} until`);
+      if(n.closeDate||n.firstNavDate) assert.match(await card.getByTestId('nfo-until').innerText(),s==='closed'?/^On this list until it starts trading, or .+ at the latest$/:/^On this list until /,`${n.code} until`);
       if(s==='closed'||n.firstNavDate) assert.ok(await card.getByTestId('nfo-available').count(),`${n.code} says when units are available`);
      }
      if(s==='trading'&&n.firstNavDate) assert.match(await card.getByTestId('nfo-available').innerText(),/^Open for investment since /);

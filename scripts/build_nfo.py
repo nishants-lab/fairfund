@@ -19,9 +19,11 @@ Sources, every one keyed by AMFI scheme code (never matched by name alone):
      and exactly one in-scope NFO fits. A closing date once found is kept.
   5. First NAV date of a scheme that trades: its NAV file on the site, else mfapi.
 
-An offer leaves the list 7 calendar days after it closes (or, when no closing
-date was ever found, 7 days after its first NAV). During those days the list
-shows when units are available: the first NAV date, or the expected date.
+A closed offer stays listed until it starts trading, for at most 30 calendar
+days after it closes (AMFI often takes over a week to publish the first NAV).
+A trading fund stays 7 days after its first NAV, or after its close if that is
+later or the first NAV date is unknown. While listed, the page shows when units
+are available: the first NAV date, or the expected date.
 
 Scope is the site's own: open-ended, Direct Growth plan, a category that
 pipeline/config.map_amfi_category maps into the universe, not excluded by name.
@@ -57,6 +59,9 @@ LOOKAHEAD_DAYS = 60
 DETAILS_MAX_AGE_DAYS = 7
 MIN_MASTER_ROWS = 5000
 SHOW_DAYS_AFTER_CLOSE = 7
+# A closed offer waits this long for its first NAV. With SEBI's 15-day offer cap
+# this keeps every closed offer inside LOOKBACK_DAYS of its launch.
+MAX_AWAIT_DAYS = 30
 MAX_OFFER_DAYS = 30  # SEBI caps an NFO at 15 days; anything far longer is a misread
 OFFER_LISTS = ("https://www.icicidirect.com/MutualFund/NFOListing/existing",
                "https://www.morningstar.in/nfo/nfolist.aspx")
@@ -217,11 +222,20 @@ def source_name(url):
 
 
 def visible_until(rec):
-    """Last day the NFO is listed: 7 days after it closes, else after its first NAV."""
-    anchor = rec.get("closeDate") or rec.get("firstNavDate")
+    """Last day the NFO is listed, or None while there is no date to count from.
+
+    Closed (no NAV yet): MAX_AWAIT_DAYS after the close, so it does not vanish
+    between closing and its first NAV. Trading: SHOW_DAYS_AFTER_CLOSE after the
+    later of the close and the first NAV.
+    """
+    close, first = rec.get("closeDate"), rec.get("firstNavDate")
+    if rec.get("status") == "closed":
+        days, anchor = MAX_AWAIT_DAYS, close
+    else:
+        days, anchor = SHOW_DAYS_AFTER_CLOSE, max([d for d in (close, first) if d], default=None)
     if not anchor:
         return None
-    return (date.fromisoformat(anchor) + timedelta(days=SHOW_DAYS_AFTER_CLOSE)).isoformat()
+    return (date.fromisoformat(anchor) + timedelta(days=days)).isoformat()
 
 
 def http_text(url, timeout=90, retries=3):
@@ -409,6 +423,7 @@ def build(master_rows, navall, previous, today, details_fn=groww_details, offers
         "generatedAt": today.isoformat(),
         "window": {"lookbackDays": LOOKBACK_DAYS, "lookaheadDays": LOOKAHEAD_DAYS},
         "showDaysAfterClose": SHOW_DAYS_AFTER_CLOSE,
+        "maxAwaitDays": MAX_AWAIT_DAYS,
         "source": "AMFI scheme master and NAVAll; benchmark, manager, exit load and expected reopening from the scheme's Groww page, matched by AMFI code; closing dates AMFI leaves blank from ICICIdirect and Morningstar, matched by AMC, opening date and name",
         "nfos": out,
     }

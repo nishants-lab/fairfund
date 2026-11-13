@@ -9,8 +9,9 @@ Pins:
   * an unreachable or thin AMFI response never replaces the previous file;
   * a closing date AMFI leaves blank comes from ICICIdirect/Morningstar only when
     the opening date, AMC and numbers in the name agree and one NFO fits;
-  * an NFO leaves the list 7 calendar days after it closes (or after its first
-    NAV when no closing date is known) and shows when units are available.
+  * a closed NFO stays listed until its first NAV, for at most 30 days after it
+    closes; a trading one leaves 7 days after the later of its close and first
+    NAV; while listed it shows when units are available.
 """
 from datetime import date
 from pathlib import Path
@@ -261,15 +262,28 @@ class SevenDaysAfterClose(unittest.TestCase):
         return {n["code"]: n for n in N.build(rows, navall or {}, prev, TODAY, details_fn=lambda c, n: None, offers=offers,
                                               first_nav_fn=first_nav)["nfos"]}
 
-    def test_closed_offer_stays_seven_days(self):
-        rows = [row(1, "A Small Cap Fund", launch="01-Oct-2026", close="15-Oct-2026"),
-                row(2, "B Small Cap Fund", launch="01-Oct-2026", close="14-Oct-2026"),
-                row(3, "C Small Cap Fund", launch="12-Oct-2026", close="20-Oct-2026")]
+    def test_closed_offer_waits_for_its_first_nav(self):
+        rows = [row(1, "A Small Cap Fund", launch="01-Oct-2026", close="14-Oct-2026"),
+                row(2, "B Small Cap Fund", launch="08-Sep-2026", close="22-Sep-2026"),
+                row(3, "C Small Cap Fund", launch="08-Sep-2026", close="21-Sep-2026"),
+                row(4, "D Small Cap Fund", launch="12-Oct-2026", close="20-Oct-2026")]
         got = self.build(rows)
-        self.assertEqual(sorted(got), [1, 3])  # 15 Oct + 7 = 22 Oct is the last day
-        self.assertEqual(got[1]["status"], "closed")
+        # Closed 8 days ago with no NAV: still listed. 22 Sep + 30 = 22 Oct is the last day.
+        self.assertEqual(sorted(got), [1, 2, 4])
+        self.assertEqual((got[1]["status"], got[2]["status"]), ("closed", "closed"))
+        self.assertEqual(N.visible_until(got[2]), "2026-10-22")
 
-    def test_trading_fund_uses_close_then_first_nav(self):
+    def test_closed_offer_leaves_seven_days_after_it_starts_trading(self):
+        rows = [row(1, "A Small Cap Fund", launch="25-Sep-2026", close="05-Oct-2026"),
+                row(2, "B Small Cap Fund", launch="25-Sep-2026", close="05-Oct-2026")]
+        nav = {"1": ("2026-10-21", 10.1), "2": ("2026-10-21", 10.1)}
+        first = {1: "2026-10-18", 2: "2026-10-14"}
+        got = self.build(rows, nav, first_nav=first.get)
+        # A late first NAV restarts the 7 days: 18 Oct + 7 = 25 Oct; 14 Oct + 7 = 21 Oct has passed.
+        self.assertEqual(sorted(got), [1])
+        self.assertEqual(N.visible_until(got[1]), "2026-10-25")
+
+    def test_trading_fund_counts_from_the_later_of_close_and_first_nav(self):
         rows = [row(1, "A Small Cap Fund", launch="01-Oct-2026", close="16-Oct-2026"),
                 row(2, "B Small Cap Fund", launch="15-Sep-2026"),
                 row(3, "C Small Cap Fund", launch="01-Oct-2026"),
