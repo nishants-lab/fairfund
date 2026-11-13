@@ -173,6 +173,14 @@ _DEBT_INDEX_RE = re.compile(r"\bcrisil\b|\bibx\b|\baaa\b", re.IGNORECASE)
 # Government-securities index funds also appear as "G Sec" with a space
 # ("Tata Nifty G Sec Dec 2026 Index Fund"), which the "g-sec"/"gsec" keywords miss.
 _GSEC_RE = re.compile(r"\bg[\s.-]*sec\b", re.IGNORECASE)
+# Payout options (IDCW, dividend payout/reinvestment, bonus) pay out of NAV, so their
+# returns understate the scheme's; only the Growth plan belongs here. A scheme whose
+# own name says "Growth Fund" can still be an IDCW plan (149668, Sundaram Multi Cap
+# IDCW, ranked as a growth plan until 2026-11-13). "Dividend Yield" is a strategy,
+# not an option, and is not matched.
+_PAYOUT_OPTION_RE = re.compile(
+    r"\bidcw\b|income\s+distribution|\bdividend\s+(?:option|plan|payout|re-?invest\w*)\b"
+    r"|\bpayout\b|\bre-?investment\b|\bbonus\s+(?:option|plan)\b", re.IGNORECASE)
 
 
 def is_excluded_by_name(fund_name):
@@ -180,7 +188,8 @@ def is_excluded_by_name(fund_name):
     universe: (a) debt/fixed-income vehicles arriving under AMFI's mixed
     'Index Funds' / 'Fund of Funds (Overseas)' buckets (US Treasury bond FoFs,
     target-maturity Gilt/PSU-Bond/SDL and CRISIL-IBX AAA index funds); (b) segregated 'unclaimed' /
-    Investor Education Fund pools; (c) closed-ended fixed-tenor 'Series N' schemes."""
+    Investor Education Fund pools; (c) closed-ended fixed-tenor 'Series N' schemes;
+    (d) payout options (IDCW, dividend payout or reinvestment, bonus)."""
     if not fund_name:
         return False
     low = fund_name.lower()
@@ -191,6 +200,8 @@ def is_excluded_by_name(fund_name):
     if any(kw in low for kw in _JUNK_NAME_KEYWORDS):
         return True
     if _CLOSED_SERIES_RE.search(fund_name):
+        return True
+    if _PAYOUT_OPTION_RE.search(fund_name):
         return True
     return False
 

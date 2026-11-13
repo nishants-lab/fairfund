@@ -67,6 +67,18 @@ class ExclusionRuleTests(unittest.TestCase):
                      "Mirae Asset Nifty Secure Growth Fund", "HDFC Nifty G20 Securities Index Fund"]:
             self.assertFalse(C.is_excluded_by_name(name), name)
 
+    def test_payout_options_are_excluded_but_dividend_yield_funds_are_kept(self):
+        for name in ["Sundaram Multi Cap Fund (Formerly Known as Principal Multi Cap Growth Fund) - Direct Plan"
+                     " - Income Distribution CUM Capital Withdrawal Option (IDCW)",
+                     "Some Flexi Cap Fund - Direct Plan - IDCW", "Some Fund - Dividend Option",
+                     "Some Fund - Direct Plan - Dividend Payout", "Some Fund - Dividend Reinvestment",
+                     "Some Fund Direct Re-investment", "Some Fund - Bonus Option", "Some Fund Payout"]:
+            self.assertTrue(C.is_excluded_by_name(name), name)
+        for name in ["ICICI Prudential Dividend Yield Equity Fund", "UTI - Dividend Yield Fund",
+                     "Templeton India Equity Income Fund", "Principal Multi Cap Growth Fund",
+                     "HDFC Nifty Growth Sectors 15 Index Fund", "Kotak Bonus Growth Fund"]:
+            self.assertFalse(C.is_excluded_by_name(name), name)
+
     def test_live_universe_holds_no_excluded_fund(self):
         funds = json.loads((ROOT / "src" / "data" / "funds.json").read_text(encoding="utf-8"))["funds"]
         bad = [f["code"] for f in funds
