@@ -46,8 +46,8 @@ jobs:
       # monthly reviewed run (discover-funds.yml), and a day that shows more than
       # discover_new_funds.MAX_DAILY_ADDS new funds adds none and leaves them to
       # it. Any failure here restores the pre-intake files, so a broken intake
-      # never blocks the NAV refresh of the funds already listed. Manager data is
-      # optional (as in the monthly run): its failure only warns. The finalize
+      # never blocks the NAV refresh of the funds already listed. Manager and risk
+      # data are optional (as in the monthly run): their failures only warn. The finalize
       # sequence matches the monthly run: prune_pending gives a fund with no
       # holdings yet its "new fund" stub and recounts categories; the next two
       # steps rank the final cohort.
@@ -67,6 +67,7 @@ jobs:
               python pipeline/build_matcher_universe.py &&
               python migrations/split-analytics/split_funds.py &&
               python scripts/onboard_new_funds.py &&
+              { python scripts/fetch_sebi_risk.py --missing-only || echo "::warning::SEBI risk fetch failed; the monthly run retries"; } &&
               { python scripts/fetch_managers.py || echo "::warning::Manager fetch failed; the monthly run retries"; } &&
               { python scripts/build_manager_signals.py || echo "::warning::Manager signals failed"; } &&
               python scripts/enrich_fund_data.py &&
@@ -210,6 +211,10 @@ jobs:
 
       - name: Build manager quality signals
         run: python scripts/build_manager_signals.py
+        continue-on-error: true
+
+      - name: Refresh SEBI riskometer (Groww)
+        run: python scripts/fetch_sebi_risk.py
         continue-on-error: true
 
       - name: Recompute metrics

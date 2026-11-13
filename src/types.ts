@@ -28,6 +28,7 @@ export interface Fund {
   riskLevel: string
   // Primary fund risk: SEBI regulatory riskometer. riskLevel is a category default.
   sebiRisk?: string
+  sebiRiskAsOf?: string
   benchmark?: string
   launchDate?: string
   ratings?: { groww?: number | null; crisil?: number | null }
