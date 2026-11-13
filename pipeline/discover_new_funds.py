@@ -36,6 +36,7 @@ from config import (
     MFAPI_BASE_URL as MFAPI_URL,
     map_amfi_category,
     is_excluded_by_name,
+    tidy_display_name,
     is_debt_category,
     is_arbitrage_category,
     uses_reduced_surface,
@@ -67,13 +68,14 @@ _NAME_SUFFIXES = [
 
 def _clean_scheme_name(name):
     """Strip the Direct-Growth plan/option suffix so a scheme's display name is
-    stable across the several AMFI plan codes it may appear under."""
+    stable across the several AMFI plan codes it may appear under, then tidy its
+    capitals and stray dashes (config.tidy_display_name)."""
     out = name
     for suffix in _NAME_SUFFIXES:
         if out.lower().endswith(suffix.lower()):
             out = out[:-len(suffix)]
             break
-    return out.strip()
+    return tidy_display_name(out.strip())
 
 
 def fetch_amfi_universe():
@@ -332,14 +334,7 @@ def main():
 
         # Create fund entry (metrics will be computed by compute_metrics.py next)
         # Clean name: remove "Direct Plan - Growth" suffix variants
-        clean_name = scheme["name"]
-        for suffix in [" - Direct Plan - Growth", " - Direct Plan-Growth",
-                       " -Direct Plan - Growth", " - Direct - Growth Option",
-                       " - Direct Plan Growth", " Direct - Growth",
-                       " - Growth - Direct Plan", " Direct Plan Growth"]:
-            if clean_name.lower().endswith(suffix.lower()):
-                clean_name = clean_name[:-len(suffix)]
-                break
+        clean_name = _clean_scheme_name(scheme["name"])
 
         fund_entry = {
             "code": code,
@@ -544,7 +539,7 @@ def main_with_lifecycle():
                 status_changed = True
             fund["status"] = new_status
             if code in findings and findings[code]["status"] == "renamed" and "new_name" in findings[code]:
-                fund["name"] = findings[code]["new_name"].replace(" - Direct Plan - Growth", "").replace(" - Direct Plan-Growth", "").strip()
+                fund["name"] = _clean_scheme_name(findings[code]["new_name"])
 
     if lifecycle_only:
         if not dry_run and (findings or status_changed):
@@ -642,14 +637,7 @@ def main_with_lifecycle():
             json.dump(nav_file, f, separators=(",", ":"))
         print(f"  Adding: {code} {scheme['name'][:60]} ({cat}, {len(dates)} NAV points, first {dates[0]})")
 
-        clean_name = scheme["name"]
-        for suffix in [" - Direct Plan - Growth", " - Direct Plan-Growth",
-                       " -Direct Plan - Growth", " - Direct - Growth Option",
-                       " - Direct Plan Growth", " Direct - Growth",
-                       " - Growth - Direct Plan", " Direct Plan Growth"]:
-            if clean_name.lower().endswith(suffix.lower()):
-                clean_name = clean_name[:-len(suffix)]
-                break
+        clean_name = _clean_scheme_name(scheme["name"])
 
         fund_entry = {
             "code": code,

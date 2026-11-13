@@ -274,7 +274,7 @@ def select_nfos(rows, today):
         launch = parse_date(r[7])
         if not launch or not (lo <= launch <= hi) or not is_direct_growth(r[5]):
             continue
-        name, amfi_cat = r[2].strip(), r[4].strip()
+        name, amfi_cat = C.tidy_display_name(r[2]), r[4].strip()
         if C.is_excluded_by_name(name) or C.is_excluded_by_name(r[5]):
             continue
         cat = C.map_amfi_category(amfi_cat, name)
