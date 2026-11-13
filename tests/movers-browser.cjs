@@ -7,6 +7,15 @@ const built=process.env.FF_TEST_BUILT==='1';
 const {syntheticMovers,syntheticFund,ensureCategory}=require('./fixtures/browser-timebomb-fixtures.cjs');
 const noOverflow=page=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1);
 const ready=page=>page.waitForSelector('[data-testid="movers-summary"]',{timeout:90000});
+async function coverageLine(page,data,size=false){
+ const line=page.getByTestId('movers-coverage');
+ const c=data.coverage;
+ if(data.refMonth&&c&&c.reported<c.of){
+  const month=new Date(data.refMonth+'-01T00:00:00').toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+  const note=size?` Funds that have not reported ${month} yet show their latest AUM.`:'';
+  assert.equal(await line.innerText(),`${month} figures are in for ${c.reported} of ${c.of} funds so far; the rest appear as their fund houses report.`+note);
+ } else assert.equal(await line.count(),0,'complete or absent coverage stays hidden');
+}
 async function ask(page,q){await page.fill('#movers-q',q);await page.getByRole('button',{name:'Ask',exact:true}).click();await ready(page)}
 async function portfolioMoves(page,mustHaveRows){
  await page.getByRole('tab',{name:'Portfolio moves',exact:true}).click();
@@ -49,6 +58,8 @@ async function purchasesOnly(page,mustHaveRows){
    await ready(page);
    assert.match(await page.getByTestId('movers-summary').innerText(),/^\d+ funds · Estimated net flow, highest first/);
    assert.match(await page.getByTestId('movers-footnote').innerText(),/estimate rather than the fund house's reported figure/);
+   await coverageLine(page,require('../src/data/movers.json'));
+   assert.match(await page.getByTestId('movers-footnote').innerText(),/Category totals only include funds that have reported/);
    // The question in the brief: small caps only, the top fund named, its row first.
    await ask(page,'which small cap fund had the highest inflow');
    assert.match(page.url(),/categories=Small\+Cap|categories=Small%20Cap/);
@@ -112,6 +123,7 @@ async function purchasesOnly(page,mustHaveRows){
    }
    // Portfolio moves on the current data: a stock opens the funds that moved it, or the empty state is explained.
    const live=await portfolioMoves(page);
+   await coverageLine(page,require('../src/data/movers_stocks.json'));
    if(live.stock){
     // "who bought <a stock that moved this month>" lists purchases only; no buyer at all must be said in words.
     await ask(page,'who bought '+live.stock);
@@ -144,12 +156,30 @@ async function purchasesOnly(page,mustHaveRows){
     await sp.route('**/gc.zgo.at/**',r=>r.abort());
     await sp.route('**/src/data/movers.json*',r=>r.fulfill({contentType:'text/javascript',body:'export default '+JSON.stringify(fx.movers)}));
     await sp.route('**/src/data/movers_stocks.json*',r=>r.fulfill({contentType:'text/javascript',body:'export default '+JSON.stringify(fx.stocks)}));
+    fx.movers.coverage={reported:1,of:2};
+    fx.stocks.coverage={reported:2,of:3};
     await sp.goto(base+'/#/movers');await ready(sp);
+    await coverageLine(sp,fx.movers);
+    await sp.getByRole('tab',{name:'Fund size',exact:true}).click();await ready(sp);
+    await coverageLine(sp,fx.movers,true);
+    assert.match(await sp.getByTestId('movers-footnote').innerText(),/Category change totals only include funds that have reported; AUM totals use the latest available figure for each fund/);
     const got=await portfolioMoves(sp,true);
+    await coverageLine(sp,fx.stocks);
     assert.ok(got.stock,'synthetic portfolio moves must list a stock');
     await ask(sp,'who bought '+fx.STOCK_NAME);
     await sp.getByRole('heading',{name:fx.STOCK_NAME}).first().waitFor();
     await purchasesOnly(sp,true);
+    for(const complete of [true,false]){
+     for(const data of [fx.movers,fx.stocks]){
+      if(complete)data.coverage.reported=data.coverage.of;
+      else delete data.coverage;
+     }
+     await sp.goto(base+'/#/movers');await sp.reload();await ready(sp);
+     await coverageLine(sp,fx.movers);
+     await sp.getByRole('tab',{name:'Portfolio moves',exact:true}).click();
+     await sp.waitForSelector('[data-testid="movers-loading"]',{state:'detached',timeout:90000});await ready(sp);
+     await coverageLine(sp,fx.stocks);
+    }
     assert.deepEqual(serrors,[],`synthetic page errors at ${width}px`);
     await sctx.close();
    }

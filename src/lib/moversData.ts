@@ -20,9 +20,15 @@ export interface FundMovers {
   mj?: [string, string][]
   stale?: boolean
 }
+export interface Coverage {
+  reported: number
+  of: number
+}
 export interface MoversData {
   generatedAt: string
   refMonth: string | null
+  /** Latest AUM month at or beyond refMonth, out of funds with at least two AUM months. */
+  coverage?: Coverage
   windows: number[]
   stockWindows: number[]
   funds: Record<string, FundMovers>
@@ -33,6 +39,8 @@ export interface MoversData {
 export type StockFund = [number | null, number | null, [number, number | null, number | null][], number | null]
 export interface StocksData {
   refMonth: string | null
+  /** Funds with a snapshot in refMonth, out of funds with any holdings history. */
+  coverage?: Coverage
   /** px: per stock index, its estimated price move over the window as a ratio (1.05 = up 5%). */
   pairs: Record<string, { from: string | null; funds: Record<string, StockFund>; px?: Record<string, number> }>
 }

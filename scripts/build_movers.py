@@ -44,6 +44,9 @@ OUT_STOCKS = os.path.join(ROOT, "src", "data", "movers_stocks.json")
 # Pipeline memory only (never loaded by the site): last run's manager lists.
 OUT_STATE = os.path.join(ROOT, "src", "data", "movers_state.json")
 
+# One early report must not flip the page, but it must not wait for a majority.
+MIN_REF_SHARE = 0.10
+
 WINDOWS = (1, 3, 6)          # flow / AUM windows, calendar months
 STOCK_WINDOWS = (1, 3)       # portfolio-change windows
 NAV_MAX_LAG_DAYS = 7         # NAV used for a month-end must be this close to it
@@ -112,10 +115,13 @@ def flow_between(a0, a1, n0, n1):
 
 
 def reference_month(fund_months):
-    """The latest month most funds have disclosed AUM for."""
+    """The latest AUM month reported by at least MIN_REF_SHARE of eligible funds."""
     latest = Counter(max(ms) for ms in fund_months if len(ms) >= 2)
     if not latest:
         return None
+    eligible = [m for m, n in latest.items() if n / sum(latest.values()) >= MIN_REF_SHARE]
+    if eligible:
+        return max(eligible)
     top = max(latest.values())
     return max(m for m, n in latest.items() if n == top)
 
@@ -340,7 +346,13 @@ def keep_trades(raw, px, meta):
 def build(funds, navs, histories, managers, prev, today):
     codes = [str(f["code"]) for f in funds]
     series = {str(f["code"]): [tuple(p) for p in ((f.get("aum") or {}).get("series") or [])] for f in funds}
-    ref = reference_month([set(by_month(s)) for s in series.values() if s])
+    fund_months = [set(by_month(s)) for s in series.values()]
+    aum_months = [ms for ms in fund_months if len(ms) >= 2]
+    ref = reference_month(aum_months)
+    # Holdings coverage counts snapshots, before trade/window eligibility checks.
+    holdings_months = [set(ym(iso) for iso in (histories.get(code) or {}).get("snapshots") or {})
+                       for code in codes]
+    holdings_months = [ms for ms in holdings_months if ms]
     out_funds, raw_stock = {}, {"1": {}, "3": {}}
     meta, ratios, index_ratios = {}, {}, {}
     is_equity = _load_stock_filter()
@@ -374,13 +386,16 @@ def build(funds, navs, histories, managers, prev, today):
     movers = {
         "generatedAt": today.isoformat(),
         "refMonth": ref,
+        "coverage": {"reported": sum(1 for ms in aum_months if ref and max(ms) >= ref), "of": len(aum_months)},
         "windows": list(WINDOWS),
         "stockWindows": list(STOCK_WINDOWS),
         "funds": out_funds,
         "mgrLog": log,
         "stocks": stocks,
     }
-    stock_out = {"refMonth": ref, "pairs": {k: {"from": add_months(ref, -int(k)) if ref else None, "funds": v,
+    stock_out = {"refMonth": ref,
+                 "coverage": {"reported": sum(1 for ms in holdings_months if ref in ms), "of": len(holdings_months)},
+                 "pairs": {k: {"from": add_months(ref, -int(k)) if ref else None, "funds": v,
                                                 "px": kpx}
                                             for k, (v, kpx) in pairs.items()}}
     return movers, stock_out, {"mgrSets": sets, "mgrLog": log}

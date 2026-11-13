@@ -164,6 +164,8 @@ export default function Movers() {
   const s = state
   const isStocks = s.view === 'stocks'
   const ref = data?.refMonth ?? null
+  const coverage = isStocks ? stocks?.coverage : data?.coverage
+  const showCoverage = ['flows', 'size', 'stocks'].includes(s.view) && (!s.month || s.month === ref)
   const winChoices: Win[] = s.view === 'managers' ? MANAGER_WINDOWS : isStocks ? wins.stockWindows : s.view === 'cost' ? wins.costWindows : wins.flowWindows
   const allWins: Win[] = s.view === 'managers' ? MANAGER_WINDOWS : isStocks ? [1, 3] : [1, 3, 6]
   const usesWindow = ['flows', 'size', 'cost', 'managers', 'stocks'].includes(s.view) && !s.month
@@ -310,6 +312,12 @@ export default function Movers() {
             {usesHorizon && <> · {s.view === 'momentum' ? `1Y vs ${s.horizon}` : s.horizon}</>}
             {s.limit ? <> · top {s.limit}</> : null}
           </p>
+          {showCoverage && ref && coverage && coverage.reported < coverage.of && (
+            <p className="mt-1 text-xs text-muted" data-testid="movers-coverage">
+              {monthLabel(ref)} figures are in for {coverage.reported} of {coverage.of} funds so far; the rest appear as their fund houses report.
+              {s.view === 'size' && ` Funds that have not reported ${monthLabel(ref)} yet show their latest AUM.`}
+            </p>
+          )}
           {missing > 0 && s.groupBy === 'fund' && (
             <p className="mt-1 text-xs text-muted" data-testid="movers-missing">
               {plural(missing, 'fund')} named here {missing === 1 ? 'has' : 'have'} no figure for this window.
@@ -808,7 +816,7 @@ function Footnote({ s, data }: { s: MoversState; data: MoversData }) {
     stocks: 'From monthly portfolio disclosures. A fund counts as buying when it added the stock or grew its position by 5% or more beyond the stock\'s own price move, and as selling when it cut as much or exited. The price move is estimated from the active funds that held the stock at both ends, since most do not trade a given stock in a month; when most holders trade together, as after an index change, the split can be off. Where no price estimate exists (fewer than five funds hold the stock, or the fund has no NAV for a month end), a weight change is shown as unadjusted and not counted as buying or selling. Portfolios listing less than 90% of assets are left out. Value held includes price moves.',
     debt: 'Liquid, money market and arbitrage funds by AUM. Their gross returns sit close together because of what they may hold, so the expense ratio is the main difference in what you keep. Green AUM is ₹1,000 Cr or more; green expense is 0.15% or below.',
   }
-  return <p className="mt-3 text-xs text-faint" data-testid="movers-footnote">{text[s.view]}</p>
+  return <p className="mt-3 text-xs text-faint" data-testid="movers-footnote">{text[s.view]}{s.view === 'flows' && ' Category totals only include funds that have reported.'}{s.view === 'size' && ' Category change totals only include funds that have reported; AUM totals use the latest available figure for each fund.'}</p>
 }
 
 // ---- small pieces --------------------------------------------------------------------
