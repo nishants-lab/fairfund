@@ -91,9 +91,49 @@ class WindowTests(unittest.TestCase):
         self.assertEqual((change, flow, market, pct), (120.0, 100.0, 20.0, 100.0))
         self.assertAlmostEqual(change, flow + market, places=1)
 
-    def test_reference_month_is_what_most_funds_disclosed(self):
+    def test_reference_month_ignores_funds_without_two_aum_months(self):
         months = [{"2026-08", "2026-09"}] * 5 + [{"2026-07", "2026-08"}] * 2 + [{"2026-09"}]
         self.assertEqual(B.reference_month(months), "2026-09")
+
+    def test_reference_month_advances_at_ten_percent(self):
+        months = [{"2026-08", "2026-09"}] * 9 + [{"2026-09", "2026-10"}]
+        self.assertEqual(B.reference_month(months), "2026-10")
+
+    def test_reference_month_stays_below_ten_percent(self):
+        months = [{"2026-08", "2026-09"}] * 10 + [{"2026-09", "2026-10"}]
+        self.assertEqual(B.reference_month(months), "2026-09")
+
+    def test_reference_month_falls_back_to_modal_month_with_latest_tie_break(self):
+        months = [{"2025-01", f"2026-{m:02d}"} for m in range(1, 13)]
+        self.assertEqual(B.reference_month(months), "2026-12")
+
+    def test_empty_data_has_no_reference_and_zero_coverage(self):
+        self.assertIsNone(B.reference_month([]))
+        self.assertIsNone(B.reference_month([set(), {"2026-10"}]))
+        movers, stocks, _ = B.build([], {}, {}, {}, {}, date(2026, 11, 1))
+        for data in (movers, stocks):
+            self.assertIsNone(data["refMonth"])
+            self.assertEqual(data["coverage"], {"reported": 0, "of": 0})
+
+    def test_coverage_uses_eligible_aum_funds_and_exact_holdings_month(self):
+        funds = [{"code": c, "aum": {"series": [["2026-08-31", 10], ["2026-09-30", 11]]}}
+                 for c in range(20)]
+        funds[0]["aum"]["series"].append(["2026-10-31", 12])
+        funds[1]["aum"]["series"].append(["2026-10-31", 12])
+        funds[2]["aum"]["series"].append(["2026-11-30", 12])
+        funds += [{"code": 20, "aum": {"series": [["2026-11-30", 1]]}}, {"code": 21}]
+        histories = {"0": {"snapshots": {"2026-10-30": {}, "2026-10-31": {}, "2026-11-30": {}}},
+                     "1": {"snapshots": {"2026-09-30": {}}},
+                     "2": {"snapshots": {"2026-11-30": {}}},
+                     "20": {"snapshots": {"2026-10-31": {}}},
+                     "21": {"snapshots": {}},
+                     "outside-universe": {"snapshots": {"2026-10-31": {}}}}
+        movers, stocks, _ = B.build(funds, {}, histories, {}, {}, date(2026, 11, 1))
+        self.assertEqual(movers["refMonth"], "2026-10")
+        self.assertEqual(movers["coverage"], {"reported": 3, "of": 20})
+        self.assertEqual(stocks["coverage"], {"reported": 2, "of": 4})
+        self.assertTrue(movers["funds"]["3"]["stale"])
+        self.assertNotIn("w", movers["funds"]["3"])
 
     def test_stale_fund_is_flagged_and_has_no_window(self):
         funds = [{"code": 1, "aum": {"series": [["2026-08-31", 10.0], ["2026-09-30", 11.0]]}},
