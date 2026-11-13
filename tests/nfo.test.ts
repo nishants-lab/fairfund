@@ -135,21 +135,26 @@ test('committed nfo.json is well formed and in scope (real data)', () => {
   }
 })
 
-test('closed and trading NFOs stay listed for 7 calendar days after closing', () => {
+test('a closed NFO waits up to 30 days for its first NAV; a trading one stays 7 days', () => {
   const closed = nfo({ launchDate: '2026-10-01', closeDate: '2026-10-15' })
-  assert.equal(visibleUntil(closed, 7), '2026-10-22')
-  assert.equal(isListed(closed, '2026-10-22'), true)
-  assert.equal(isListed(closed, '2026-10-23'), false)
-  // Trading: counted from the close, else from the first NAV, else kept.
+  assert.equal(visibleUntil(closed, 7, 30), '2026-11-14')
+  assert.equal(isListed(closed, '2026-10-23'), true)  // closed 8 days ago, no NAV yet: still listed
+  assert.equal(isListed(closed, '2026-11-14'), true)
+  assert.equal(isListed(closed, '2026-11-15'), false)
+  // Trading: counted from the later of the close and the first NAV, else kept.
   const nav = { date: '2026-10-21', value: 10.1 }
-  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12', firstNavDate: '2026-10-20' }), '2026-10-22'), false)
+  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12', firstNavDate: '2026-10-20' }), '2026-10-27'), true)
+  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12', firstNavDate: '2026-10-20' }), '2026-10-28'), false)
+  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12' }), '2026-10-19'), true)
+  assert.equal(isListed(nfo({ nav, closeDate: '2026-10-12' }), '2026-10-20'), false)
   assert.equal(isListed(nfo({ nav, firstNavDate: '2026-10-16' }), '2026-10-23'), true)
   assert.equal(isListed(nfo({ nav, firstNavDate: '2026-10-16' }), '2026-10-24'), false)
   assert.equal(isListed(nfo({ nav }), '2026-12-31'), true)
   // Offers and upcoming ones are never dropped by this rule.
   assert.equal(isListed(nfo({ launchDate: '2026-09-30' }), '2026-12-31'), true)
-  const g = groupNfos([closed, nfo({ code: 2, launchDate: '2026-10-12', closeDate: '2026-10-26' })], '2026-10-23')
-  assert.deepEqual([g.closed.length, g.offer.length], [0, 1])
+  const g = groupNfos([closed, nfo({ code: 2, launchDate: '2026-10-12', closeDate: '2026-10-26' })], '2026-11-15')
+  assert.deepEqual([g.closed.length, g.offer.length], [1, 0])  // only code 2 is left, now closed
+  assert.equal(g.closed[0].code, 2)
 })
 
 test('availability: first NAV once trading, else a plausible expected date', () => {

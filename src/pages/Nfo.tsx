@@ -7,7 +7,7 @@ import { fmtDate } from '../lib/metrics'
 import { getCategoryColor } from '../lib/categoryColors'
 import ShareButton from '../components/ShareButton'
 import {
-  availableFrom, categoryContext, groupNfos, nfoData, sameIndexFunds, SHOW_DAYS_AFTER_CLOSE, todayIst, visibleUntil, yearsSince,
+  availableFrom, categoryContext, groupNfos, MAX_AWAIT_DAYS, nfoData, sameIndexFunds, SHOW_DAYS_AFTER_CLOSE, todayIst, visibleUntil, yearsSince,
   type Nfo, type NfoStatus,
 } from '../lib/nfo'
 
@@ -15,12 +15,13 @@ import {
 // already exists: the funds tracking the same index, or the size of the category.
 
 const DAYS = nfoData.showDaysAfterClose ?? SHOW_DAYS_AFTER_CLOSE
+const AWAIT_DAYS = nfoData.maxAwaitDays ?? MAX_AWAIT_DAYS
 
 const SECTIONS: { key: NfoStatus; title: string; blurb: string }[] = [
   { key: 'offer', title: 'Offer opened, not trading yet', blurb: 'The offer period has started and units are not yet allotted. Where no closing date is shown, FairFund could not confirm one; the scheme\'s offer document has it.' },
   { key: 'upcoming', title: 'Opening soon', blurb: 'Listed by AMFI with an opening date ahead.' },
-  { key: 'closed', title: 'Offer closed', blurb: `The offer has closed and units are not yet allotted. Each stays on this list for ${DAYS} days after it closes.` },
-  { key: 'trading', title: 'Recently started trading', blurb: `AMFI now publishes a daily NAV for these schemes. Each stays on this list for ${DAYS} days after its offer closed, or after its first NAV when no closing date was published.` },
+  { key: 'closed', title: 'Offer closed', blurb: `The offer has closed and units are not yet allotted. Each stays on this list until it starts trading, for up to ${AWAIT_DAYS} days after it closes.` },
+  { key: 'trading', title: 'Recently started trading', blurb: `AMFI now publishes a daily NAV for these schemes. Each stays on this list for ${DAYS} days after its first NAV, or after its offer closed when that is later or the first NAV date is not known.` },
 ]
 
 const catSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -92,7 +93,7 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
     ? (avail.expected ? `Units expected to be available from ${fmtDate(avail.date)}` : `Open for investment since ${fmtDate(avail.date)} (first NAV)`)
     : status === 'closed' ? 'Not trading yet. No date for units to be available has been published.'
       : null
-  const until = status === 'closed' || status === 'trading' ? visibleUntil(n, DAYS) : null
+  const until = status === 'closed' || status === 'trading' ? visibleUntil(n, DAYS, AWAIT_DAYS) : null
   return (
     <article className="card p-4" data-testid="nfo-card" data-code={n.code}>
       <div className="flex flex-col-reverse items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
@@ -107,7 +108,7 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
       {status === 'trading' && n.nav && (
         <div className="mt-0.5 text-xs tabular-nums text-muted" data-testid="nfo-nav">NAV ₹{n.nav.value.toFixed(4)} on {fmtDate(n.nav.date)}</div>
       )}
-      {until && <div className="mt-0.5 text-xs text-faint" data-testid="nfo-until">On this list until {fmtDate(until)}</div>}
+      {until && <div className="mt-0.5 text-xs text-faint" data-testid="nfo-until">{status === 'closed' ? `On this list until it starts trading, or ${fmtDate(until)} at the latest` : `On this list until ${fmtDate(until)}`}</div>}
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
         <Fact label="Benchmark" value={d.benchmark} />
         <Fact label="Manager" value={d.manager} />

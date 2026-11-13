@@ -43,6 +43,7 @@ export interface NfoData {
   generatedAt: string
   window: { lookbackDays: number; lookaheadDays: number }
   showDaysAfterClose?: number
+  maxAwaitDays?: number
   source: string
   nfos: Nfo[]
 }
@@ -150,16 +151,23 @@ export function categoryContext(n: Nfo, all: Fund[]): CategoryContext | null {
 }
 
 export const SHOW_DAYS_AFTER_CLOSE = 7
+export const MAX_AWAIT_DAYS = 30
 
 const addDays = (iso: string, days: number) => new Date(Date.parse(iso + 'T00:00:00Z') + days * 86_400_000).toISOString().slice(0, 10)
 
 /**
- * Last day an NFO is listed: 7 calendar days after it closes or, when no closing
- * date was found, after its first NAV. Null while neither date is known.
+ * Last day an NFO is listed. Closed with no NAV yet: up to 30 days after it
+ * closes, so it stays until it starts trading. Trading: 7 days after the later of
+ * its close and its first NAV. Null while there is no date to count from.
  */
-export function visibleUntil(n: Pick<Nfo, 'closeDate' | 'firstNavDate'>, days = nfoData.showDaysAfterClose ?? SHOW_DAYS_AFTER_CLOSE): string | null {
-  const anchor = n.closeDate || n.firstNavDate
-  return anchor ? addDays(anchor, days) : null
+export function visibleUntil(
+  n: Pick<Nfo, 'closeDate' | 'firstNavDate' | 'nav'>,
+  days = nfoData.showDaysAfterClose ?? SHOW_DAYS_AFTER_CLOSE,
+  awaitDays = nfoData.maxAwaitDays ?? MAX_AWAIT_DAYS,
+): string | null {
+  if (!n.nav) return n.closeDate ? addDays(n.closeDate, awaitDays) : null
+  const dates = [n.closeDate, n.firstNavDate].filter((d): d is string => !!d).sort()
+  return dates.length ? addDays(dates[dates.length - 1], days) : null
 }
 
 /** False once a closed or trading NFO is past its last listed day. */
