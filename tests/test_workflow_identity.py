@@ -57,6 +57,16 @@ class WorkflowIdentityTests(unittest.TestCase):
         self.assertLess(weekly.index('git push'), weekly.index('gh workflow run deploy.yml'),
                         'deploy is dispatched after the analytics commit is pushed')
 
+    def test_healed_nav_is_deployed_after_it_is_pushed(self):
+        # A GITHUB_TOKEN push does not start deploy.yml, so healed data sat unpublished until the next daily run.
+        heal = next(wf for wf in WORKFLOWS if wf.name == 'heal-nav-gaps.yml').read_text(encoding='utf-8')
+        self.assertRegex(heal, r'actions:\s*write')
+        self.assertIn('echo "pushed=true" >> "$GITHUB_OUTPUT"', heal)
+        self.assertLess(heal.index('git push'), heal.index('gh workflow run deploy.yml'))
+        dispatch = heal[heal.index('- name: Deploy site'):]
+        self.assertIn("steps.commit.outputs.pushed == 'true'", dispatch)
+        self.assertNotIn('that push triggers deploy.yml', heal)
+
     def test_only_the_canary_runs_on_the_moving_ubuntu_image(self):
         # ubuntu-latest moving to 26.04 broke the daily refresh (Playwright 1.60); everything that
         # publishes stays pinned, and one read-only canary watches the new image.

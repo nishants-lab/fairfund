@@ -5,8 +5,9 @@ name: Heal NAV Gaps
 # mfapi.in and inserts only the dates we are missing - existing values are
 # preserved, so it is idempotent. Runs weekly as a safety net and on demand.
 #
-# It commits and pushes to main; that push triggers deploy.yml to rebuild the
-# site, so this workflow deliberately does not build/deploy itself.
+# It commits and pushes to main, then dispatches deploy.yml. A push made with
+# GITHUB_TOKEN does not start deploy.yml on its own, so until 2026-11-13 healed
+# data waited for the next daily deploy.
 
 on:
   schedule:
@@ -24,6 +25,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write   # dispatch deploy.yml after committing
 
 jobs:
   heal:
@@ -90,6 +92,7 @@ jobs:
         uses: ./.github/actions/validate
 
       - name: Commit healed data
+        id: commit
         if: ${{ inputs.check_only != true }}
         run: |
           git config user.name fairfund-bot
@@ -100,4 +103,11 @@ jobs:
           else
             git commit -m "data: heal NAV gaps $(date +%Y-%m-%d)"
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Deploy site (dispatch deploy.yml)
+        if: ${{ steps.commit.outputs.pushed == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --repo "${{ github.repository }}" --ref main
