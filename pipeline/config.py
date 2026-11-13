@@ -210,6 +210,44 @@ def is_excluded_by_name(fund_name):
 # straight away, with its managers, size, cost and first holdings. It is marked
 # isYoung and carries no 1Y/3Y/5Y metrics or category rank until it has the
 # history for them (pipeline/compute_metrics.py); ranks never use a short window.
+# ---------------------------------------------------------------------------
+# Display names
+# ---------------------------------------------------------------------------
+# AMFI spells some schemes in capitals ("BANDHAN MID CAP FUND", "TRUSTMF Flexi Cap
+# Fund") or leaves a dangling dash ("ICICI Prudential Liquid Fund -"). Display
+# names are tidied once, where a fund enters the site; matching never depends on
+# case. Capitalised words that are real abbreviations stay as they are.
+_KEEP_UPPER = {
+    "AI", "AMC", "ASEAN", "ASK", "BFSI", "BNP", "BSE", "CPSE", "DSP", "EQQQ", "ELSS", "ESG", "ETF",
+    "EV", "FMCG", "FOF", "FTSE", "GIFT", "HDFC", "HSBC", "ICICI", "IDCW", "IPO", "IT", "ITI",
+    "JM", "LIC", "MF", "MNC", "MSCI", "NASDAQ", "NASDAQ100", "NJ", "NSE", "ONE", "PGIM",
+    "PSE", "PSU", "REIT", "REITS", "SBI", "SDL", "TRI", "US", "USA", "UTI",
+}
+_WORD_FIX = {"TRUSTMF": "TrustMF", "OF": "of", "AND": "and"}
+_PHRASE_FIX = (("Angel ONE", "Angel One"), ("Bank Of India", "Bank of India"))
+_CAPS_WORD_RE = re.compile(r"\b[A-Z][A-Z0-9]+\b")
+
+
+def tidy_display_name(name):
+    """A scheme's display name: whole-word capitals in title case unless they are
+    an abbreviation, no trailing dash, single spaces. Idempotent."""
+    out = " ".join((name or "").split())
+    out = re.sub(r"(\s*-)+$", "", out).strip()
+
+    def fix(m):
+        w = m.group(0)
+        if w in _KEEP_UPPER or not re.search(r"[A-Z]{2}", w):
+            return w
+        if w in _WORD_FIX and (w != "OF" and w != "AND" or m.start() > 0):
+            return _WORD_FIX[w]
+        return w.capitalize()
+
+    out = _CAPS_WORD_RE.sub(fix, out)
+    for old, new in _PHRASE_FIX:
+        out = out.replace(old, new)
+    return out
+
+
 MIN_NAV_POINTS = 1
 
 # Debt cash-equivalents (Liquid, Money Market) follow the same rule. Their 1Y
