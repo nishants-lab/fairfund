@@ -17,6 +17,39 @@ async function coverageLine(page,data,size=false){
  } else assert.equal(await line.count(),0,'complete or absent coverage stays hidden');
 }
 async function ask(page,q){await page.fill('#movers-q',q);await page.getByRole('button',{name:'Ask',exact:true}).click();await ready(page)}
+const total=page=>page.getByTestId('movers-table').locator('tfoot tr[data-testid="movers-total"]');
+const bodyCount=page=>page.getByTestId('movers-table').locator('tbody tr').count();
+async function fitsNarrow(page,width,what){
+ for(const w of width<640?[320]:[768]){await page.setViewportSize({width:w,height:900});assert.equal(await noOverflow(page),true,`${what} overflows at ${w}px`);await page.setViewportSize({width,height:900})}
+ assert.equal(await noOverflow(page),true,`${what} overflows at ${width}px`);
+}
+// A grouped table closes with one total row; the Funds column reads "n of m" when some funds have not reported, and says what that means.
+async function groupTotalRow(page,width,label,disjoint){
+ const groups=await bodyCount(page);
+ if(groups<2){assert.equal(await total(page).count(),0,'one group needs no total');return}
+ assert.equal(await total(page).count(),1,'grouped table has a total row');
+ const cells=await total(page).locator('td').allInnerTexts();
+ assert.match(cells[1].trim(),label);
+ assert.ok(cells.slice(2).some(t=>t.trim()),'total row shows figures');
+ const funds=await page.getByTestId('movers-table').locator('tbody tr td:nth-child(4)').allInnerTexts();
+ const parse=t=>{const m=t.trim().match(/^(\d+)(?: of (\d+))?$/);assert.ok(m,`Funds cell reads n or "n of m": ${t}`);if(m[2])assert.ok(+m[1]<+m[2],`n below m: ${t}`);return [+m[1],m[2]?+m[2]:+m[1]]};
+ const rows=funds.map(parse);const [tn,tof]=parse(cells[3]);
+ if(disjoint){
+  assert.equal(tn,rows.reduce((a,r)=>a+r[0],0),'total Funds is the sum of the groups');
+  assert.equal(tof,rows.reduce((a,r)=>a+r[1],0),'total "of" is the sum of the listed groups');
+ } else {
+  assert.ok(tn<=rows.reduce((a,r)=>a+r[0],0)&&tn>=Math.max(...rows.map(r=>r[0])),'overlapping groups count each fund once');
+  assert.ok(tof<=rows.reduce((a,r)=>a+r[1],0)&&tof>=tn,'overlapping "of" counts each fund once');
+ }
+ const partial=page.getByTestId('movers-partial');
+ if([...funds,cells[3]].some(t=>/ of /.test(t))){
+  const m=(await partial.innerText()).match(/^Where Funds reads \u201c(\d+) of (\d+)\u201d, (\d+) of those funds have not reported yet, and the figures cover the (\d+) that have\.$/);
+  assert.ok(m,'n of m is explained');assert.equal(+m[3],+m[2]-+m[1]);assert.equal(m[4],m[1]);
+ } else assert.equal(await partial.count(),0,'no partial groups, no explanation');
+ const absent=page.getByTestId('movers-absent');
+ if(await absent.count())assert.match(await absent.innerText(),/^(.+ is not listed: none of its funds has a figure for this window yet, and \d+ of them ha(s|ve) not reported \w{3} \d{4}\.|Not listed, as none of their funds has a figure for this window yet\. Still to report \w{3} \d{4}: .+ \(\d+ funds?\)(, .+ \(\d+ funds?\))*\.)$/);
+ await fitsNarrow(page,width,'grouped table with total');
+}
 async function portfolioMoves(page,mustHaveRows){
  await page.getByRole('tab',{name:'Portfolio moves',exact:true}).click();
  await page.waitForSelector('[data-testid="movers-summary"]',{timeout:90000});
@@ -60,6 +93,15 @@ async function purchasesOnly(page,mustHaveRows){
    assert.match(await page.getByTestId('movers-footnote').innerText(),/estimate rather than the fund house's reported figure/);
    await coverageLine(page,require('../src/data/movers.json'));
    assert.match(await page.getByTestId('movers-footnote').innerText(),/Category totals only include funds that have reported/);
+   // A fund list ends with an "All N funds" row for the figures that add up.
+   if(await bodyCount(page)>1){
+    assert.equal(await total(page).count(),1,'fund list has a total row');
+    const cells=await total(page).locator('td').allInnerTexts();
+    assert.match(cells[1].trim(),/^All \d+ funds$/);
+    assert.match(cells[2].trim(),/^[+-]?₹[\d.]+(K|L)? Cr$/,'total net flow is shown');
+    assert.match(cells[3].trim(),/^[+-]?\d+\.\d{2}%$/,'total % of AUM is shown');
+    assert.equal(cells[6].trim(),'','monthly flow bars have no total');
+   }
    // The question in the brief: small caps only, the top fund named, its row first.
    await ask(page,'which small cap fund had the highest inflow');
    assert.match(page.url(),/categories=Small\+Cap|categories=Small%20Cap/);
@@ -98,6 +140,16 @@ async function purchasesOnly(page,mustHaveRows){
    await page.goForward();await ready(page);
    assert.equal(await page.inputValue('#movers-q'),'inflows by category');
    assert.match(await page.getByTestId('movers-summary').innerText(),/groups from \d+ funds/);
+   await groupTotalRow(page,width,/^All \d+ categories$/,true);
+   await ask(page,'inflows by theme');
+   await groupTotalRow(page,width,/^All \d+ themes\s+Each fund counted once$/,false);
+   // Fund size by fund house: the figure is the total AUM, so it is not repeated in a second column.
+   await ask(page,'fund size by fund house');
+   const heads=(await page.getByTestId('movers-table').locator('thead th').allInnerTexts()).map(t=>t.trim());
+   assert.equal(heads.filter(t=>/aum/i.test(t)&&/total/i.test(t)).length,1,`one total AUM column: ${heads.join(' | ')}`);
+   assert.ok(heads.includes('Total AUM'),`AUM keeps its capitals: ${heads.join(' | ')}`);
+   await groupTotalRow(page,width,/^All \d+ fund houses$/,true);
+   await ask(page,'inflows by category');
    const g=page.getByTestId('movers-table').locator('tbody tr').first().getByRole('button');
    if(await g.count()){
     const gname=await g.innerText();await g.click();await ready(page);
@@ -129,6 +181,16 @@ async function purchasesOnly(page,mustHaveRows){
     await ask(page,'who bought '+live.stock);
     await page.getByRole('heading',{name:live.stock}).first().waitFor();
     await purchasesOnly(page,false);
+   }
+   // Stocks by sector closes with an "All N sectors" row whose stock count adds up.
+   await ask(page,'stocks by sector');
+   await page.waitForSelector('[data-testid="movers-loading"]',{state:'detached',timeout:90000});
+   if(await bodyCount(page)>1){
+    const cells=await total(page).locator('td').allInnerTexts();
+    assert.match(cells[1].trim(),/^All \d+ sectors$/);
+    const stocks=(await page.getByTestId('movers-table').locator('tbody tr td:nth-child(3)').allInnerTexts()).reduce((a,t)=>a+ +t.trim(),0);
+    assert.equal(+cells[2].trim(),stocks,'total stocks is the sum of the sectors');
+    await fitsNarrow(page,width,'sector table with total');
    }
    // Sorting by a column header is shareable state.
    await page.getByRole('tab',{name:'Returns',exact:true}).click();await ready(page);

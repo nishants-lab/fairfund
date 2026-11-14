@@ -68,6 +68,8 @@ export interface GroupRow {
   pos: number
   neg: number
   totalAum: number | null
+  /** The group's funds that have no figure yet plus `n`, when some of them are still to report; else undefined. */
+  of?: number
   /** Funds in the group, already sorted. */
   members: FundRow[]
 }
@@ -297,8 +299,9 @@ function groupKeys(f: Fund, by: MoversState['groupBy']): [string, string][] {
 }
 
 /** Category, fund house, index vs active or theme figures. Flows, sizes and counts add up and the rest are
- * averaged, unless the question asked for an average or a total. */
-export function groupRows(rows: FundRow[], s: MoversState): GroupRow[] {
+ * averaged, unless the question asked for an average or a total. `waiting` (see waitingFunds) gives each
+ * group its "n of m" count when some of its funds have not reported this window yet. */
+export function groupRows(rows: FundRow[], s: MoversState, waiting: Fund[] = []): GroupRow[] {
   const map = new Map<string, GroupRow>()
   for (const r of rows) {
     if (r.missing) continue
@@ -308,26 +311,101 @@ export function groupRows(rows: FundRow[], s: MoversState): GroupRow[] {
       g.members.push(r)
     }
   }
-  const sum = groupSums(s)
+  const late = new Map<string, number>()
+  for (const f of waiting) for (const [key] of groupKeys(f, s.groupBy)) late.set(key, (late.get(key) ?? 0) + 1)
   for (const g of map.values()) {
-    g.n = g.members.length
-    g.pos = g.members.filter(r => r.value > 0).length
-    g.neg = g.members.filter(r => r.value < 0).length
-    const aums = g.members.map(r => r.vals.aum).filter((x): x is number => x != null)
-    g.totalAum = aums.length ? aums.reduce((a, b) => a + b, 0) : null
-    if (s.count) g.value = g.n
-    else if (s.mode === 'pct' && (s.measure === 'flow' || s.measure === 'aumChange') && s.agg !== 'average') {
-      const k = s.measure === 'flow' ? 'flow' : 'aumChange'
-      const both = g.members.filter(r => r.vals[k] != null && r.vals.startAum != null && r.vals.startAum > 0)
-      const base = both.reduce((a, r) => a + (r.vals.startAum as number), 0)
-      g.value = base > 0 ? Math.round((both.reduce((a, r) => a + (r.vals[k] as number), 0) / base) * 10000) / 100 : 0
-    } else {
-      const total = g.members.reduce((a, r) => a + r.value, 0)
-      g.value = sum ? Math.round(total * 10) / 10 : Math.round((total / g.n) * 100) / 100
-    }
+    aggregate(g, s)
+    if (late.get(g.key)) g.of = g.n + late.get(g.key)!
   }
   const dir = s.order === 'asc' ? 1 : -1
   return [...map.values()].sort((a, b) => (a.value - b.value) * dir || b.n - a.n || a.label.localeCompare(b.label))
+}
+
+/** One row for every fund across `groups`, each fund counted once (a fund can sit in several themes),
+ * so a grouped table never leaves its total to the reader. Null for fewer than two groups. */
+export function groupTotal(groups: GroupRow[], s: MoversState, waiting: Fund[] = []): GroupRow | null {
+  if (groups.length < 2) return null
+  const seen = new Map<number, FundRow>()
+  for (const g of groups) for (const r of g.members) seen.set(r.fund.code, r)
+  const t: GroupRow = { key: 'total', label: 'Total', n: 0, value: 0, pos: 0, neg: 0, totalAum: null, members: [...seen.values()] }
+  aggregate(t, s)
+  // Only funds in the listed groups, so the total's "of" is the sum of the rows'; groups with no fund
+  // reported yet are named separately (waitingOnlyGroups).
+  const listed = new Set(groups.map(g => g.key))
+  const late = waiting.filter(f => !seen.has(f.code) && groupKeys(f, s.groupBy).some(([k]) => listed.has(k))).length
+  if (late) t.of = t.n + late
+  return t
+}
+
+/** Groups with no row (none of their funds has a figure for the window) that have funds still to report
+ * the latest month: label and the number still to report, largest first. Other members may have reported
+ * but lack an earlier month; the page names these groups rather than dropping them silently. */
+export function waitingOnlyGroups(groups: GroupRow[], s: MoversState, waiting: Fund[]): { label: string; n: number }[] {
+  const listed = new Set(groups.map(g => g.key))
+  const map = new Map<string, { label: string; n: number }>()
+  for (const f of waiting) for (const [key, label] of groupKeys(f, s.groupBy)) {
+    if (listed.has(key)) continue
+    const g = map.get(key) ?? { label, n: 0 }
+    g.n++; map.set(key, g)
+  }
+  return [...map.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+}
+
+function aggregate(g: GroupRow, s: MoversState): void {
+  const sum = groupSums(s)
+  g.n = g.members.length
+  g.pos = g.members.filter(r => r.value > 0).length
+  g.neg = g.members.filter(r => r.value < 0).length
+  const aums = g.members.map(r => r.vals.aum).filter((x): x is number => x != null)
+  g.totalAum = aums.length ? aums.reduce((a, b) => a + b, 0) : null
+  if (s.count) g.value = g.n
+  else if (s.mode === 'pct' && (s.measure === 'flow' || s.measure === 'aumChange') && s.agg !== 'average') {
+    g.value = combinedPct(g.members, s.measure === 'flow' ? 'flow' : 'aumChange') ?? 0
+  } else {
+    const total = g.members.reduce((a, r) => a + r.value, 0)
+    g.value = sum ? Math.round(total * 10) / 10 : Math.round((total / g.n) * 100) / 100
+  }
+}
+
+/** Funds' combined flow or AUM change as a % of their combined starting AUM. Null when no fund has both. */
+export function combinedPct(rows: FundRow[], k: 'flow' | 'aumChange'): number | null {
+  const both = rows.filter(r => !r.missing && r.vals[k] != null && r.vals.startAum != null && r.vals.startAum > 0)
+  const base = both.reduce((a, r) => a + (r.vals.startAum as number), 0)
+  return base > 0 ? Math.round((both.reduce((a, r) => a + (r.vals[k] as number), 0) / base) * 10000) / 100 : null
+}
+
+/** Sum of a figure over the rows that have it, rounded like the cells; null when none do. */
+export function sumOf(rows: FundRow[], get: (r: FundRow) => number | null): number | null {
+  const xs = rows.filter(r => !r.missing).map(get).filter((x): x is number => x != null)
+  return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) * 10) / 10 : null
+}
+
+/** Funds the filters keep whose fund house has not reported the latest month yet: they have month-end AUM
+ * history (two months or more, as the coverage line counts) but none for refMonth, so the figure is coming.
+ * A fund that has reported but lacks an earlier month has no figure for the window and is not waiting.
+ * Latest window only (an earlier month is not still arriving); flows and fund size only, and only without a
+ * direction or threshold, which need the figure itself. */
+export function waitingFunds(funds: Fund[], data: MoversData, s: MoversState): Fund[] {
+  const ref = data.refMonth
+  if (!ref || (s.month && s.month !== ref)) return []
+  if ((s.view !== 'flows' && s.view !== 'size') || s.sign !== 'any' || s.thresholds.length || s.count) return []
+  const out: Fund[] = []
+  for (const f of funds) {
+    const m = data.funds[String(f.code)]?.m ?? []
+    if (m.length < 2 || m.some(r => r[0] >= ref) || !passesFundFilters(f, s)) continue
+    if (measureValue(fundVals(f, data, s), s.measure, s.mode) == null) out.push(f)
+  }
+  return out
+}
+
+/** All sectors in one row, so the reader does not add them up. Null for fewer than two sectors. */
+export function sectorTotal(rows: SectorRow[]): SectorRow | null {
+  if (rows.length < 2) return null
+  const t: SectorRow = { key: 'total', label: 'Total', stocks: 0, buyers: 0, sellers: 0, netBuyers: 0, added: 0, exited: 0, valueChange: 0, value: 0 }
+  for (const r of rows) { t.stocks += r.stocks; t.buyers += r.buyers; t.sellers += r.sellers; t.added += r.added; t.exited += r.exited; t.valueChange += r.valueChange }
+  t.netBuyers = t.buyers - t.sellers
+  t.valueChange = Math.round(t.valueChange * 10) / 10
+  return t
 }
 
 /** Whether a group's figure is its members' sum (else their average, or for % flows the combined ratio). */
@@ -340,7 +418,9 @@ export function groupValueLabel(s: MoversState): string {
   if (s.count) return 'Funds'
   const pct = s.mode === 'pct' && (s.measure === 'flow' || s.measure === 'aumChange')
   const kind = s.agg === 'average' ? 'Average' : groupSums(s) ? 'Total' : pct ? 'Combined' : 'Average'
-  return `${kind} ${MEASURE_LABEL[s.measure].toLowerCase()}${pct ? ' (% of AUM)' : ''}`
+  // "AUM", "(CAGR)" and "FairFund" keep their capitals: "Total AUM", not "Total aum".
+  const words = MEASURE_LABEL[s.measure].split(' ').map(w => (/[A-Z].*[A-Z]/.test(w) ? w : w.toLowerCase())).join(' ')
+  return `${kind} ${words}${pct ? ' (% of AUM)' : ''}`
 }
 
 export interface Summary { count: number; total: number | null; average: number | null; summable: boolean }
