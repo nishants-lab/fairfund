@@ -197,6 +197,20 @@ async function purchasesOnly(page,mustHaveRows){
    await page.getByRole('button',{name:/^Sharpe/}).click();
    await page.waitForFunction(()=>/measure=sharpe/.test(location.hash));
    assert.match(await page.getByTestId('movers-summary').innerText(),/Sharpe ratio, highest first/);
+   // Debt and arbitrage funds have no Sharpe here, as on their own pages; the page says how many it leaves out.
+   assert.match(await page.getByTestId('movers-ratio-exempt').innerText(),/^Sharpe and Sortino leave out \d+ debt or arbitrage funds?: their returns barely move/);
+   await page.getByRole('button',{name:/^Sharpe/}).click();
+   await page.waitForFunction(()=>/order=asc/.test(location.hash));
+   const lowCats=await page.getByTestId('movers-table').locator('tbody tr td:nth-child(2) div').allInnerTexts();
+   assert.ok(lowCats.length>0&&lowCats.every(t=>!/^(Liquid|Overnight|Money Market|Arbitrage)\b/.test(t)),`lowest Sharpe lists no cash-like fund: ${lowCats.slice(0,5).join(' | ')}`);
+   // Asking for the Sharpe of liquid funds says why there is none and offers their returns instead.
+   await ask(page,'liquid funds with best sharpe');
+   assert.match(await page.getByTestId('movers-empty').innerText(),/None of these funds has a Sharpe or Sortino figure/);
+   await page.getByRole('button',{name:'Sort these by return instead'}).click();
+   await page.waitForFunction(()=>!/measure=sharpe/.test(location.hash));
+   assert.ok(await bodyCount(page)>0,'liquid funds by return');
+   assert.equal(await page.getByTestId('movers-ratio-exempt').count(),0,'no ratio note once sorted by return');
+   await page.getByRole('tab',{name:'Returns',exact:true}).click();await ready(page);
    // Fund names link to fund pages.
    const links=page.getByTestId('movers-table').locator('tbody a');
    if(await links.count())assert.match(await links.first().getAttribute('href'),/#\/fund\/\d+\//);

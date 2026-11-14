@@ -16,7 +16,7 @@ import {
 } from '../lib/moversState'
 import {
   MEASURE_LABEL, combinedPct, fmtCrore, fmtMeasure, fundRows, groupRows, groupSums, groupTotal, groupValueLabel, sectorRows, sectorTotal,
-  stockRows, sumOf, summarize, thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel,
+  RATIO_MEASURES, ratioExempt, ratioExemptCount, stockRows, sumOf, summarize, thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel,
   type FundRow, type GroupRow, type SectorRow, type StockAction, type StockRow,
 } from '../lib/moversRows'
 
@@ -187,6 +187,7 @@ export default function Movers() {
   const summary = summarize(fRows, s)
   const fundCount = fRows.filter(r => !r.missing).length
   const missing = usesWindow ? fRows.length - fundCount : 0
+  const ratioLeftOut = useMemo(() => (isStocks ? 0 : ratioExemptCount(funds, s)), [s, isStocks])
   const pctMode = s.mode === 'pct' && (s.measure === 'flow' || s.measure === 'aumChange')
   const measureLabel = s.view === 'debt' ? 'AUM' : MEASURE_LABEL[s.measure] + (pctMode ? ' (% of AUM)' : '')
   const loading = !data || (isStocks && !stocks)
@@ -324,6 +325,11 @@ export default function Movers() {
               {s.view === 'size' && ` Funds that have not reported ${monthLabel(ref)} yet show their latest AUM.`}
             </p>
           )}
+          {ratioLeftOut > 0 && (
+            <p className="mt-1 text-xs text-muted" data-testid="movers-ratio-exempt">
+              Sharpe and Sortino leave out {plural(ratioLeftOut, 'debt or arbitrage fund')}: their returns barely move, so these ratios swing on tiny differences. Their fund pages compare costs and fund size instead.
+            </p>
+          )}
           {missing > 0 && s.groupBy === 'fund' && (
             <p className="mt-1 text-xs text-muted" data-testid="movers-missing">
               {plural(missing, 'fund')} named here {missing === 1 ? 'has' : 'have'} no figure for this window.
@@ -352,7 +358,7 @@ export default function Movers() {
               local={local} setLocal={setLocal} onSort={patch} highlight={!!parsed?.singular} />
           )}
           {s.measure === 'terChange' && <p className="mt-3 text-xs text-muted">Expense ratio changes exclude funds under one year old and funds flagged as new (without a full 3Y track record).</p>}
-          <Empty s={s} n={shownCount} winChoices={winChoices} onChange={patch} />
+          <Empty s={s} n={shownCount} winChoices={winChoices} onChange={patch} ratioOnly={ratioLeftOut > 0} />
           <Footnote s={s} data={data!} />
         </>
       )}
@@ -454,7 +460,7 @@ function Answer({ s, parsed, fRows, gRows, sRows, count, summary, winText }: {
   return <p className="mt-3 rounded-lg border border-brand-500/40 bg-brand-500/5 px-3 py-2 text-sm text-fg" data-testid="movers-answer">{line}</p>
 }
 
-function Empty({ s, n, winChoices, onChange }: { s: MoversState; n: number; winChoices: Win[]; onChange: (o: Partial<MoversState>) => void }) {
+function Empty({ s, n, winChoices, onChange, ratioOnly }: { s: MoversState; n: number; winChoices: Win[]; onChange: (o: Partial<MoversState>) => void; ratioOnly?: boolean }) {
   if (n) return null
   const tips: ReactNode[] = []
   const link = 'underline underline-offset-2 hover:text-fg'
@@ -462,11 +468,14 @@ function Empty({ s, n, winChoices, onChange }: { s: MoversState; n: number; winC
     for (const w of winChoices.filter(x => x !== s.win)) tips.push(<button key={w} onClick={() => onChange({ win: w })} className={link}>Try {w} {w === 1 ? 'month' : 'months'}</button>)
   if (s.sign !== 'any') tips.push(<button key="sign" onClick={() => onChange({ sign: 'any' })} className={link}>Show both directions</button>)
   if (s.thresholds.length) tips.push(<button key="th" onClick={() => onChange({ thresholds: [] })} className={link}>Drop the number limits</button>)
+  // Only debt or arbitrage funds were asked about: the useful next step is their returns.
+  if (ratioOnly) tips.push(<button key="ret" onClick={() => onChange({ measure: 'cagr', order: 'desc', thresholds: s.thresholds.filter(t => t.field !== 'sharpe' && t.field !== 'sortino') })} className={link}>Sort these by return instead</button>)
   if (s.action !== 'any') tips.push(<button key="act" onClick={() => onChange({ action: 'any' })} className={link}>Show buying and selling</button>)
   return (
     <div className="mt-2 rounded-xl border border-line px-4 py-6 text-center text-sm text-muted" data-testid="movers-empty">
       <p>{s.view === 'managers' && s.measure === 'left'
         ? 'No departures logged for this selection yet. Departures are recorded from October 2026, as fund manager lists change.'
+        : ratioOnly ? 'None of these funds has a Sharpe or Sortino figure, for the reason above.'
         : s.view === 'stocks' ? 'No portfolio changes for this selection. Funds that publish less than 90% of their portfolio are left out.'
         : 'Nothing matches this selection. Remove a filter above to widen it.'}</p>
       {tips.length > 0 && <p className="mt-2 flex flex-wrap justify-center gap-3 text-xs">{tips}</p>}
@@ -640,7 +649,7 @@ function FundTable({ rows, s, shown, onMore, local, setLocal, onSort, highlight 
           <td className="hidden px-3 py-2.5 text-faint sm:table-cell">{i + 1}</td>
           <td className={STICKY_TD}>
             <Link to={`/fund/${r.fund.code}/${fundSlug(r.fund.name)}`} className="font-medium text-fg hover:text-brand-600">{r.fund.name}</Link>
-            <div className="text-xs text-faint">{r.fund.categoryDisplay || r.fund.category}{r.fund.isYoung ? ' · New fund' : ''}{r.missing ? ' · no figure for this window' : ''}</div>
+            <div className="text-xs text-faint">{r.fund.categoryDisplay || r.fund.category}{r.fund.isYoung ? ' · New fund' : ''}{r.missing ? (ratioExempt(r.fund) && RATIO_MEASURES.includes(s.measure) ? ' · no Sharpe or Sortino for debt or arbitrage funds' : ' · no figure for this window') : ''}</div>
           </td>
           {cols.map(c => <td key={c.key} className={`px-3 py-2.5 tabular-nums ${c.left ? 'text-left' : 'text-right'} ${toneClass(c.tone?.(r))}`}>{c.cell(r)}</td>)}
         </tr>

@@ -15,7 +15,7 @@ import { parseQuery } from '../src/lib/moversQuery'
 import { freshState, type MoversState, type View } from '../src/lib/moversState'
 import {
   fundRows, fundVals, groupRows, groupTotal, groupValueLabel, passesThreshold, sectorRows, sectorTotal, stockRows, sumOf, summarize,
-  thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel, fmtCrore, fmtMeasure, combinedPct, isIndexFund, TRADE_TOLERANCE,
+  thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel, ratioExempt, ratioExemptCount, fmtCrore, fmtMeasure, combinedPct, isIndexFund, TRADE_TOLERANCE,
 } from '../src/lib/moversRows'
 import { moversContext } from './fixtures/movers-context'
 
@@ -443,4 +443,29 @@ test('the headline example returns exactly the current eligible small-cap inflow
     if (data === DATA) assert.deepEqual(rows.map(r => [r.fund.code, r.value]), [[1, 80], [2, -30]])
     if (rows.length) assert.equal(rows[0].value, Math.max(...rows.map(r => r.value)))
   }
+})
+
+test('Sharpe and Sortino leave out debt and arbitrage funds, as every other page does', () => {
+  const withRatios = F.map(f => ({ ...f, metrics: { ...f.metrics, '3Y': { ...f.metrics['3Y'], sharpe: f.isDebt ? -14.3 : 0.9, sortino: f.isDebt ? -3.2 : 1.1 } as never } }))
+  const arb = { ...withRatios[0], code: 6, name: 'Zeta Arbitrage Fund', fullName: 'Zeta Arbitrage Fund', amc: 'Zeta', category: 'Arbitrage', categoryDisplay: 'Arbitrage', isArbitrage: true } as Fund
+  const all = [...withRatios, arb]
+  const s = st('returns', { measure: 'sharpe', horizon: '3Y', order: 'asc' })
+  assert.equal(ratioExempt(all[3]), true)
+  assert.equal(ratioExempt(arb), true)
+  assert.equal(ratioExempt(all[0]), false)
+  const rows = fundRows(all, DATA, s)
+  assert.ok(rows.length > 0)
+  assert.ok(rows.every(r => !r.fund.isDebt && !r.fund.isArbitrage), 'lowest Sharpe is not a liquid fund at -14')
+  assert.equal(fundVals(all[3], DATA, s).sharpe, null)
+  assert.equal(fundVals(all[3], DATA, s).sortino, null)
+  assert.equal(fundVals(all[0], DATA, s).sharpe, 0.9)
+  assert.equal(fundVals(all[3], DATA, s).volatility, fundVals(F[3], DATA, s).volatility)   // other figures stay
+  assert.equal(ratioExemptCount(all, s), 2)
+  assert.equal(ratioExemptCount(all, { ...s, categories: ['Small Cap'] }), 0)              // the filters decide who is left out
+  assert.equal(ratioExemptCount(all, { ...s, measure: 'cagr', thresholds: [{ field: 'sharpe', op: 'gt', a: 1 }] }), 2)
+  assert.equal(ratioExemptCount(all, { ...s, measure: 'cagr' }), 0)
+  assert.equal(ratioExemptCount(all, st('flows')), 0)
+  // A named debt fund is kept with an explanation rather than dropped.
+  const named = fundRows(all, DATA, { ...s, names: ['alpha liquid'] })
+  assert.deepEqual(named.map(r => [r.fund.code, r.missing]), [[4, true]])
 })
