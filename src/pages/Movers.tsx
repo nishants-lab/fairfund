@@ -15,7 +15,8 @@ import {
   type GroupBy, type Measure, type MoversState, type View, type Win,
 } from '../lib/moversState'
 import {
-  MEASURE_LABEL, fmtCrore, fmtMeasure, fundRows, groupRows, groupValueLabel, sectorRows, stockRows, summarize, thresholdLabel, windowLabel,
+  MEASURE_LABEL, combinedPct, fmtCrore, fmtMeasure, fundRows, groupRows, groupSums, groupTotal, groupValueLabel, sectorRows, sectorTotal,
+  stockRows, sumOf, summarize, thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel,
   type FundRow, type GroupRow, type SectorRow, type StockAction, type StockRow,
 } from '../lib/moversRows'
 
@@ -83,6 +84,8 @@ interface Col<R> {
   cell: (r: R) => ReactNode
   tone?: (r: R) => Tone
   left?: boolean
+  /** The column's figure for all listed rows together; only for figures that add up. */
+  total?: (rows: R[]) => { text: ReactNode; tone?: Tone }
 }
 
 export default function Movers() {
@@ -175,7 +178,10 @@ export default function Movers() {
     : windowLabel(ref, isStocks ? (s.win >= 3 ? 3 : 1) : s.win, s.month)
 
   const fRows = useMemo(() => (data && !isStocks ? fundRows(funds, data, s) : []), [data, s, isStocks])
-  const gRows = useMemo(() => (s.groupBy !== 'fund' && !isStocks ? groupRows(fRows, s) : []), [fRows, s, isStocks])
+  const waiting = useMemo(() => (data && !isStocks && s.groupBy !== 'fund' ? waitingFunds(funds, data, s) : []), [data, s, isStocks])
+  const gRows = useMemo(() => (s.groupBy !== 'fund' && !isStocks ? groupRows(fRows, s, waiting) : []), [fRows, s, isStocks, waiting])
+  const gTotal = useMemo(() => groupTotal(gRows, s, waiting), [gRows, s, waiting])
+  const absent = useMemo(() => waitingOnlyGroups(gRows, s, waiting), [gRows, s, waiting])
   const sRows = useMemo(() => (data && stocks && isStocks ? stockRows(funds, data, stocks, s) : []), [data, stocks, s, isStocks])
   const secRows = useMemo(() => (isStocks && s.groupBy === 'sector' && !s.stock ? sectorRows(sRows, s) : []), [sRows, s, isStocks])
   const summary = summarize(fRows, s)
@@ -328,10 +334,19 @@ export default function Movers() {
           )}
           {isStocks ? (
             s.stock ? <StockDetail row={sRows[0]} stock={s.stock} data={data!} action={s.action} onAll={() => patch({ action: 'any' })} onBack={() => patch({ stock: null, action: 'any' })} />
-              : s.groupBy === 'sector' ? <SectorTable rows={limitRows(secRows, s)} onPick={sec => patch({ groupBy: 'fund', stockSectors: [sec] })} />
+              : s.groupBy === 'sector' ? <SectorTable rows={limitRows(secRows, s)} total={sectorTotal(secRows)} sectors={secRows.length} onPick={sec => patch({ groupBy: 'fund', stockSectors: [sec] })} />
               : <StockTable rows={limitRows(sRows, s)} shown={shown} onMore={() => setShown(n => n + PAGE)} onPick={k => patch({ stock: k })} s={s} onSort={patch} />
           ) : s.groupBy !== 'fund' ? (
-            <GroupTable rows={limitRows(gRows, s)} s={s} onPick={g => patch(drillInto(s, g))} />
+            <>
+              <GroupTable rows={limitRows(gRows, s)} total={gTotal} groups={gRows.length} s={s} onPick={g => patch(drillInto(s, g))} />
+              {absent.length > 0 && ref && (
+                <p className="mt-1 text-xs text-muted" data-testid="movers-absent">
+                  {absent.length === 1
+                    ? `${absent[0].label} is not listed: none of its funds has a figure for this window yet, and ${absent[0].n} of them ${absent[0].n === 1 ? 'has' : 'have'} not reported ${monthLabel(ref)}.`
+                    : `Not listed, as none of their funds has a figure for this window yet. Still to report ${monthLabel(ref)}: ${absent.map(a => `${a.label} (${plural(a.n, 'fund')})`).join(', ')}.`}
+                </p>
+              )}
+            </>
           ) : (
             <FundTable rows={limitRows(fRows, s)} s={s} shown={shown} onMore={() => setShown(n => n + PAGE)}
               local={local} setLocal={setLocal} onSort={patch} highlight={!!parsed?.singular} />
@@ -472,18 +487,19 @@ function fundCols(s: MoversState): Col<FundRow>[] {
   const tag = s.month ? monthLabel(s.month) : `${s.win}M`
   switch (s.view) {
     case 'flows': return [
-      { key: 'flow', label: `Net flow ${tag}`, title: 'Estimated net flow: investor money in minus money out', measure: 'flow', mode: 'abs', num: r => v(r).flow, cell: r => cr(v(r).flow, true), tone: r => signTone(v(r).flow) },
-      { key: 'flowPct', label: '% of AUM', measure: 'flow', mode: 'pct', num: r => v(r).flowPct, cell: r => sp(v(r).flowPct, 2, '%'), tone: r => signTone(v(r).flowPct) },
-      { key: 'market', label: 'Market effect', title: 'Change in AUM from the fund\'s own returns', num: r => v(r).market, cell: r => cr(v(r).market, true), tone: () => 'mute' },
-      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum) },
+      { key: 'flow', label: `Net flow ${tag}`, title: 'Estimated net flow: investor money in minus money out', measure: 'flow', mode: 'abs', num: r => v(r).flow, cell: r => cr(v(r).flow, true), tone: r => signTone(v(r).flow), total: sumCol(r => v(r).flow, true) },
+      { key: 'flowPct', label: '% of AUM', measure: 'flow', mode: 'pct', num: r => v(r).flowPct, cell: r => sp(v(r).flowPct, 2, '%'), tone: r => signTone(v(r).flowPct), total: pctCol('flow', 2) },
+      { key: 'market', label: 'Market effect', title: 'Change in AUM from the fund\'s own returns', num: r => v(r).market, cell: r => cr(v(r).market, true), tone: () => 'mute', total: sumCol(r => v(r).market, true, true) },
+      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum), total: sumCol(r => v(r).aum) },
       { key: 'trend', label: 'Monthly flows', cell: r => <FlowBars data={r.flowSeries} /> },
     ]
     case 'size': return [
-      { key: 'aum', label: 'AUM', measure: 'aum', num: r => v(r).aum, cell: r => cr(v(r).aum) },
+      { key: 'aum', label: 'AUM', measure: 'aum', num: r => v(r).aum, cell: r => cr(v(r).aum), total: sumCol(r => v(r).aum) },
       { key: 'chg', label: `Change ${tag}`, measure: 'aumChange', num: r => (s.mode === 'pct' ? v(r).aumChangePct : v(r).aumChange),
-        cell: r => (s.mode === 'pct' ? sp(v(r).aumChangePct, 1, '%') : cr(v(r).aumChange, true)), tone: r => signTone(v(r).aumChange) },
-      { key: 'flow', label: 'From net flow', num: r => v(r).flow, cell: r => cr(v(r).flow, true), tone: r => signTone(v(r).flow) },
-      { key: 'market', label: 'From market', num: r => v(r).market, cell: r => cr(v(r).market, true), tone: () => 'mute' },
+        cell: r => (s.mode === 'pct' ? sp(v(r).aumChangePct, 1, '%') : cr(v(r).aumChange, true)), tone: r => signTone(v(r).aumChange),
+        total: s.mode === 'pct' ? pctCol('aumChange', 1) : sumCol(r => v(r).aumChange, true) },
+      { key: 'flow', label: 'From net flow', num: r => v(r).flow, cell: r => cr(v(r).flow, true), tone: r => signTone(v(r).flow), total: sumCol(r => v(r).flow, true) },
+      { key: 'market', label: 'From market', num: r => v(r).market, cell: r => cr(v(r).market, true), tone: () => 'mute', total: sumCol(r => v(r).market, true, true) },
       { key: 'trend', label: 'AUM trend', cell: r => <Spark data={r.aumSeries} up={(v(r).aumChange ?? 0) >= 0} /> },
     ]
     case 'returns': return [
@@ -510,21 +526,30 @@ function fundCols(s: MoversState): Col<FundRow>[] {
       { key: 'ter', label: 'Expense ratio', measure: 'ter', num: r => v(r).ter, cell: r => pc(v(r).ter, 2) },
       { key: 'chg', label: `Change ${tag}`, measure: 'terChange', num: r => v(r).terChange, cell: r => sp(v(r).terChange, 2),
         tone: r => (v(r).terChange == null || v(r).terChange === 0 ? 'mute' : v(r).terChange! > 0 ? 'neg' : 'pos') },
-      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum) },
+      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum), total: sumCol(r => v(r).aum) },
     ]
     case 'managers': return [
-      { key: 'chg', label: 'Changes', measure: 'mgrChanges', num: r => v(r).mgrChanges, cell: r => String(v(r).mgrChanges ?? 0) },
+      { key: 'chg', label: 'Changes', measure: 'mgrChanges', num: r => v(r).mgrChanges, cell: r => String(v(r).mgrChanges ?? 0),
+        total: rows => ({ text: String(sumOf(rows, r => v(r).mgrChanges) ?? 0) }) },
       { key: 'joined', label: 'Joined', measure: 'joined', num: r => v(r).joined, left: true, cell: r => <People list={r.joinedList} /> },
       { key: 'left', label: 'Left', measure: 'left', num: r => v(r).left, left: true, cell: r => <People list={r.leftList} /> },
       { key: 'vs', label: '1Y vs category', num: r => vs1Y(r.fund), cell: r => sp(vs1Y(r.fund)), tone: r => signTone(vs1Y(r.fund)) },
     ]
     case 'debt': return [
-      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum), tone: r => (v(r).aum == null ? undefined : v(r).aum! >= 1000 ? 'pos' : v(r).aum! < 100 ? 'neg' : undefined) },
+      { key: 'aum', label: 'AUM', num: r => v(r).aum, cell: r => cr(v(r).aum), tone: r => (v(r).aum == null ? undefined : v(r).aum! >= 1000 ? 'pos' : v(r).aum! < 100 ? 'neg' : undefined), total: sumCol(r => v(r).aum) },
       { key: 'ter', label: 'Expense ratio', num: r => v(r).ter, cell: r => pc(v(r).ter, 2), tone: r => (v(r).ter == null ? undefined : v(r).ter! <= 0.15 ? 'pos' : v(r).ter! >= 0.3 ? 'neg' : undefined) },
       { key: 'r1', label: '1Y return', num: r => r1Y(r.fund), cell: r => pc(r1Y(r.fund), 2) },
     ]
     default: return []
   }
+}
+/** A column total that adds up its rows (crore figures). */
+function sumCol(get: (r: FundRow) => number | null, signed = false, mute = false): (rows: FundRow[]) => { text: ReactNode; tone?: Tone } {
+  return rows => { const t = sumOf(rows, get); return { text: cr(t, signed), tone: mute ? 'mute' : signed ? signTone(t) : undefined } }
+}
+/** A % of AUM total: the rows' combined figure over their combined starting AUM, not an average of percentages. */
+function pctCol(k: 'flow' | 'aumChange', d: number): (rows: FundRow[]) => { text: ReactNode; tone?: Tone } {
+  return rows => { const t = combinedPct(rows, k); return { text: sp(t, d, '%'), tone: signTone(t) } }
 }
 function r1Y(f: Fund): number | null { const x = f.metrics?.['1Y']?.cagr; return typeof x === 'number' ? x : null }
 function vs1Y(f: Fund): number | null {
@@ -537,12 +562,15 @@ function toneClass(t: Tone): string {
     : t === 'neg' ? 'font-semibold text-red-500 dark:text-red-400'
     : t === 'mute' ? 'text-muted' : 'text-fg'
 }
-const TD = 'px-3 py-2.5 text-right tabular-nums'
+const TD = 'whitespace-nowrap px-3 py-2.5 text-right tabular-nums'
 const TH = 'px-3 py-2.5 text-right font-medium'
 const ROW = 'border-b border-line/60 last:border-0 hover:bg-surface2/60'
 const HEAD_ROW = 'border-b border-line bg-surface2 text-xs text-muted'
 const STICKY_TH = 'sticky left-0 z-10 bg-surface2 px-3 py-2.5 text-left font-medium'
 const STICKY_TD = 'sticky left-0 z-10 max-w-[190px] bg-surface px-3 py-2.5 sm:max-w-none'
+// The total row closes the table (a <tfoot>), set apart so it is never read as a ranked row.
+const TOTAL_ROW = 'border-t-2 border-line bg-surface2'
+const TOTAL_TD = 'sticky left-0 z-10 max-w-[190px] bg-surface2 px-3 py-2.5 font-semibold text-fg sm:max-w-none'
 
 function SortHead<R>({ c, active, dir, onClick }: { c: Col<R>; active: boolean; dir: 'asc' | 'desc'; onClick?: () => void }) {
   return (
@@ -587,6 +615,8 @@ function FundTable({ rows, s, shown, onMore, local, setLocal, onSort, highlight 
     }
   }
   const dir = local ? local.dir : s.order
+  const counted = rows.filter(r => !r.missing)
+  const showTotal = counted.length > 1 && cols.some(c => c.total)
   return (
     <TableShell testId="movers-table" head={
       <tr className={HEAD_ROW}>
@@ -594,7 +624,17 @@ function FundTable({ rows, s, shown, onMore, local, setLocal, onSort, highlight 
         <th className={STICKY_TH}>Fund</th>
         {cols.map(c => <SortHead key={c.key} c={c} active={isActive(c)} dir={dir} onClick={click(c)} />)}
       </tr>
-    } foot={sorted.length > shown ? <MoreButton left={sorted.length - shown} onClick={onMore} /> : null}>
+    } foot={sorted.length > shown ? <MoreButton left={sorted.length - shown} onClick={onMore} /> : null}
+    total={showTotal ? (
+        <tr className={TOTAL_ROW} data-testid="movers-total">
+          <td className="hidden px-3 py-2.5 sm:table-cell" />
+          <td className={TOTAL_TD}>{s.limit ? `These ${counted.length} funds` : `All ${counted.length} funds`}</td>
+          {cols.map(c => {
+            const t = c.total?.(counted)
+            return <td key={c.key} className={`whitespace-nowrap px-3 py-2.5 font-semibold tabular-nums ${c.left ? 'text-left' : 'text-right'} ${toneClass(t?.tone)}`}>{t?.text ?? ''}</td>
+          })}
+        </tr>
+    ) : null}>
       {sorted.slice(0, shown).map((r, i) => (
         <tr key={r.fund.code} className={`${ROW} ${highlight && i === 0 && !local ? 'bg-brand-500/5' : ''}`}>
           <td className="hidden px-3 py-2.5 text-faint sm:table-cell">{i + 1}</td>
@@ -609,36 +649,65 @@ function FundTable({ rows, s, shown, onMore, local, setLocal, onSort, highlight 
   )
 }
 
-function GroupTable({ rows, s, onPick }: { rows: GroupRow[]; s: MoversState; onPick: (g: GroupRow) => void }) {
+function GroupTable({ rows, total, groups, s, onPick }: {
+  rows: GroupRow[]; total: GroupRow | null; groups: number; s: MoversState; onPick: (g: GroupRow) => void
+}) {
   if (!rows.length) return null
   const valueLabel = groupValueLabel(s)
   const split = SIGN_LABELS[s.measure]
   const groupName = s.groupBy === 'amc' ? 'Fund house' : s.groupBy === 'type' ? 'Type' : s.groupBy === 'theme' ? 'Theme' : 'Category'
+  // When the figure is itself the total AUM, a second AUM column would repeat it.
+  const aumColumn = !(s.measure === 'aum' && !s.count && groupSums(s))
+  const noun = s.groupBy === 'amc' ? 'fund houses' : s.groupBy === 'theme' ? 'themes' : 'categories'
+  const totalLabel = s.groupBy === 'type' ? 'All funds' : `All ${groups} ${noun}`
+  const funds = (g: GroupRow) => (g.of ? `${g.n} of ${g.of}` : String(g.n))
+  const example = rows.find(g => g.of) ?? (total?.of ? total : undefined)
+  const cells = (g: GroupRow) => (
+    <>
+      <td className={`${TD} ${s.count ? 'text-fg' : toneClass(split ? signTone(g.value) : undefined)}`}>{s.count ? g.n : fmtMeasure(s.measure, g.value, s.mode)}</td>
+      {!s.count && <td className={`${TD} text-muted`}>{funds(g)}</td>}
+      {split && <td className={`${TD} text-muted`}>{g.pos} / {g.neg}</td>}
+      {aumColumn && <td className={`${TD} text-muted`}>{g.totalAum == null ? 'n/a' : fmtCrore(g.totalAum)}</td>}
+    </>
+  )
   return (
-    <TableShell testId="movers-table" head={
-      <tr className={HEAD_ROW}>
-        <th className="hidden px-3 py-2.5 text-left font-medium sm:table-cell">#</th>
-        <th className={STICKY_TH}>{groupName}</th>
-        <th className={TH}>{valueLabel}</th>
-        {!s.count && <th className={TH}>Funds</th>}
-        {split && <th className={TH}>{split[0]} / {split[1]}</th>}
-        <th className={TH}>Total AUM</th>
-      </tr>
-    }>
-      {rows.map((g, i) => (
-        <tr key={g.key} className={ROW}>
-          <td className="hidden px-3 py-2.5 text-faint sm:table-cell">{i + 1}</td>
-          <td className={STICKY_TD}>
-            <button onClick={() => onPick(g)} className="text-left font-medium text-fg hover:text-brand-600">{g.label}</button>
-            <div className="text-xs text-faint">See its funds</div>
-          </td>
-          <td className={`${TD} ${s.count ? 'text-fg' : toneClass(split ? signTone(g.value) : undefined)}`}>{s.count ? g.n : fmtMeasure(s.measure, g.value, s.mode)}</td>
-          {!s.count && <td className={`${TD} text-muted`}>{g.n}</td>}
-          {split && <td className={`${TD} text-muted`}>{g.pos} / {g.neg}</td>}
-          <td className={`${TD} text-muted`}>{g.totalAum == null ? 'n/a' : fmtCrore(g.totalAum)}</td>
+    <>
+      <TableShell testId="movers-table" head={
+        <tr className={HEAD_ROW}>
+          <th className="hidden px-3 py-2.5 text-left font-medium sm:table-cell">#</th>
+          <th className={STICKY_TH}>{groupName}</th>
+          <th className={TH}>{valueLabel}</th>
+          {!s.count && <th className={TH}>Funds</th>}
+          {split && <th className={TH}>{split[0]} / {split[1]}</th>}
+          {aumColumn && <th className={TH}>Total AUM</th>}
         </tr>
-      ))}
-    </TableShell>
+      } total={total ? (
+          <tr className={`${TOTAL_ROW} font-semibold`} data-testid="movers-total">
+            <td className="hidden px-3 py-2.5 sm:table-cell" />
+            <td className={TOTAL_TD}>
+              {totalLabel}
+              {s.groupBy === 'theme' && <div className="text-xs font-normal text-faint">Each fund counted once</div>}
+            </td>
+            {cells(total)}
+          </tr>
+      ) : null}>
+        {rows.map((g, i) => (
+          <tr key={g.key} className={ROW}>
+            <td className="hidden px-3 py-2.5 text-faint sm:table-cell">{i + 1}</td>
+            <td className={STICKY_TD}>
+              <button onClick={() => onPick(g)} className="text-left font-medium text-fg hover:text-brand-600">{g.label}</button>
+              <div className="text-xs text-faint">See its funds</div>
+            </td>
+            {cells(g)}
+          </tr>
+        ))}
+      </TableShell>
+      {example && (
+        <p className="mt-1 text-xs text-muted" data-testid="movers-partial">
+          Where Funds reads &ldquo;{example.n} of {example.of}&rdquo;, {example.of! - example.n} of those funds have not reported yet, and the figures cover the {example.n} that have.
+        </p>
+      )}
+    </>
   )
 }
 
@@ -693,8 +762,19 @@ function StockTable({ rows, s, shown, onMore, onPick, onSort }: {
   )
 }
 
-function SectorTable({ rows, onPick }: { rows: SectorRow[]; onPick: (sector: string) => void }) {
+function SectorTable({ rows, total, sectors, onPick }: { rows: SectorRow[]; total: SectorRow | null; sectors: number; onPick: (sector: string) => void }) {
   if (!rows.length) return null
+  const cells = (g: SectorRow) => (
+    <>
+      <td className={`${TD} text-muted`}>{g.stocks}</td>
+      <td className={`${TD} text-emerald-600 dark:text-emerald-400`}>{g.buyers}</td>
+      <td className={`${TD} text-red-500 dark:text-red-400`}>{g.sellers}</td>
+      <td className={`${TD} ${toneClass(signTone(g.netBuyers))}`}>{fmtMeasure('netBuyers', g.netBuyers)}</td>
+      <td className={`${TD} text-muted`}>{g.added}</td>
+      <td className={`${TD} text-muted`}>{g.exited}</td>
+      <td className={`${TD} text-muted`}>{fmtCrore(g.valueChange, true)}</td>
+    </>
+  )
   return (
     <TableShell testId="movers-table" head={
       <tr className={HEAD_ROW}>
@@ -702,20 +782,20 @@ function SectorTable({ rows, onPick }: { rows: SectorRow[]; onPick: (sector: str
         <th className={STICKY_TH}>Sector</th>
         {['Stocks', 'Bought', 'Sold', 'Net', 'New', 'Exited', 'Value held'].map(h => <th key={h} className={TH}>{h}</th>)}
       </tr>
-    }>
+    } total={total ? (
+        <tr className={`${TOTAL_ROW} font-semibold`} data-testid="movers-total">
+          <td className="hidden px-3 py-2.5 sm:table-cell" />
+          <td className={TOTAL_TD}>All {sectors} sectors</td>
+          {cells(total)}
+        </tr>
+    ) : null}>
       {rows.map((g, i) => (
         <tr key={g.key} className={ROW}>
           <td className="hidden px-3 py-2.5 text-faint sm:table-cell">{i + 1}</td>
           <td className={STICKY_TD}>
             <button onClick={() => onPick(g.key)} className="text-left font-medium text-fg hover:text-brand-600">{g.label}</button>
           </td>
-          <td className={`${TD} text-muted`}>{g.stocks}</td>
-          <td className={`${TD} text-emerald-600 dark:text-emerald-400`}>{g.buyers}</td>
-          <td className={`${TD} text-red-500 dark:text-red-400`}>{g.sellers}</td>
-          <td className={`${TD} ${toneClass(signTone(g.netBuyers))}`}>{fmtMeasure('netBuyers', g.netBuyers)}</td>
-          <td className={`${TD} text-muted`}>{g.added}</td>
-          <td className={`${TD} text-muted`}>{g.exited}</td>
-          <td className={`${TD} text-muted`}>{fmtCrore(g.valueChange, true)}</td>
+          {cells(g)}
         </tr>
       ))}
     </TableShell>
@@ -768,13 +848,14 @@ function StockDetail({ row, stock, data, action, onAll, onBack }: {
   )
 }
 
-function TableShell({ head, foot, children, testId }: { head: ReactNode; foot?: ReactNode; children?: ReactNode; testId?: string }) {
+function TableShell({ head, foot, total, children, testId }: { head: ReactNode; foot?: ReactNode; total?: ReactNode; children?: ReactNode; testId?: string }) {
   return (
     <div className="mt-2 overflow-hidden rounded-xl border border-line bg-surface" data-testid={testId}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>{head}</thead>
           <tbody>{children}</tbody>
+          {total && <tfoot>{total}</tfoot>}
         </table>
       </div>
       {foot}

@@ -14,8 +14,8 @@ import { availableWindows, buildContext, type MoversData, type StocksData } from
 import { parseQuery } from '../src/lib/moversQuery'
 import { freshState, type MoversState, type View } from '../src/lib/moversState'
 import {
-  fundRows, fundVals, groupRows, groupValueLabel, passesThreshold, sectorRows, stockRows, summarize, thresholdLabel, windowLabel, fmtCrore,
-  fmtMeasure, isIndexFund, TRADE_TOLERANCE,
+  fundRows, fundVals, groupRows, groupTotal, groupValueLabel, passesThreshold, sectorRows, sectorTotal, stockRows, sumOf, summarize,
+  thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel, fmtCrore, fmtMeasure, combinedPct, isIndexFund, TRADE_TOLERANCE,
 } from '../src/lib/moversRows'
 import { moversContext } from './fixtures/movers-context'
 
@@ -211,6 +211,89 @@ test('grouping: flows add up, % is a ratio of sums, other measures average, coun
   assert.deepEqual(groupRows(fundRows(F, DATA, t), t).map(x => [x.key, x.value]), [['index', 300], ['active', 50]])
   const th = st('flows', { groupBy: 'theme' })
   assert.deepEqual(groupRows(fundRows(F, DATA, th), th).map(x => x.key), ['banking'])
+})
+
+test('grouped tables carry their own total row: each fund once, % as a ratio of sums', () => {
+  const s = st('flows', { groupBy: 'category' })
+  const g = groupRows(fundRows(F, DATA, s), s)
+  const t = groupTotal(g, s)!
+  assert.deepEqual([t.value, t.n, t.pos, t.neg, t.totalAum, t.of], [350, 3, 2, 1, 4580, undefined])
+  // A fund in two groups (themes overlap) is counted once in the total.
+  const twice = groupTotal([g[0], { ...g[0], key: 'again', label: 'Again' }], s)!
+  assert.deepEqual([twice.value, twice.n], [300, 1])
+  const sp = st('flows', { groupBy: 'category', mode: 'pct' })
+  assert.equal(groupTotal(groupRows(fundRows(F, DATA, sp), sp), sp)!.value, 8.33)   // 350 / (1000 + 200 + 3000)
+  const avg = st('returns', { groupBy: 'category', horizon: '1Y' })
+  assert.equal(groupTotal(groupRows(fundRows(F, DATA, avg), avg), avg)!.value, 13)  // average of 11, 12, 13, 14, 15
+  const c = st('returns', { groupBy: 'category', count: true })
+  assert.equal(groupTotal(groupRows(fundRows(F, DATA, c), c), c)!.value, 5)
+  assert.equal(groupTotal(g.slice(0, 1), s), null)                                // one group is its own total
+})
+
+test('"n of m": funds with history that have not reported this window are counted, not hidden', () => {
+  // Fund 2 has two months of AUM, both before Sep: it is still to report.
+  const late: MoversData = { ...DATA, funds: { ...DATA.funds, '2': { ...DATA.funds['2'], m: [['2026-07', 190, null, null], ['2026-08', 200, null, null]], w: {} } } }
+  const s = st('flows', { groupBy: 'category' })
+  const waiting = waitingFunds(F, late, s)
+  assert.deepEqual(waiting.map(f => f.code), [2])                                 // fund 4 has no history, fund 5 one month
+  const g = groupRows(fundRows(F, late, s), s, waiting)
+  assert.deepEqual(g.map(x => [x.label, x.n, x.of]), [['Index-Sectoral/Thematic', 1, undefined], ['Small Cap', 1, 2]])
+  assert.deepEqual([groupTotal(g, s, waiting)!.n, groupTotal(g, s, waiting)!.of], [2, 3])
+  // 3M: funds 2 and 3 have reported Sep but lack earlier months. Their figure is not coming, so they are not waiting.
+  assert.deepEqual(waitingFunds(F, DATA, st('flows', { win: 3 })), [])
+  // An earlier month is not still arriving.
+  assert.deepEqual(waitingFunds(F, late, st('flows', { groupBy: 'category', month: '2026-08' })), [])
+  // A direction or threshold needs the figure itself, and other views have no reporting lag.
+  assert.deepEqual(waitingFunds(F, late, { ...s, sign: 'pos' }), [])
+  assert.deepEqual(waitingFunds(F, late, { ...s, thresholds: [{ field: 'flow', op: 'gt', a: 0 }] }), [])
+  assert.deepEqual(waitingFunds(F, late, st('returns', { groupBy: 'category' })), [])
+  // A group with no fund reported yet has no row; it is named, and the total stays the sum of the listed rows.
+  const both: MoversData = { ...late, funds: { ...late.funds, '3': { m: [['2026-07', 2900, null, null], ['2026-08', 3000, 0, 0]] } } }
+  const w2 = waitingFunds(F, both, s)
+  const g2 = groupRows(fundRows(F, both, s), s, w2)
+  assert.deepEqual(g2.map(x => [x.label, x.n, x.of]), [['Small Cap', 1, 2]])
+  assert.deepEqual(waitingOnlyGroups(g2, s, w2), [{ label: 'Index-Sectoral/Thematic', n: 1 }])
+  assert.deepEqual(waitingOnlyGroups(g, s, waiting), [])
+  // A group with no row can still have reported funds: on 3M fund 2 has reported Sep but lacks the window,
+  // fund 1 has not reported Sep. Only the one still to report is counted.
+  const mixed: MoversData = { ...DATA, funds: { ...DATA.funds, '1': { m: [['2026-07', 900, 10, 1], ['2026-08', 1000, 50, 5]] } } }
+  const s3 = st('flows', { groupBy: 'category', win: 3 })
+  const w3 = waitingFunds(F, mixed, s3)
+  assert.deepEqual(w3.map(f => f.code), [1])
+  const g3 = groupRows(fundRows(F, mixed, s3), s3, w3)
+  assert.deepEqual(g3, [])
+  assert.deepEqual(waitingOnlyGroups(g3, s3, w3), [{ label: 'Small Cap', n: 1 }])
+  assert.equal(groupTotal([...g2, ...g], s, w2)!.of, 3)                              // fund 3's group is not listed in g2, but is in g
+  // A size table by AUM shows a late fund's latest AUM, so it is waiting only when it has none at all.
+  const sz = st('size', { groupBy: 'category', measure: 'aum' })
+  assert.deepEqual(waitingFunds(F, late, sz).map(f => f.code), [2])
+  const withAum = F.map(f => (f.code === 2 ? { ...f, aum: { current: 210, asOf: null } } : f))
+  assert.deepEqual(waitingFunds(withAum, late, sz), [])
+})
+
+test('fund-table totals add the listed rows; % of AUM combines them', () => {
+  const rows = fundRows(F, DATA, st('flows'))
+  assert.equal(sumOf(rows, r => r.vals.flow), 350)
+  assert.equal(sumOf(rows, r => r.vals.aum), 4580)
+  assert.equal(combinedPct(rows, 'flow'), 8.33)
+  assert.equal(sumOf([], r => r.vals.flow), null)
+  const named = fundRows(F, DATA, st('flows', { names: ['delta'] }))           // a named fund without a figure is left out
+  assert.equal(sumOf(named, r => r.vals.aum), null)
+})
+
+test('sector table total adds every sector', () => {
+  const sec = sectorRows(stockRows(F, DATA, SD, st('stocks')), st('stocks', { groupBy: 'sector' }))
+  const t = sectorTotal(sec)!
+  assert.deepEqual([t.stocks, t.buyers, t.sellers, t.netBuyers, t.added, t.exited],
+    ['stocks', 'buyers', 'sellers', 'netBuyers', 'added', 'exited'].map(k => sec.reduce((a, r) => a + (r[k as keyof typeof r] as number), 0)))
+  assert.equal(sectorTotal(sec.slice(0, 1)), null)
+})
+
+test('group headings keep abbreviations in capitals', () => {
+  assert.equal(groupValueLabel(st('size', { groupBy: 'amc', measure: 'aum' })), 'Total AUM')
+  assert.equal(groupValueLabel(st('size', { groupBy: 'amc', measure: 'aumChange' })), 'Total AUM change')
+  assert.equal(groupValueLabel(st('returns', { groupBy: 'category', measure: 'cagr' })), 'Average return (CAGR)')
+  assert.equal(groupValueLabel(st('returns', { groupBy: 'category', measure: 'score' })), 'Average FairFund score')
 })
 
 test('summary: totals only add up for rupee flows and sizes', () => {
