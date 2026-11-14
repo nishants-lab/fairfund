@@ -161,6 +161,16 @@ function monthsBefore(iso: string, win: number): string {
   return addMonths(iso.slice(0, 7), -win) + iso.slice(7, 10)
 }
 
+/** Sharpe and Sortino are left out for debt and arbitrage funds, as on every other page: their returns barely
+ * move, so a hair below the cash rate over a tiny volatility reads as -15. */
+export const RATIO_MEASURES: readonly Measure[] = ['sharpe', 'sortino']
+export function ratioExempt(f: Pick<Fund, 'isDebt' | 'isArbitrage'>): boolean { return !!(f.isDebt || f.isArbitrage) }
+/** Debt and arbitrage funds the filters keep that a Sharpe or Sortino list, sort or threshold leaves out; 0 otherwise. */
+export function ratioExemptCount(funds: Fund[], s: MoversState): number {
+  const uses = s.view === 'returns' && (RATIO_MEASURES.includes(s.measure) || s.thresholds.some(t => t.field === 'sharpe' || t.field === 'sortino'))
+  return uses ? funds.filter(f => ratioExempt(f) && passesFundFilters(f, s)).length : 0
+}
+
 export function fundVals(f: Fund, data: MoversData, s: MoversState): FundVals {
   const fm = data.funds[String(f.code)] ?? {}
   const m = fm.m ?? []
@@ -206,7 +216,7 @@ export function fundVals(f: Fund, data: MoversData, s: MoversState): FundVals {
   return {
     aum, startAum, aumChange, aumChangePct: round(pctOf(aumChange)), flow, flowPct: round(pctOf(flow)), market: round(market, 1),
     cagr, vsCategory: cagr != null && med != null ? round(cagr - med) : null,
-    sharpe: num(mt?.sharpe), sortino: num(mt?.sortino), volatility: num(mt?.volatility),
+    sharpe: ratioExempt(f) ? null : num(mt?.sharpe), sortino: ratioExempt(f) ? null : num(mt?.sortino), volatility: num(mt?.volatility),
     drawdown: dd == null ? null : Math.abs(dd), alpha: num(mt?.alpha),
     score: num(mt?.score) == null ? null : Math.round((mt!.score as number) * 1000) / 10,
     catRank: num(mt?.catRank), catSize: num(mt?.catSize),
