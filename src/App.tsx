@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
+import PageError from './components/PageError'
+import { withChunkReload } from './lib/staleChunk'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -14,17 +16,17 @@ import NotFound from './pages/NotFound'
 
 // Lazy-load heavy pages to reduce initial bundle size.
 // Home stays eager (it's the landing page).
-const Explore = lazy(() => import('./pages/Explore'))
-const FundDetail = lazy(() => import('./pages/FundDetail'))
-const Compare = lazy(() => import('./pages/Compare'))
-const Methodology = lazy(() => import('./pages/Methodology'))
-const Wishlist = lazy(() => import('./pages/Wishlist'))
-const SignIn = lazy(() => import('./pages/SignIn'))
-const MyDashboard = lazy(() => import('./pages/MyDashboard'))
-const Portfolio = lazy(() => import('./pages/Portfolio'))
-const Movers = lazy(() => import('./pages/Movers'))
-const CategoryDetail = lazy(() => import('./pages/CategoryDetail'))
-const Nfo = lazy(() => import('./pages/Nfo'))
+const Explore = lazy(withChunkReload(() => import('./pages/Explore')))
+const FundDetail = lazy(withChunkReload(() => import('./pages/FundDetail')))
+const Compare = lazy(withChunkReload(() => import('./pages/Compare')))
+const Methodology = lazy(withChunkReload(() => import('./pages/Methodology')))
+const Wishlist = lazy(withChunkReload(() => import('./pages/Wishlist')))
+const SignIn = lazy(withChunkReload(() => import('./pages/SignIn')))
+const MyDashboard = lazy(withChunkReload(() => import('./pages/MyDashboard')))
+const Portfolio = lazy(withChunkReload(() => import('./pages/Portfolio')))
+const Movers = lazy(withChunkReload(() => import('./pages/Movers')))
+const CategoryDetail = lazy(withChunkReload(() => import('./pages/CategoryDetail')))
+const Nfo = lazy(withChunkReload(() => import('./pages/Nfo')))
 
 function PageLoader() {
   return (
@@ -38,6 +40,7 @@ function PageLoader() {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
   return (
     <ToastProvider>
     <div className="flex min-h-screen flex-col">
@@ -45,6 +48,7 @@ export default function App() {
       <UsageTracker />
       <Navbar />
       <main className="flex-1">
+        <PageError resetKey={pathname}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -62,6 +66,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </PageError>
       </main>
       <Footer />
       <Onboarding />
