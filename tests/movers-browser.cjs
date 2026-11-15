@@ -190,6 +190,7 @@ async function purchasesOnly(page,mustHaveRows){
     assert.match(cells[1].trim(),/^All \d+ sectors$/);
     const stocks=(await page.getByTestId('movers-table').locator('tbody tr td:nth-child(3)').allInnerTexts()).reduce((a,t)=>a+ +t.trim(),0);
     assert.equal(+cells[2].trim(),stocks,'total stocks is the sum of the sectors');
+   assert.match(await page.getByTestId('movers-footnote').innerText(),/By sector, Bought, Sold, New and Exited count each fund's move in each stock/);
     await fitsNarrow(page,width,'sector table with total');
    }
    // Sorting by a column header is shareable state.
