@@ -12,19 +12,22 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = sorted((ROOT / '.github/workflows').glob('*.yml'))
 OWNER_EMAIL = '52659071+nishants-lab@users.noreply.github.com'
-FORBIDDEN = ['bot@fairfund.in', 'fairfund-bot@users.noreply.github.com',
-             'nishant@users.noreply.github.com', 'someone@example.com']
+# An allow-list rather than a list of wrong addresses: any address other than the owner's fails.
+EMAIL = re.compile(r'[A-Za-z0-9._%+\[\]-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
 
 
 class WorkflowIdentityTests(unittest.TestCase):
     def test_workflows_found(self):
         self.assertGreaterEqual(len(WORKFLOWS), 5)
 
-    def test_no_forbidden_identities(self):
+    def test_only_the_owner_identity_appears(self):
         for wf in WORKFLOWS:
-            text = wf.read_text(encoding='utf-8')
-            for bad in FORBIDDEN:
-                self.assertNotIn(bad, text, f'{wf.name} uses {bad}')
+            for email in EMAIL.findall(wf.read_text(encoding='utf-8')):
+                self.assertEqual(email, OWNER_EMAIL, f'{wf.name} uses {email}')
+
+    def test_allow_list_catches_other_addresses(self):
+        for bad in ['bot@example.org', 'other-bot@users.noreply.github.com', 'someone@example.com']:
+            self.assertEqual(EMAIL.findall(f'git config user.email {bad}'), [bad])
 
     def test_every_git_commit_step_sets_owner_email_first(self):
         for wf in WORKFLOWS:

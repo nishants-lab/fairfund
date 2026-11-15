@@ -1,7 +1,9 @@
 import sharp from 'sharp';
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 
-const root = 'tmp/ff-disc/public';
+// The repo's public/ folder, wherever the repo is checked out.
+const root = fileURLToPath(new URL('../public', import.meta.url));
 const svg = readFileSync(`${root}/favicon.svg`);
 
 for (const size of [192, 512]) {
