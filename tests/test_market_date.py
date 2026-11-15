@@ -10,8 +10,7 @@ response and a fixed clock, so results do not depend on the day the test runs.
 Network and sleep calls are replaced with unittest.mock.patch context managers, so
 no module state leaks out of a test.
 
-Scratch location: $FF_TEST_TMPDIR, else ~/.aki/tmp when present, else the OS temp
-dir (so CI, which has no ~/.aki, still works).
+Scratch location: $FF_TEST_TMPDIR when set, else the OS temp dir.
 
 Usage: python tests/test_market_date.py
 """
@@ -54,8 +53,7 @@ def scratch_base():
     override = os.environ.get("FF_TEST_TMPDIR")
     if override and os.path.isdir(override):
         return override
-    aki_tmp = os.path.join(os.path.expanduser("~"), ".aki", "tmp")
-    return aki_tmp if os.path.isdir(aki_tmp) else None
+    return None
 
 
 @contextmanager

@@ -20,6 +20,6 @@ Run every item before pushing. A green local run that skips these has burned us 
 - [ ] The specific card/badge that changed renders with real data, not just compiles.
 
 ## Push
-- [ ] Commit author email is the GitHub noreply, never the amazon address.
+- [ ] Commit author email is the owner's GitHub noreply address, never any other.
 - [ ] After push, confirm the Actions run for the pushed SHA is `success`
       before calling it live. Never assert "live" from memory.
