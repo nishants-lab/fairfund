@@ -289,7 +289,10 @@ DAILY_STALE_GAP_DAYS = 7
 # used here only to pick the sub-bucket. A wider or narrower index (Nifty 500,
 # Nifty Next 50, Top 10/20) or a factor/thematic variant is not broad large-cap
 # and falls through to the existing index fallback.
-_BROAD_LARGECAP_INDEX_RE = re.compile(r"\b(?:nifty\s?50|nifty\s?100|sensex)\b(?!\s?\d)")
+# "Nifty Index Fund" with no number is the older name for a Nifty 50 fund
+# (SBI Nifty Index Fund tracks the NIFTY 50 Total Return Index).
+_BROAD_LARGECAP_INDEX_RE = re.compile(
+    r"\b(?:nifty\s?50|nifty\s?100|sensex)\b(?!\s?\d)|\bnifty index fund\b")
 _NOT_BROAD_LARGECAP_QUALIFIERS = (
     "next", "500", "top ", "value", "quality", "momentum", "alpha",
     "low vol", "volatility", "shariah", "dividend", "esg",
@@ -306,10 +309,11 @@ def _is_broad_largecap_index(name):
 
 
 # AMFI files every index fund under one category, so the sub-category comes
-# from the fund name. These rules reproduce the ones that built the existing
-# index categories (scripts/authoritative_category._index_bucket), which still
-# match every live Index-MidCap, Index-SmallCap and Index-Sectoral/Thematic fund,
-# in the same order: thematic and factor first, then mid cap, then small cap.
+# from the fund name. These rules started from the ones that built the
+# original index categories (scripts/authoritative_category._index_bucket) and
+# must place every live index fund in its current sub-category
+# (tests/test_category_mapping.py checks this). Order: thematic and factor
+# first, then mid cap, then small cap, then broad large cap, then Index-Other.
 # The large-cap step uses _is_broad_largecap_index instead of the original
 # substring test, which also caught Nifty 500 and Sensex Next 30 funds.
 INDEX_THEMATIC_KEYWORDS = (
@@ -319,6 +323,11 @@ INDEX_THEMATIC_KEYWORDS = (
     "defence", "digital", "realty", "media", "commodit",
     "private bank", "financial", "alpha", "low volatility",
     "dividend", "capex", "tourism", "ev ", "innovation",
+    # Single-theme indices that once fell through to Index-Other, where they
+    # were ranked against Nifty 500 and Next 50 funds (2026-11-15).
+    "housing", "capital market", "internet", "business group",
+    "non-cyclical", "sector leader", "clean environment", "reit",
+    "chemical", "information technology", "niftyit", "shariah",
 )
 
 
