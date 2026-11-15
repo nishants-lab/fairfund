@@ -8,6 +8,7 @@ import { amcAliases, normalizeSearch, otherNames } from './searchText'
 import type { ParseContext } from './moversQuery'
 import type { Win } from './moversState'
 import { displayStockName, formerStockName } from './stockNames'
+import { withChunkReload } from './staleChunk'
 
 /** [month YYYY-MM, AUM crore, estimated net flow crore | null, NAV return % | null] */
 export type MonthRow = [string, number, number | null, number | null]
@@ -48,11 +49,11 @@ export interface StocksData {
 let moversPromise: Promise<MoversData> | null = null
 let stocksPromise: Promise<StocksData> | null = null
 export function loadMovers(): Promise<MoversData> {
-  moversPromise ??= import('../data/movers.json').then(m => (m.default ?? m) as unknown as MoversData)
+  moversPromise ??= withChunkReload(() => import('../data/movers.json'))().then(m => (m.default ?? m) as unknown as MoversData, e => { moversPromise = null; throw e })
   return moversPromise
 }
 export function loadStocks(): Promise<StocksData> {
-  stocksPromise ??= import('../data/movers_stocks.json').then(m => (m.default ?? m) as unknown as StocksData)
+  stocksPromise ??= withChunkReload(() => import('../data/movers_stocks.json'))().then(m => (m.default ?? m) as unknown as StocksData, e => { stocksPromise = null; throw e })
   return stocksPromise
 }
 

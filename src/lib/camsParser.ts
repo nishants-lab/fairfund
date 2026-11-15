@@ -9,6 +9,7 @@
  */
 import { universeFunds } from './matcherUniverse'
 import { isIsoDate } from './marketDate'
+import { withChunkReload } from './staleChunk'
 import type { Transaction, ParsedPortfolio, FundSummary } from './portfolio'
 
 /**
@@ -492,7 +493,7 @@ export function parseCAMSText(text: string): ParsedPortfolio {
 
 export async function parseCAMSPdf(file: File, password?: string): Promise<{ portfolio?: ParsedPortfolio; needsPassword?: boolean; error?: string }> {
   try {
-    const pdfjsLib = await import('pdfjs-dist')
+    const pdfjsLib = await withChunkReload(() => import('pdfjs-dist'))()
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
       'pdfjs-dist/build/pdf.worker.min.mjs',
       import.meta.url
