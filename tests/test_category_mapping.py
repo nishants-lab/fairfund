@@ -62,7 +62,8 @@ class IndexBucketTests(unittest.TestCase):
     def test_broad_large_cap_goes_to_index_funds(self):
         for name in ("Axis Nifty 50 Index Fund", "UTI Nifty50 Equal Weight Index Fund",
                      "HDFC NIFTY 100 Index Fund", "Kotak Nifty 100 Equal Weight Index Fund",
-                     "SBI BSE Sensex Index Fund", "Groww Nifty 50 Index Fund"):
+                     "SBI BSE Sensex Index Fund", "Groww Nifty 50 Index Fund",
+                     "SBI Nifty Index Fund"):
             for cat in (INDEX, INDEX_OLD):
                 with self.subTest(name=name, cat=cat):
                     self.assertEqual(M(cat, name), "Index Funds")
@@ -71,7 +72,8 @@ class IndexBucketTests(unittest.TestCase):
         # Wider or narrower than Nifty 50/100/Sensex: not broad large-cap.
         for name in ("Motilal Oswal Nifty 500 Index Fund", "DSP Nifty500 Index Fund",
                      "Kotak Nifty Next 50 Index Fund", "DSP Nifty Top 10 Equal Weight Index Fund",
-                     "UTI Nifty500 Shariah Index Fund", "Nippon India BSE Sensex Next 30 Index Fund"):
+                     "Nippon India BSE Sensex Next 30 Index Fund", "Mirae Asset Nifty Total Market Index Fund",
+                     "Motilal Oswal BSE 1000 Index Fund", "HDFC Nifty500 Multicap 50:25:25 Index Fund"):
             with self.subTest(name=name):
                 self.assertEqual(M(INDEX, name), "Index-Other")
 
@@ -81,7 +83,17 @@ class IndexBucketTests(unittest.TestCase):
                      "Groww Nifty Private Bank Index Fund", "Axis Nifty500 Quality 50 Index Fund",
                      "UTI Nifty50 Value 20 Index Fund", "SBI Nifty100 Low Volatility 30 Index Fund",
                      "SBI Nifty200 Momentum 30 Index Fund",
-                     "Navi Nifty Smallcap250 Momentum Quality 100 Index Fund"):
+                     "Navi Nifty Smallcap250 Momentum Quality 100 Index Fund",
+                     # Single themes that used to fall through to Index-Other.
+                     "UTI BSE Housing Index Fund", "Tata Nifty Capital Markets Index Fund",
+                     "Edelweiss BSE Internet Economy Index Fund", "Navi NiftyIT Index Fund",
+                     "Axis BSE India Sector Leaders Index Fund", "UTI Nifty500 Shariah Index Fund",
+                     "HDFC BSE REITS and Commercial Real Estate Index Fund",
+                     "Invesco India Nifty Chemical Index Fund",
+                     "Mirae Asset BSE Information Technology Index Fund",
+                     "Groww Nifty Non-Cyclical Consumer Index Fund",
+                     "Tata BSE Select Business Groups Index Fund",
+                     "Motilal Oswal BSE Clean Environment Index Fund"):
             with self.subTest(name=name):
                 self.assertEqual(M(INDEX, name), "Index-Sectoral/Thematic")
 
@@ -96,7 +108,8 @@ class IndexBucketTests(unittest.TestCase):
         import json
         data = json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))
         for fund in data["funds"]:
-            if fund["category"] in ("Index-MidCap", "Index-SmallCap", "Index-Sectoral/Thematic"):
+            if fund["category"] in ("Index-MidCap", "Index-SmallCap", "Index-Sectoral/Thematic",
+                                    "Index-Other", "Index Funds"):
                 with self.subTest(code=fund["code"], name=fund["name"]):
                     self.assertEqual(C.index_bucket(fund["name"]), fund["category"])
 
