@@ -98,7 +98,7 @@ export default function MyDashboard() {
               <StatCard
                 label="Total gain"
                 value={`₹${(analysis.totalGain / 100000).toFixed(1)}L`}
-                sub={`${analysis.totalGainPct >= 0 ? '+' : ''}${analysis.totalGainPct.toFixed(1)}%`}
+                sub={`${signedPct(analysis.totalGainPct, 1)}`}
                 color={analysis.totalGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}
               />
               <StatCard

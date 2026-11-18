@@ -3,6 +3,7 @@ import type { Fund, Horizon } from '../types'
 import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
+import { signedPct } from '../lib/format'
 
 /**
  * A self-contained, fixed-size branded card rasterised to a PNG for the Share
@@ -79,7 +80,7 @@ function cardData(fund: Fund): ShareCardData {
     rank: m?.catRank != null && m?.catSize != null ? `#${m.catRank} of ${m.catSize}` : null,
     cagr: m?.cagr != null ? `${m.cagr.toFixed(1)}%` : null,
     cagrLabel: `${baselineHorizon} CAGR`,
-    extra: m?.alpha != null ? `${m.alpha >= 0 ? '+' : ''}${m.alpha.toFixed(1)}%` : null,
+    extra: m?.alpha != null ? `${signedPct(m.alpha, 1)}` : null,
     extraLabel: 'Alpha vs peers',
   }
 }

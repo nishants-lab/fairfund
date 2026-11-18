@@ -11,6 +11,7 @@
  * A weighted reading of the data, framed as conviction.
  */
 import type { Fund } from '../types'
+import { signedPct } from './format'
 
 export interface VerdictPillar {
   label: string
@@ -66,7 +67,7 @@ export function buildVerdict(fund: Fund): Verdict {
   if (base?.alpha != null) {
     alphaPts = clamp(50 + base.alpha * 6, 0, 100) // +8%/yr alpha ~ 98
     const p: VerdictPillar = {
-      label: `${base.alpha >= 0 ? '+' : ''}${base.alpha.toFixed(1)}%/yr vs peers`,
+      label: `${signedPct(base.alpha, 1)}/yr vs peers`,
       detail: 'vs the category median return',
       tone: base.alpha >= 1 ? 'good' : base.alpha <= -1 ? 'bad' : 'neutral',
     }
@@ -140,7 +141,7 @@ function buildOneLiner(fund: Fund, score: number, _label: string, _pos: VerdictP
   const cat = fund.categoryDisplay
   const parts: string[] = []
   if (base?.catRank != null && base?.catSize != null) parts.push(`ranks #${base.catRank} of ${base.catSize} in ${cat} on ${horizon} risk-adjusted return`)
-  if (base?.alpha != null) parts.push(`${base.alpha >= 0 ? '+' : ''}${base.alpha.toFixed(1)}%/yr vs the category median`)
+  if (base?.alpha != null) parts.push(`${signedPct(base.alpha, 1)}/yr vs the category median`)
   if (base?.sharpe != null) parts.push(`Sharpe ${base.sharpe.toFixed(2)}`)
   const head = parts.length ? parts.join(', ') : 'limited comparable history so far'
   const sentence = head.charAt(0).toUpperCase() + head.slice(1)

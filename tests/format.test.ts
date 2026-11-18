@@ -19,3 +19,13 @@ test('other values keep their sign', () => {
   assert.equal(fixed(-3.4, 0), '-3')
   assert.equal(pct(null), '\u2014')
 })
+
+test('Movers crore and point figures that round to zero carry no sign', async () => {
+  const { fmtCrore } = await import('../src/lib/moversRows.ts')
+  assert.equal(fmtCrore(-0.04, true), '\u20b90.0 Cr')
+  assert.equal(fmtCrore(0.04, true), '\u20b90.0 Cr')
+  assert.equal(fmtCrore(-0.04), '\u20b90.0 Cr')
+  assert.equal(fmtCrore(-12.6, true), '-\u20b913 Cr')
+  assert.equal(fmtCrore(1250, true), '+\u20b91.3K Cr')
+  assert.equal(fmtCrore(-250000), '-\u20b92.50L Cr')
+})

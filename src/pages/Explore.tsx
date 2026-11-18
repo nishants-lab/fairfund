@@ -383,7 +383,7 @@ export default function Explore() {
                       </td>
                       {si ? (
                         <td colSpan={isDebtCat ? 3 : 6} className="px-4 py-3 text-right text-xs">
-                          <span className="font-semibold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}% since launch</span>
+                          <span className="font-semibold text-fg">{signedPct(si.totalReturn, 1)} since launch</span>
                           {launched && <span className="text-faint"> · since {launched}; current matched {horizon} period unavailable</span>}
                         </td>
                       ) : (

@@ -561,13 +561,16 @@ const FIELD_LABEL: Record<FilterField, string> = {
 
 export function fmtCrore(cr: number, signed = false): string {
   const a = Math.abs(cr)
-  const sign = signed ? (cr > 0 ? '+' : cr < 0 ? '-' : '') : cr < 0 ? '-' : ''
-  if (a >= 100000) return `${sign}₹${(a / 100000).toFixed(2)}L Cr`
-  if (a >= 1000) return `${sign}₹${(a / 1000).toFixed(1)}K Cr`
-  if (a >= 10) return `${sign}₹${a.toFixed(0)} Cr`
-  return `${sign}₹${a.toFixed(1)} Cr`
+  const [num, unit] = a >= 100000 ? [(a / 100000).toFixed(2), 'L Cr'] : a >= 1000 ? [(a / 1000).toFixed(1), 'K Cr']
+    : a >= 10 ? [a.toFixed(0), ' Cr'] : [a.toFixed(1), ' Cr']
+  // A figure that rounds to zero carries no sign.
+  const sign = Number(num) === 0 ? '' : signed ? (cr > 0 ? '+' : '-') : cr < 0 ? '-' : ''
+  return `${sign}₹${num}${unit}`
 }
-const signed = (v: number, d = 1) => `${v > 0 ? '+' : v < 0 ? '-' : ''}${Math.abs(v).toFixed(d)}`
+const signed = (v: number, d = 1) => {
+  const s = Math.abs(v).toFixed(d)
+  return Number(s) === 0 ? s : `${v > 0 ? '+' : '-'}${s}`
+}
 
 /** A measure's value as text, for cells, chips and answers. */
 export function fmtMeasure(measure: Measure | FilterField, v: number, mode: MoversState['mode'] = 'abs'): string {

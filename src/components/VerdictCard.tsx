@@ -3,6 +3,7 @@ import type { Fund } from '../types'
 import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
+import { signedPct } from '../lib/format'
 
 // Blue intensity varies with score without assigning a qualitative rating.
 function scoreBand(score: number): {
@@ -125,13 +126,13 @@ function NoMatchedPeriod({ fund }: { fund: Fund }) {
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-line bg-surface2/40 p-3">
             <div className="text-xs uppercase tracking-wide text-faint">Return since launch</div>
-            <div className="mt-1 text-lg font-bold text-fg">{si.totalReturn >= 0 ? '+' : ''}{si.totalReturn.toFixed(1)}%</div>
+            <div className="mt-1 text-lg font-bold text-fg">{signedPct(si.totalReturn, 1)}</div>
             <div className="mt-0.5 text-xs text-muted">Absolute, not annualised.</div>
           </div>
           {si.cagr != null && (
             <div className="rounded-lg border border-line bg-surface2/40 p-3">
               <div className="text-xs uppercase tracking-wide text-faint">Annualised (CAGR)</div>
-              <div className="mt-1 text-lg font-bold text-fg">{si.cagr >= 0 ? '+' : ''}{si.cagr.toFixed(1)}%</div>
+              <div className="mt-1 text-lg font-bold text-fg">{signedPct(si.cagr, 1)}</div>
               <div className="mt-0.5 text-xs text-muted">{si.days < 365 ? 'Less than one year of history; treat with caution.' : 'Annualised over the available since-launch history.'}</div>
             </div>
           )}

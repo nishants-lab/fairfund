@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
 import { funds, categoryDisplay } from '../lib/data'
-import { fundSlug } from '../lib/format'
+import { fundSlug, signedPct } from '../lib/format'
 import { normalizeSearch } from '../lib/searchText'
 import type { Fund } from '../types'
 import ShareButton from '../components/ShareButton'
@@ -488,7 +488,11 @@ const NA = <span className="text-faint">n/a</span>
 const signTone = (x: number | null): Tone => (x == null || x === 0 ? 'mute' : x > 0 ? 'pos' : 'neg')
 const cr = (x: number | null, signed = false) => (x == null ? NA : fmtCrore(x, signed))
 const pc = (x: number | null, d = 1) => (x == null ? NA : `${x.toFixed(d)}%`)
-const sp = (x: number | null, d = 1, unit = ' pts') => (x == null ? NA : `${x > 0 ? '+' : x < 0 ? '-' : ''}${Math.abs(x).toFixed(d)}${unit}`)
+const sp = (x: number | null, d = 1, unit = ' pts') => {
+  if (x == null) return NA
+  const s = Math.abs(x).toFixed(d)
+  return `${Number(s) === 0 ? '' : x > 0 ? '+' : '-'}${s}${unit}`
+}
 const ratio = (x: number | null) => (x == null ? NA : x.toFixed(2))
 
 function fundCols(s: MoversState): Col<FundRow>[] {
@@ -763,7 +767,7 @@ function StockTable({ rows, s, shown, onMore, onPick, onSort }: {
           <td className={`${TD} ${toneClass(signTone(r.netBuyers))}`}>{fmtMeasure('netBuyers', r.netBuyers)}</td>
           <td className={`${TD} text-muted`}>{r.added}</td>
           <td className={`${TD} text-muted`}>{r.exited}</td>
-          <td className={`${TD} text-muted`}>{r.priceMove == null ? 'n/a' : `${r.priceMove > 0 ? '+' : ''}${r.priceMove.toFixed(1)}%`}</td>
+          <td className={`${TD} text-muted`}>{r.priceMove == null ? 'n/a' : `${signedPct(r.priceMove, 1)}`}</td>
           <td className={`${TD} text-muted`}>{fmtCrore(r.valueChange, true)}</td>
         </tr>
       ))}
@@ -820,7 +824,7 @@ function StockDetail({ row, stock, data, action, onAll, onBack }: {
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <button onClick={onBack} className="text-sm text-brand-600 hover:underline">← All stocks</button>
         <h2 className="text-lg font-semibold text-fg">{name}</h2>
-        {row && <span className="text-sm text-muted">{row.sector} · {row.buyers} bought, {row.sellers} sold{row.priceMove != null ? ` · price move about ${row.priceMove > 0 ? '+' : ''}${row.priceMove.toFixed(1)}%` : ''}</span>}
+        {row && <span className="text-sm text-muted">{row.sector} · {row.buyers} bought, {row.sellers} sold{row.priceMove != null ? ` · price move about ${signedPct(row.priceMove, 1)}` : ''}</span>}
       </div>
       {row && action !== 'any' && row.moves.length < row.movers && (
         <p className="mb-2 text-xs text-muted">Showing the funds that {ACTION_VERB[action]} it.{' '}
@@ -847,7 +851,7 @@ function StockDetail({ row, stock, data, action, onAll, onBack }: {
               <td className={`whitespace-nowrap px-3 py-2.5 ${toneClass(m.action === 'added' || m.action === 'raised' ? 'pos' : m.action === 'cut' || m.action === 'exited' ? 'neg' : 'mute')}`}>{ACTION_LABEL[m.action]}</td>
               <td className={`${TD} text-muted`}>{m.before == null ? 'none' : `${m.before.toFixed(2)}%`}</td>
               <td className={TD}>{m.after == null ? 'none' : `${m.after.toFixed(2)}%`}</td>
-              <td className={`${TD} text-muted`}>{m.active == null ? 'n/a' : `${m.active > 0 ? '+' : ''}${m.active.toFixed(1)}%`}</td>
+              <td className={`${TD} text-muted`}>{m.active == null ? 'n/a' : `${signedPct(m.active, 1)}`}</td>
               <td className={`${TD} text-muted`}>{m.valueChange == null ? 'n/a' : fmtCrore(m.valueChange, true)}</td>
             </tr>
           ))}

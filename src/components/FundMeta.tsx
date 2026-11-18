@@ -3,6 +3,7 @@
  */
 import type { Fund } from '../types'
 import InfoTip from './InfoTip'
+import { signedPct } from '../lib/format'
 
 function fmtAum(cr: number): string {
   if (cr >= 100000) return `₹${(cr / 100000).toFixed(1)}L Cr`
@@ -125,7 +126,7 @@ export default function FundMeta({ fund }: { fund: Fund }) {
             <span className="font-semibold text-fg">{fmtAum(aum.current)}</span>
             {aum.changePct != null && aum.prevDate && aum.asOf && (
               <span className={`font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                {aum.changePct >= 0 ? '+' : ''}{aum.changePct.toFixed(1)}% ({monthLabel(aum.prevDate)} – {monthLabel(aum.asOf)})
+                {signedPct(aum.changePct, 1)} ({monthLabel(aum.prevDate)} – {monthLabel(aum.asOf)})
               </span>
             )}
             <InfoTip label="Assets Under Management" width={220}>
