@@ -1,6 +1,7 @@
 import type { Fund } from '../types'
 import InfoTip from './InfoTip'
 import { displayStockName } from '../lib/stockNames'
+import { signedPct } from '../lib/format'
 
 function fmtMonth(iso: string): string {
   try {
@@ -76,7 +77,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                   </div>
                   {s.postReturn != null ? (
                     <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      {s.postReturn >= 0 ? '+' : ''}{s.postReturn.toFixed(1)}%
+                      {signedPct(s.postReturn, 1)}
                     </span>
                   ) : (
                     <span className="ml-2 text-xs text-faint">no price</span>
@@ -103,7 +104,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                   </div>
                   {s.postReturn != null ? (
                     <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      {s.postReturn >= 0 ? '+' : ''}{s.postReturn.toFixed(1)}%
+                      {signedPct(s.postReturn, 1)}
                     </span>
                   ) : (
                     <span className="ml-2 text-xs text-faint">no price</span>

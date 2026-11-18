@@ -307,7 +307,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
           </div>
           <div className={`mt-1 text-2xl font-bold ${analysis.dayChangeValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {analysis.dayChangeValue >= 0 ? '+' : '-'}₹{fmtL(Math.abs(analysis.dayChangeValue))}
-            <span className="ml-2 text-lg">{analysis.dayChangePct >= 0 ? '+' : ''}{analysis.dayChangePct.toFixed(2)}%</span>
+            <span className="ml-2 text-lg">{signedPct(analysis.dayChangePct, 2)}</span>
           </div>
           <div className="mt-0.5 text-xs text-muted">Across funds we track with published NAV. Holdings outside our coverage are not included in this figure.</div>
         </div>
@@ -325,7 +325,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
           <div className={`mt-1 text-xl font-bold ${analysis.totalGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {analysis.totalGain >= 0 ? '+' : ''}₹{(Math.abs(analysis.totalGain) / 100000).toFixed(1)}L
           </div>
-          <div className="text-xs text-muted">{analysis.totalGainPct >= 0 ? '+' : ''}{analysis.totalGainPct.toFixed(1)}%</div>
+          <div className="text-xs text-muted">{signedPct(analysis.totalGainPct, 1)}</div>
         </div>
         <div className="rounded-xl border border-line bg-surface p-4">
           <div className="text-xs font-medium uppercase text-faint">Invested</div>
@@ -381,10 +381,10 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-fg whitespace-nowrap">{r.weight.toFixed(1)}%</td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">₹{fmtL(r.value)}</td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.gainPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {r.gainPct >= 0 ? '+' : ''}{r.gainPct.toFixed(1)}%
+                    {signedPct(r.gainPct, 1)}
                   </td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.xirr == null ? 'text-faint' : r.xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {r.xirr == null ? '—' : `${r.xirr >= 0 ? '+' : ''}${r.xirr.toFixed(1)}%`}
+                    {r.xirr == null ? '—' : `${signedPct(r.xirr, 1)}`}
                     <div className="ml-auto max-w-[10rem] whitespace-normal text-xs font-normal text-faint">
                       {/* Why there is no number, and separately the date the
                           statement did give us: a known valuation date is worth
@@ -394,10 +394,10 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                     </div>
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">
-                    {r.fund3y != null ? `${r.fund3y >= 0 ? '+' : ''}${r.fund3y.toFixed(1)}%` : <span className="text-faint">—</span>}
+                    {r.fund3y != null ? `${signedPct(r.fund3y, 1)}` : <span className="text-faint">—</span>}
                   </td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums text-xs font-medium whitespace-nowrap ${r.dayChangePct == null ? 'text-faint' : r.dayChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {r.dayChangePct == null ? 'n/a' : `${r.dayChangePct >= 0 ? '+' : ''}${r.dayChangePct.toFixed(2)}%`}
+                    {r.dayChangePct == null ? 'n/a' : `${signedPct(r.dayChangePct, 2)}`}
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap">
                     {r.rankAtPurchase != null && r.rankNow != null ? (
@@ -465,7 +465,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   {r.name}
                 </Link>
                 {r.cagr != null && (
-                  <span className="hidden sm:inline whitespace-nowrap text-xs text-muted">3Y CAGR {r.cagr >= 0 ? '+' : ''}{r.cagr.toFixed(1)}%</span>
+                  <span className="hidden sm:inline whitespace-nowrap text-xs text-muted">3Y CAGR {signedPct(r.cagr, 1)}</span>
                 )}
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-muted">#{r.rankAtPurchase}</span>

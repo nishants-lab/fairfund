@@ -340,10 +340,10 @@ export default function CategoryDetail() {
                       <td className="px-4 py-2.5 text-muted">{fmtMon(r.start)} &ndash; {fmtMon(r.end)}</td>
                       <td className={`px-4 py-2.5 text-center text-xs font-semibold uppercase ${mktColor}`}>{r.market}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold ${r.medianRet != null && r.medianRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                        {r.medianRet != null ? `${r.medianRet >= 0 ? '+' : ''}${r.medianRet.toFixed(1)}%` : '\u2014'}
+                        {r.medianRet != null ? `${signedPct(r.medianRet, 1)}` : '\u2014'}
                       </td>
                       <td className={`px-4 py-2.5 text-right ${r.medianAlpha != null && r.medianAlpha >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                        {r.medianAlpha != null ? `${r.medianAlpha >= 0 ? '+' : ''}${r.medianAlpha.toFixed(1)}%` : '\u2014'}
+                        {r.medianAlpha != null ? `${signedPct(r.medianAlpha, 1)}` : '\u2014'}
                       </td>
                       <td className="px-4 py-2.5 text-right text-muted">{r.fundCount}</td>
                     </tr>

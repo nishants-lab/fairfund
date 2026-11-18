@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchNavHistory } from '../lib/nav'
 import type { NavPoint } from '../types'
+import { signedPct } from '../lib/format'
 
 /** Indices to show, using benchmark proxy fund NAVs (track the index within bps). */
 const INDICES = [
@@ -87,7 +88,7 @@ function MiniSpark({ data, className }: { data: number[]; className?: string }) 
 
 function fmtPct(v: number | null): string {
   if (v == null) return '--'
-  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+  return `${signedPct(v, 1)}`
 }
 
 function chgColor(v: number | null): string {
