@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { data, fundsByCategory, categoryOrder } from '../lib/data'
+import { data, fundsByCategory, categoryOrder, categoryScope } from '../lib/data'
 import { pct, signedPct, num, riskColor, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import HorizonToggle from '../components/HorizonToggle'
 import InfoTip from '../components/InfoTip'
@@ -292,6 +292,9 @@ export default function Explore() {
             Category deep dive →
           </Link>
         </div>
+      )}
+      {summary && categoryScope(cat) && (
+        <p data-testid="explore-category-scope" className="mt-2 text-sm text-muted">{categoryScope(cat)}</p>
       )}
 
       {/* Category risk-vs-return map. Hidden for cash-like categories (Liquid,

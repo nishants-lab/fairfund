@@ -90,6 +90,7 @@ try {
     assert.doesNotMatch(await page.title(), /Funds funds/i)
     await page.goto(`${base}/#/explore?cat=Index-MidCap`)
     await page.getByText('Typical for category', { exact: true }).waitFor()
+    assert.match(await page.getByTestId('explore-category-scope').innerText(), /^Index funds that track a mid cap index/)
     await targets(page.locator('button[data-active]').locator('..').getByRole('button'))
     await noOverflow()
     await page.goto(`${base}/#/category/index-midcap`)
