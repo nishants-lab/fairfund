@@ -23,6 +23,7 @@ class SeoTests(unittest.TestCase):
         for name in ['gen-sitemap.mjs','gen-unfurls.mjs','site-config.mjs','research-pages.mjs']:
             shutil.copyfile(ROOT/'scripts'/name, self.base/'scripts'/name)
         shutil.copyfile(ROOT/'src/data/stock_names.json', self.base/'src/data/stock_names.json')
+        shutil.copyfile(ROOT/'src/data/category_scope.json', self.base/'src/data/category_scope.json')
         self.data = {'funds':[{'code':1,'name':'Example Fund','fullName':'Example Fund - Direct Plan - Growth','amc':'Example','category':'Large Cap','categoryDisplay':'Large Cap','metrics':{}}], 'totalFunds':1,'categories':{'Large Cap':{'fundCount':1,'display':'Large Cap'}}}
         self.save_data()
         (self.base/'dist/index.html').write_text('<html><body><h1>FairFund</h1></body></html>')

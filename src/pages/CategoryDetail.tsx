@@ -2,7 +2,7 @@ import RankingPeriod from '../components/RankingPeriod'
 import { useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
-import { data, funds as allFunds, categoryOrder } from '../lib/data'
+import { data, funds as allFunds, categoryOrder, categoryScope } from '../lib/data'
 import { pct, signedPct, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import { REGIMES } from '../lib/regimes'
@@ -231,6 +231,7 @@ export default function CategoryDetail() {
   }
 
   const catColor = getCategoryColor(catKey)
+  const scope = categoryScope(catKey)
   const isDebt = catKey === 'Liquid' || catKey === 'Money Market' || catKey === 'Arbitrage'
 
   return (
@@ -246,6 +247,7 @@ export default function CategoryDetail() {
             {catInfo.fundCount} funds &middot; Typical for category: {catInfo.riskLevel} risk &middot; Data as of{' '}
             {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
+          {scope && <p data-testid="category-scope" className="mt-2 max-w-2xl text-sm text-fg">{scope}</p>}
         </div>
         <ShareButton title={categoryFundsLabel(catInfo.display)} text={`${catInfo.fundCount} ${categoryFundsLabel(catInfo.display)} compared on FairFund`} className="mt-1 shrink-0" />
       </div>

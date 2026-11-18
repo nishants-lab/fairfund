@@ -31,6 +31,7 @@ class ResearchPageTests(unittest.TestCase):
         for name in ['gen-sitemap.mjs', 'gen-unfurls.mjs', 'gen-home.mjs', 'site-config.mjs', 'research-pages.mjs']:
             shutil.copyfile(ROOT / 'scripts' / name, self.base / 'scripts' / name)
         shutil.copyfile(ROOT / 'src/data/stock_names.json', self.base / 'src/data/stock_names.json')
+        shutil.copyfile(ROOT / 'src/data/category_scope.json', self.base / 'src/data/category_scope.json')
         self.funds, self.details, self.cat_overrides = [], {}, {}
         # Snapshot dates per fund, as scripts/add_holdings_change.py leaves them.
         # Fund 12 skipped two months; fund 13's history ends before its portfolio date.

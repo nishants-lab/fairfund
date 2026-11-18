@@ -16,7 +16,7 @@ const data = JSON.parse(readFileSync(resolve(root, 'src/data/funds.json'), 'utf8
 const win = (h, rank) => syntheticMetric(h, `${+data.anchor.slice(0, 4) - parseInt(h)}${data.anchor.slice(4)}`, data.anchor, { catRank: rank, catSize: 3 })
 const equity = (code, name, rank, extra = {}) => syntheticFund(code, name, 'Flexi Cap', { metrics: { '3Y': win('3Y', rank) }, ...extra })
 const fund = equity(9000031, 'Synthetic Risk Divergent Flexi Cap', 2, { riskLevel: 'Moderately High', sebiRisk: 'Very High' })
-const index = syntheticFund(9000034, 'Synthetic Large Cap Index Fund', 'Index Funds', { categoryDisplay: 'Index Funds', riskLevel: 'Very High', metrics: { '3Y': win('3Y', 1) } })
+const index = syntheticFund(9000034, 'Synthetic Large Cap Index Fund', 'Index Funds', { categoryDisplay: 'Index - Large Cap', riskLevel: 'Very High', metrics: { '3Y': win('3Y', 1) } })
 data.funds = [equity(9000032, 'Synthetic Top Peer Flexi Cap', 1), fund, equity(9000033, 'Synthetic Third Flexi Cap', 3), index,
   syntheticFund(9000035, 'Synthetic Mid Cap Index Fund', 'Index-MidCap', { categoryDisplay: 'Index - Mid Cap', riskLevel: 'High', metrics: { '3Y': win('3Y', 1) } })]
 data.totalFunds = data.funds.length
@@ -94,6 +94,7 @@ try {
     await noOverflow()
     await page.goto(`${base}/#/category/index-midcap`)
     await page.getByText(/Typical for category:/).waitFor()
+    assert.match(await page.getByTestId('category-scope').innerText(), /^Index funds that track a mid cap index/)
     await noOverflow()
     await page.goto(`${base}/#/movers?view=cost&measure=terChange&categories=Index-MidCap&notCategories=Value%2FContra`)
     await page.getByTestId('movers-summary').waitFor()
