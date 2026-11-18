@@ -1,9 +1,15 @@
 import fundsJson from '../data/funds.json'
+import categoryScopeJson from '../data/category_scope.json'
 import type { FundsData, Fund } from '../types'
 import { FILLER, MODIFIERS, amcAliases, normalizeSearch, otherNames, wantsIndex } from './searchText'
 
 export const data = fundsJson as unknown as FundsData
 export const funds: Fund[] = data.funds
+
+/** One line on what a category holds, for categories whose name does not say it. */
+export function categoryScope(category: string): string | null {
+  return (categoryScopeJson as Record<string, string>)[category] ?? null
+}
 
 export function categoryDisplay(category: string): string {
   return data.categories[category]?.display ?? category

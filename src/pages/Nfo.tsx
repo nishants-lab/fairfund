@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../lib/usePageMeta'
-import { funds, getFund } from '../lib/data'
+import { funds, getFund, categoryDisplay } from '../lib/data'
 import { fundSlug, categoryFundsLabel } from '../lib/format'
 import { fmtDate } from '../lib/metrics'
 import { getCategoryColor } from '../lib/categoryColors'
@@ -101,7 +101,7 @@ function NfoCard({ n, today, status }: { n: Nfo; today: string; status: NfoStatu
           <h3 className="text-base font-semibold text-fg">{n.name}</h3>
           <div className="text-xs text-faint">{n.amc}</div>
         </div>
-        <span className={`pill shrink-0 ${color.bg} ${color.text}`}>{listed?.categoryDisplay ?? n.category.replace('-', ' - ')}</span>
+        <span className={`pill shrink-0 ${color.bg} ${color.text}`}>{listed?.categoryDisplay ?? categoryDisplay(n.category)}</span>
       </div>
       <div className="mt-2 text-sm font-medium text-fg" data-testid="nfo-when">{when}</div>
       {availText && <div className="mt-0.5 text-sm text-fg" data-testid="nfo-available">{availText}</div>}

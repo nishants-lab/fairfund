@@ -25,6 +25,7 @@ if (!existsSync(DIST)) {
 }
 
 const data = JSON.parse(readFileSync(join(ROOT, 'src/data/funds.json'), 'utf-8'))
+const categoryScope = JSON.parse(readFileSync(join(ROOT, 'src/data/category_scope.json'), 'utf-8'))
 const funds = data.funds ?? []
 const research = buildResearch(ROOT, funds)
 // Holdings research pages are regenerated in full: clear earlier output so a
@@ -547,7 +548,8 @@ ${dataTable(`${plural} by 3-year rank`, [['Fund'], ['3Y return a year', 'num'], 
   const bodyHtml = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">${esc(plural)}</h1>
 <p style="font-size:15px;color:#475569;margin:0 0 20px">${inCat.length} funds${sebi ? ` &middot; SEBI riskometer for most: ${esc(sebi)}` : ''}${medEr != null ? ` &middot; Median expense ratio ${medEr.toFixed(2)}%` : ''}${c.median5Y != null ? ` &middot; Median 5Y CAGR ${c.median5Y.toFixed(1)}%` : ''}</p>
-<p style="font-size:16px">Explore the ${esc(c.display)} category: historical return distributions, category comparisons and performance during past market falls. Check the dates and available history before comparing results.</p>
+${categoryScope[c.key] ? `<p style="font-size:16px" data-testid="category-scope">${esc(categoryScope[c.key])}</p>
+` : ''}<p style="font-size:16px">Explore the ${esc(c.display)} category: historical return distributions, category comparisons and performance during past market falls. Check the dates and available history before comparing results.</p>
 <p style="margin-top:24px"><a href="${SHELL_UP}#${hash}" style="color:#2563eb;font-weight:600">Open the interactive deep dive &rarr;</a></p>
 ${rankTable}
 ${categoryOverlap(c.key)}

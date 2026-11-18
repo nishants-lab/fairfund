@@ -128,6 +128,7 @@ def uses_reduced_surface(fairfund_category):
 # rather than the raw key, or new funds show a different label from their peers.
 CATEGORY_DISPLAY = {
     "ELSS": "ELSS (Tax Saver)",
+    "Index Funds": "Index - Large Cap",
     "Index-MidCap": "Index - Mid Cap",
     "Index-SmallCap": "Index - Small Cap",
     "Index-Other": "Index - Other",

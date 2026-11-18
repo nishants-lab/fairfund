@@ -23,6 +23,7 @@ class GeneratedCopyTests(unittest.TestCase):
         for name in ('gen-unfurls.mjs', 'gen-og-images.mjs', 'site-config.mjs', 'research-pages.mjs'):
             shutil.copyfile(ROOT / 'scripts' / name, self.base / 'scripts' / name)
         shutil.copyfile(ROOT / 'src/data/stock_names.json', self.base / 'src/data/stock_names.json')
+        shutil.copyfile(ROOT / 'src/data/category_scope.json', self.base / 'src/data/category_scope.json')
         self.funds = [self.fund(1, '3Y'), self.fund(2, '5Y'), self.fund(3, '1Y')]
         self.write_data()
 

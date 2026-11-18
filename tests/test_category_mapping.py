@@ -132,22 +132,21 @@ class DisplayLabelTests(unittest.TestCase):
         for fund in data["funds"]:
             self.labels[fund["category"]][fund.get("categoryDisplay")] += 1
 
-    def test_label_is_one_its_peers_already_use(self):
+    def test_every_fund_uses_its_category_label(self):
+        # One label per category: the fund pill, the category page title and
+        # Explore all show the same words.
+        import json
+        data = json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))
         for cat, used in self.labels.items():
             with self.subTest(cat=cat):
-                self.assertIn(C.display_for(cat), used)
-
-    def test_label_matches_when_peers_agree(self):
-        for cat, used in self.labels.items():
-            if len(used) == 1:
-                with self.subTest(cat=cat):
-                    self.assertEqual(C.display_for(cat), next(iter(used)))
+                self.assertEqual(set(used), {C.display_for(cat)})
+                self.assertEqual(data["categories"][cat]["display"], C.display_for(cat))
 
     def test_new_october_funds_get_peer_labels(self):
         self.assertEqual(C.display_for("Value/Contra"), "Value / Contra")
         self.assertEqual(C.display_for("Sectoral/Thematic"), "Sectoral / Thematic")
         self.assertEqual(C.display_for("Large & Mid Cap"), "Large & Mid Cap")
-        self.assertEqual(C.display_for("Index Funds"), "Index Funds")
+        self.assertEqual(C.display_for("Index Funds"), "Index - Large Cap")
         self.assertEqual(C.display_for("ELSS"), "ELSS (Tax Saver)")
 
 
@@ -165,3 +164,23 @@ class CompatibilityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CategoryScopeTests(unittest.TestCase):
+    """Index category names do not say what they hold, so each gets a line."""
+
+    def test_every_index_category_has_a_scope_line(self):
+        import json
+        data = json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))
+        scope = json.loads((ROOT / "src/data/category_scope.json").read_text(encoding="utf-8"))
+        index_cats = {k for k in data["categories"] if k.startswith("Index")}
+        self.assertEqual(set(scope), index_cats)
+        for key, line in scope.items():
+            with self.subTest(key=key):
+                self.assertTrue(line.endswith("."))
+                self.assertNotIn("\u2014", line)
+
+    def test_static_category_pages_print_the_scope_line(self):
+        src = (ROOT / "scripts/gen-unfurls.mjs").read_text(encoding="utf-8")
+        self.assertIn("category_scope.json", src)
+        self.assertIn('data-testid="category-scope"', src)
