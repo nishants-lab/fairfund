@@ -5,8 +5,8 @@
  */
 import { execFileSync } from 'node:child_process'
 import { buildSync } from 'esbuild'
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -16,8 +16,7 @@ const args = process.argv.slice(2)
 const inputs = args.length ? args.map(p => resolve(root, p))
   : readdirSync(here).filter(p => p.endsWith('.test.ts')).sort().map(p => join(here, p))
 if (!inputs.length) throw new Error('No regression tests found')
-const akiTmp = join(homedir(), 'tmp')
-const scratchBase = process.env.FF_TEST_TMPDIR || (existsSync(akiTmp) ? akiTmp : tmpdir())
+const scratchBase = process.env.FF_TEST_TMPDIR || tmpdir()
 const scratch = mkdtempSync(join(scratchBase, 'ff-regressions-'))
 try {
   const outputs = inputs.map((input, i) => {
