@@ -1,17 +1,23 @@
+/** toFixed without a minus sign on a value that rounds to zero ("-0.0" -> "0.0"). */
+export function fixed(n: number, digits: number): string {
+  const s = n.toFixed(digits)
+  return Number(s) === 0 ? s.replace(/^-/, '') : s
+}
+
 export function pct(n: number | undefined | null, digits = 1): string {
   if (n === undefined || n === null || isNaN(n)) return '—'
-  return `${n.toFixed(digits)}%`
+  return `${fixed(n, digits)}%`
 }
 
 export function signedPct(n: number | undefined | null, digits = 1): string {
   if (n === undefined || n === null || isNaN(n)) return '—'
-  const s = n >= 0 ? '+' : ''
-  return `${s}${n.toFixed(digits)}%`
+  const s = fixed(n, digits)
+  return `${Number(s) > 0 ? '+' : ''}${s}%`
 }
 
 export function num(n: number | undefined | null, digits = 2): string {
   if (n === undefined || n === null || isNaN(n)) return '—'
-  return n.toFixed(digits)
+  return fixed(n, digits)
 }
 
 export function inr(n: number): string {

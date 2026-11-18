@@ -8,7 +8,7 @@ const {funds}=fundData;
 const {routeFundIndex}=require('./fixtures/fund-index-route.cjs');
 const os=require('node:os');
 const {spawnSync}=require('node:child_process');
-fs.mkdirSync(process.env.FF_TEST_TMPDIR||path.join(os.homedir(),'.aki','tmp'),{recursive:true});
+fs.mkdirSync(process.env.FF_TEST_TMPDIR||os.tmpdir(),{recursive:true});
 const hasWindow=f=>!!(f.metrics?.['3Y']||f.metrics?.['5Y']);
 // Real pages are chosen from the current build when such a fund exists. The three
 // page branches (eligible, unavailable-period, held) are also generated from
@@ -27,7 +27,7 @@ const syntheticFunds=[
  synth(990004,'Synthetic Held Fund',{'3Y':metric},{dataQuality:{status:'quarantined'}}),
 ];
 function buildSyntheticPages(){
- const tmp=fs.mkdtempSync(path.join((process.env.FF_TEST_TMPDIR||path.join(os.homedir(),'.aki','tmp')),'ff-seo-browser-'));
+ const tmp=fs.mkdtempSync(path.join((process.env.FF_TEST_TMPDIR||os.tmpdir()),'ff-seo-browser-'));
  for(const d of ['scripts','src/data','dist'])fs.mkdirSync(path.join(tmp,d),{recursive:true});
  for(const n of ['gen-unfurls.mjs','site-config.mjs','research-pages.mjs'])fs.copyFileSync(path.join(root,'scripts',n),path.join(tmp,'scripts',n));
  fs.copyFileSync(path.join(root,'src/data/stock_names.json'),path.join(tmp,'src/data/stock_names.json'));

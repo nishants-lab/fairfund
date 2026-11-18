@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import { useTheme } from '../lib/theme'
 import { funds as ALL } from '../lib/data'
-import { fundSlug, categoryFundsLabel } from '../lib/format'
+import { fundSlug, categoryFundsLabel, fixed } from '../lib/format'
 import { formatAumCr, landscapeAum } from '../lib/landscape'
 import type { Fund, Horizon } from '../types'
 
@@ -131,12 +131,12 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
           <ReferenceLine y={yMed} stroke={axis} strokeDasharray="4 4" strokeOpacity={0.6} />
           <XAxis
             type="number" dataKey="x" domain={xDomain} tick={{ fontSize: 11, fill: axis }}
-            tickFormatter={(v) => v.toFixed(0)} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
+            tickFormatter={(v) => fixed(v, 0)} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             label={{ value: 'Volatility (risk)', position: 'insideBottom', offset: -8, fontSize: 11, fill: axis }}
           />
           <YAxis
             type="number" dataKey="y" domain={yDomain} tick={{ fontSize: 11, fill: axis }}
-            tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
+            tickFormatter={(v) => `${fixed(v, 0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             width={44}
             label={{ value: `${sel} CAGR (return)`, angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
           />
