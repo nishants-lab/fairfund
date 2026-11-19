@@ -29,3 +29,15 @@ test('Movers crore and point figures that round to zero carry no sign', async ()
   assert.equal(fmtCrore(1250, true), '+\u20b91.3K Cr')
   assert.equal(fmtCrore(-250000), '-\u20b92.50L Cr')
 })
+
+test('a fund level with its category median says so instead of +0.0%/yr', async () => {
+  const { buildVerdict } = await import('../src/lib/verdict.ts')
+  const { funds } = await import('../src/lib/data.ts')
+  const real = funds.find(f => f.category === 'Flexi Cap' && f.metrics['3Y']?.alpha != null)!
+  const at = (alpha: number) => buildVerdict({ ...real, metrics: { ...real.metrics, '3Y': { ...real.metrics['3Y']!, alpha } } }).oneLiner
+  assert.match(at(0.03), /level with the category median/)
+  assert.doesNotMatch(at(0.03), /0\.0%/)
+  assert.match(at(-0.04), /level with the category median/)
+  assert.match(at(1.26), /\+1\.3%\/yr vs the category median/)
+  assert.match(at(-2.1), /-2\.1%\/yr vs the category median/)
+})
