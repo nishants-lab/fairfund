@@ -1,3 +1,4 @@
+import { localDate } from '../lib/metrics'
 import RankingPeriod, { PreviousRankings } from './RankingPeriod'
 import type { Fund } from '../types'
 import { buildVerdict } from '../lib/verdict'
@@ -112,7 +113,7 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
 function NoMatchedPeriod({ fund }: { fund: Fund }) {
   const si = fund.si
   const sinceTxt = fund.inceptionDate
-    ? new Date(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? localDate(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : null
   return (
     <div className="mt-6 card border-l-4 border-l-violet-400 p-5">
