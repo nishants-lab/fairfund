@@ -237,3 +237,14 @@ input[type='range']::-moz-range-thumb {
   outline: 2px solid rgb(var(--text-base));
   outline-offset: 4px;
 }
+
+/* Keyboard focus stays visible on form controls (range sliders, date pickers)
+   in every palette. Utilities such as focus:outline-none still win where a
+   control draws its own focus border. A date input keeps focus in its day/month
+   fields, which Chrome never reports as focus-visible, so it uses :focus. */
+:is(input, select, textarea):focus-visible,
+input[type='date']:focus,
+input[type='date']:focus-within {
+  outline: 2px solid rgb(var(--brand-500));
+  outline-offset: 2px;
+}
