@@ -222,17 +222,19 @@ export function presetRange(
   return [startISO < earliest ? earliest : startISO, end.toISOString().slice(0, 10)]
 }
 
+/** A calendar date from 'YYYY-MM' or 'YYYY-MM-DD' text, at local midnight.
+ *  new Date('2026-11-01') is UTC midnight, which is 31 Oct for a reader west of UTC. */
+export function localDate(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?(?![\dT:-])/.exec(iso)
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, m[3] ? Number(m[3]) : 1) : new Date(iso)
+}
+
 export function fmtDate(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso)
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return localDate(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /** Compact month-year, e.g. "Mar 2020" - for tight metric sub-lines and chart axes.
- *  Reads the year and month from the text, so a reader west of UTC never sees the
- *  previous month (new Date('2020-03') is UTC midnight on 1 March). */
+ */
 export function fmtMonth(iso: string): string {
-  const m = /^(\d{4})-(\d{2})/.exec(iso)
-  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, 1) : new Date(iso)
-  return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+  return localDate(iso.slice(0, 7)).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
 }

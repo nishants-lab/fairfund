@@ -1,3 +1,4 @@
+import { localDate } from '../lib/metrics'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
@@ -288,7 +289,7 @@ export default function Explore() {
           <div className="hidden sm:block">
             <div className="text-xs text-faint">Data as of</div>
             <div className="font-bold text-fg">
-              {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {localDate(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </div>
           </div>
           <div className="hidden h-8 w-px bg-line sm:block" />
@@ -371,7 +372,7 @@ export default function Explore() {
                 if (!m) {
                   const si = f.dataQuality?.status === 'quarantined' ? undefined : f.si
                   const launched = f.inceptionDate
-                    ? new Date(f.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+                    ? localDate(f.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
                     : null
                   return (
                     <tr

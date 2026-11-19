@@ -1,5 +1,6 @@
 // Auto-generated regime data (from pipeline/detect_regimes.py output)
 // Imported by ForwardAnalytics and FundDetail for display + drawdown matching.
+import { localDate } from './metrics'
 import regimesData from '../data/regimes.json'
 
 export interface Regime {
@@ -58,7 +59,7 @@ export function regimeInfo(name: string): { range: string; desc: string; market:
   const r = REGIMES.find((x) => x.name === name)
   if (!r) return undefined
   const fmtMon = (iso: string) => {
-    const d = new Date(iso)
+    const d = localDate(iso)
     return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
   }
   const range = r.end >= new Date().toISOString().slice(0, 10)
