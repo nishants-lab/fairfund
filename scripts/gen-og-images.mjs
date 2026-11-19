@@ -48,6 +48,9 @@ const ACCENTS = [
   { glow: '#2dd4bf', chip: 'rgba(45,212,191,0.14)', ring: 'rgba(45,212,191,0.35)' }, // teal
   { glow: '#60a5fa', chip: 'rgba(96,165,250,0.14)', ring: 'rgba(96,165,250,0.35)' }, // sky
 ]
+// A figure that rounds to zero carries no sign.
+const signedPct1 = n => { const t = n.toFixed(1); return Number(t) === 0 ? '0.0%' : `${n > 0 ? '+' : ''}${t}%` }
+
 function accentFor(s) {
   let h = 0
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
@@ -80,7 +83,7 @@ function card(fund) {
   const stats = []
   if (m?.catRank && m?.catSize) stats.push(statCard('CATEGORY RANK', `#${m.catRank} of ${m.catSize}`, '#f8fafc', accent))
   if (m?.cagr != null && win) stats.push(statCard(`${win} CAGR`, `${m.cagr.toFixed(1)}%`, m.cagr >= 0 ? POS : NEG, accent))
-  if (m?.alpha != null && win) stats.push(statCard('ALPHA VS PEERS', `${m.alpha >= 0 ? '+' : ''}${m.alpha.toFixed(1)}%`, m.alpha >= 0 ? POS : NEG, accent))
+  if (m?.alpha != null && win) stats.push(statCard('ALPHA VS PEERS', signedPct1(m.alpha), m.alpha >= 0 ? POS : NEG, accent))
   if (stats.length === 0 && fund.aum?.current) stats.push(statCard('AUM', `Rs ${Math.round(fund.aum.current).toLocaleString('en-IN')} Cr`, '#f8fafc', accent))
 
   // Subtitle carries facts shown nowhere else on the card (AUM, expense), not a

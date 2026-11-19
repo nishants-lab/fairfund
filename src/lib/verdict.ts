@@ -141,7 +141,10 @@ function buildOneLiner(fund: Fund, score: number, _label: string, _pos: VerdictP
   const cat = fund.categoryDisplay
   const parts: string[] = []
   if (base?.catRank != null && base?.catSize != null) parts.push(`ranks #${base.catRank} of ${base.catSize} in ${cat} on ${horizon} risk-adjusted return`)
-  if (base?.alpha != null) parts.push(`${signedPct(base.alpha, 1)}/yr vs the category median`)
+  if (base?.alpha != null) {
+    const a = signedPct(base.alpha, 1)
+    parts.push(a === '0.0%' ? 'level with the category median' : `${a}/yr vs the category median`)
+  }
   if (base?.sharpe != null) parts.push(`Sharpe ${base.sharpe.toFixed(2)}`)
   const head = parts.length ? parts.join(', ') : 'limited comparable history so far'
   const sentence = head.charAt(0).toUpperCase() + head.slice(1)
