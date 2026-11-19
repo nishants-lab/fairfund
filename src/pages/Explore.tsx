@@ -120,6 +120,16 @@ export default function Explore() {
     setParams({ cat, ...(horizon !== '3Y' ? { h: horizon } : {}) }, { replace: true })
   }, [cat, horizon])
 
+  // Follow the address when it changes while Explore stays mounted (a link to
+  // another category, the footer link, an edited URL); otherwise the page
+  // would keep the old category while the address names a new one.
+  useEffect(() => {
+    const urlCat = params.get('cat') ?? 'Flexi Cap'
+    const urlH = (params.get('h') as Horizon) || '3Y'
+    if (urlCat !== cat) setCat(urlCat)
+    if (urlH !== horizon) setHorizon(urlH)
+  }, [params])
+
   useEffect(() => {
     const el = pillsRef.current?.querySelector('[data-active="true"]') as HTMLElement
     if (el) el.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
