@@ -463,7 +463,7 @@ const buildDay = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10)
 const nfoStatus = n => n.nav ? 'Now trading' : n.launchDate > buildDay ? `Opens ${n.launchDate}` : n.closeDate && n.closeDate < buildDay ? `Closed ${n.closeDate}` : n.closeDate ? `Open until ${n.closeDate}` : `Opened ${n.launchDate}`
 const nfoRows = nfoData.nfos.map(n =>
   // Two columns so the list fits a 320px screen: category and benchmark sit under the name.
-  `<tr><td style="padding:6px 16px 6px 0;white-space:normal;min-width:10rem">${esc(n.name)}<div style="font-size:12px;color:#64748b">${esc(n.amc)} &middot; ${esc(n.category.replace('-', ' - '))}</div><div style="font-size:12px;color:#64748b">Benchmark: ${esc(n.details?.benchmark || '-')}</div></td><td style="padding:6px 0;white-space:normal;min-width:6rem">${esc(nfoStatus(n))}</td></tr>`
+  `<tr><td style="padding:6px 16px 6px 0;white-space:normal;min-width:10rem">${esc(n.name)}<div style="font-size:12px;color:#64748b">${esc(n.amc)} &middot; ${esc(data.categories?.[n.category]?.display ?? n.category)}</div><div style="font-size:12px;color:#64748b">Benchmark: ${esc(n.details?.benchmark || '-')}</div></td><td style="padding:6px 0;white-space:normal;min-width:6rem">${esc(nfoStatus(n))}</td></tr>`
 ).join('')
 const nfoBody = `<p style="font-size:13px;color:#64748b;margin:0 0 4px">FairFund &middot; Indian mutual fund research</p>
 <h1 style="font-size:28px;margin:0 0 6px">New fund offers (NFOs)</h1>

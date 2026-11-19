@@ -143,6 +143,9 @@ class SeoTests(unittest.TestCase):
     def test_nfo_table_has_two_columns_that_fit_a_phone(self):
         nfo={'generatedAt':'2026-11-05','nfos':[{'code':9,'name':'Example Nifty Realty Index Fund','amc':'Example AMC','category':'Index-Sectoral/Thematic',
              'launchDate':'2026-10-26','closeDate':'2099-11-09','nav':None,'details':{'benchmark':'NIFTY Realty TRI'}}]}
+        # The NFO row shows the category label the rest of the site uses.
+        self.data.setdefault('categories',{})['Index-Sectoral/Thematic']={'display':'Index - Sectoral / Thematic','fundCount':0}
+        (self.base/'src/data/funds.json').write_text(json.dumps(self.data),encoding='utf-8')
         (self.base/'src/data/nfo.json').write_text(json.dumps(nfo),encoding='utf-8')
         result=self.run_script('gen-unfurls.mjs');self.assertEqual(result.returncode,0,result.stderr)
         html=(self.base/'dist/s/nfo/index.html').read_text()
@@ -150,7 +153,7 @@ class SeoTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'<th\b',table)),2)
         self.assertEqual(len(re.findall(r'<td\b',table)),2)
         self.assertIn('Benchmark: NIFTY Realty TRI',table)
-        self.assertIn('Index - Sectoral/Thematic',table)
+        self.assertIn('Index - Sectoral / Thematic',table)
         self.assertIn('Open until 2099-11-09',table)
 
     def test_external_names_cannot_break_out_of_jsonld(self):
