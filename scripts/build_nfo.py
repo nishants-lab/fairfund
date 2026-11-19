@@ -259,6 +259,37 @@ def short_amc(amc):
     return s
 
 
+_HOUSES = None
+
+
+def site_houses():
+    """Fund house names as the rest of the site shows them ('Kotak Mahindra', 'UTI')."""
+    global _HOUSES
+    if _HOUSES is None:
+        try:
+            with open(os.path.join(ROOT, "src", "data", "funds.json"), encoding="utf-8") as fh:
+                _HOUSES = {f["amc"] for f in json.load(fh)["funds"] if f.get("amc")}
+        except (OSError, ValueError, KeyError):
+            _HOUSES = set()
+    return _HOUSES
+
+
+def fund_house(amc, houses=None):
+    """AMFI's company name -> the fund house name the site already uses.
+
+    AMFI's master names the company ('Kotak Mahindra Asset Management Company
+    Limited.', 'UTI Asset Mgmt. Co.'); fund pages say 'Kotak Mahindra' and 'UTI'.
+    The longest site name that starts the company name wins; otherwise the legal
+    suffixes are trimmed."""
+    raw = (amc or "").strip()
+    low = raw.lower()
+    houses = site_houses() if houses is None else houses
+    match = [h for h in houses if low == h.lower() or low.startswith(h.lower() + " ")]
+    if match:
+        return max(match, key=len)
+    return short_amc(raw.rstrip(". ")).rstrip(". ,")
+
+
 def is_direct_growth(nav_name):
     n = (nav_name or "").lower()
     return "direct" in n and "growth" in n and "idcw" not in n and "dividend" not in n
@@ -288,7 +319,7 @@ def select_nfos(rows, today):
         out[r[1].strip()] = {
             "code": int(r[1]),
             "name": name,
-            "amc": short_amc(r[0]),
+            "amc": fund_house(r[0]),
             "amfiCategory": amfi_cat,
             "category": cat,
             "launchDate": launch.isoformat(),

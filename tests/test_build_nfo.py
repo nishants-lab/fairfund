@@ -351,3 +351,33 @@ class NeverBreaksTheRefresh(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FundHouseNames(unittest.TestCase):
+    """An NFO names its fund house the way fund pages do, not AMFI's company name."""
+    HOUSES = {"Kotak Mahindra", "UTI", "Invesco", "Mirae Asset", "quant", "Bajaj Finserv", "Mahindra Manulife"}
+
+    def test_company_names_map_to_site_names(self):
+        for raw, want in (
+            ("Kotak Mahindra Asset Management Company Limited.", "Kotak Mahindra"),
+            ("UTI Asset Mgmt. Co.", "UTI"),
+            ("Invesco Asset Management (India) Private", "Invesco"),
+            ("Mirae Asset Investment Managers (India) Pvt.", "Mirae Asset"),
+            ("quant Money Managers", "quant"),
+            ("Bajaj Finserv Asset Management Limited", "Bajaj Finserv"),
+            ("Mahindra Manulife Investment Management Pvt. Ltd.", "Mahindra Manulife"),
+        ):
+            with self.subTest(raw=raw):
+                self.assertEqual(N.fund_house(raw, self.HOUSES), want)
+
+    def test_a_new_house_keeps_its_name_without_legal_suffix(self):
+        self.assertEqual(N.fund_house("Carnelian Asset Management Company Limited.", self.HOUSES), "Carnelian")
+        self.assertEqual(N.fund_house("Unifi Capital Ltd.", set()), "Unifi Capital")
+
+    def test_live_nfo_file_uses_site_names(self):
+        nfos = json.loads((ROOT / "src/data/nfo.json").read_text(encoding="utf-8"))["nfos"]
+        houses = {f["amc"] for f in json.loads((ROOT / "src/data/funds.json").read_text(encoding="utf-8"))["funds"]}
+        for n in nfos:
+            with self.subTest(code=n["code"]):
+                self.assertEqual(n["amc"], N.fund_house(n["amc"], houses))
+                self.assertFalse(n["amc"].endswith((".", "Limited", "Ltd", "Pvt", "Private")), n["amc"])
