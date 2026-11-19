@@ -82,6 +82,7 @@ function ModelSpectrum({ model, className }: { model: SpectrumModel; className?:
               tone === 'good' ? 'bg-emerald-500' : tone === 'bad' ? 'bg-rose-500' : tone === 'warn' ? 'bg-amber-500' : 'bg-slate-500'
             }`}
             style={{ left: `${primaryPos * 100}%` }}
+            role="img"
             aria-label={`This fund: ${primary.label}`}
           />
         )}

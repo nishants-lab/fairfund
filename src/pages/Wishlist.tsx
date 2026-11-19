@@ -76,7 +76,7 @@ export default function Wishlist() {
                   m.catRank <= 3
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                     : m.catRank <= 5
-                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
                       : 'bg-surface2 text-muted'
                 }`}>
                   #{m.catRank}

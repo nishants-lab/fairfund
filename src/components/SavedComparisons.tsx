@@ -82,7 +82,7 @@ export default function SavedComparisons({ fundCodes, start, end, onLoad }: Prop
           <span className="text-xs text-muted">{fundCodes.length} funds{start && end ? `, ${start} to ${end}` : ', select dates above'}</span>
         </div>
       </form>
-      {error && <p role="alert" className="mt-3 text-sm text-amber-700 dark:text-amber-300">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-sm text-amber-800 dark:text-amber-300">{error}</p>}
       <p role="status" className="mt-2 text-sm text-muted">{message}</p>
       <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
         <span>{records.length} of {COMPARISON_LIMITS.records} saved</span>

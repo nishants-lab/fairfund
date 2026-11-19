@@ -39,7 +39,7 @@ const colorMap: Record<string, CategoryColor> = {
   },
   'Value/Contra': {
     bg: 'bg-amber-50 dark:bg-amber-900/30',
-    text: 'text-amber-700 dark:text-amber-300',
+    text: 'text-amber-800 dark:text-amber-300',
     border: 'border-amber-500 dark:border-amber-500',
   },
   'Focused': {
@@ -74,22 +74,22 @@ const colorMap: Record<string, CategoryColor> = {
   },
   'Index Funds': {
     bg: 'bg-blue-100 dark:bg-blue-900/25',
-    text: 'text-blue-600 dark:text-blue-300',
+    text: 'text-blue-700 dark:text-blue-300',
     border: 'border-blue-400 dark:border-blue-500',
   },
   'Index-MidCap': {
     bg: 'bg-teal-100 dark:bg-teal-900/25',
-    text: 'text-teal-600 dark:text-teal-300',
+    text: 'text-teal-700 dark:text-teal-300',
     border: 'border-teal-400 dark:border-teal-500',
   },
   'Index-SmallCap': {
     bg: 'bg-emerald-100 dark:bg-emerald-900/25',
-    text: 'text-emerald-600 dark:text-emerald-300',
+    text: 'text-emerald-700 dark:text-emerald-300',
     border: 'border-emerald-400 dark:border-emerald-500',
   },
   'Index-Sectoral/Thematic': {
     bg: 'bg-rose-100 dark:bg-rose-900/25',
-    text: 'text-rose-600 dark:text-rose-300',
+    text: 'text-rose-700 dark:text-rose-300',
     border: 'border-rose-400 dark:border-rose-500',
   },
   'Index-Other': {

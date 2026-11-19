@@ -95,7 +95,7 @@ export default function Navbar() {
             aria-label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount} funds)` : ''}`}
             className={`relative ${iconBtn} ${
               wishlistActive
-                ? 'border-rose-300 bg-rose-50 text-rose-500 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-400'
+                ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-400'
                 : 'border-line text-muted hover:bg-surface2 hover:text-rose-400'
             }`}
           >

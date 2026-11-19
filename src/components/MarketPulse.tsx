@@ -93,7 +93,7 @@ function fmtPct(v: number | null): string {
 
 function chgColor(v: number | null): string {
   if (v == null) return 'text-faint'
-  return v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+  return v >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
 }
 
 export default function MarketPulse() {

@@ -52,8 +52,8 @@ function subscriptionStatus(
 }
 
 const TONE: Record<string, string> = {
-  amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20",
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20",
+  amber: "bg-amber-500/10 text-amber-800 dark:text-amber-400 ring-amber-500/20",
+  red: "bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20",
   emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20",
 }
 
@@ -125,7 +125,7 @@ export default function FundMeta({ fund }: { fund: Fund }) {
             <span className="text-faint">AUM</span>
             <span className="font-semibold text-fg">{fmtAum(aum.current)}</span>
             {aum.changePct != null && aum.prevDate && aum.asOf && (
-              <span className={`font-medium ${aum.changePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+              <span className={`font-medium ${aum.changePct >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                 {signedPct(aum.changePct, 1)} ({monthLabel(aum.prevDate)} – {monthLabel(aum.asOf)})
               </span>
             )}

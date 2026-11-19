@@ -12,8 +12,8 @@ import { matchRegime, regimeInfo } from '../lib/regimes'
 import SearchBox from './SearchBox'
 
 const DIR_STYLE: Record<string, { txt: string; tone: string }> = {
-  climbing: { txt: 'Climbing', tone: 'text-emerald-600 dark:text-emerald-400' },
-  fading: { txt: 'Fading', tone: 'text-rose-600 dark:text-rose-400' },
+  climbing: { txt: 'Climbing', tone: 'text-emerald-700 dark:text-emerald-400' },
+  fading: { txt: 'Fading', tone: 'text-rose-700 dark:text-rose-400' },
   steady: { txt: 'Steady', tone: 'text-muted' },
   new: { txt: 'New', tone: 'text-violet-600 dark:text-violet-400' },
 }
@@ -141,8 +141,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 <InfoTip width={280}>
                   The line shows the fund's category rank percentile over time (100 = top of category,
                   0 = bottom). It is recomputed on a rolling 3-year-return basis, one step per month.
-                  <br /><br /><span className="text-emerald-600 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
-                  <br /><span className="text-rose-600 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
+                  <br /><br /><span className="text-emerald-700 dark:text-emerald-400">Climbing</span>: rank improved more than 5 points lately.
+                  <br /><span className="text-rose-700 dark:text-rose-400">Fading</span>: it slipped more than 5 points.
                   <br /><span className="text-muted">Steady</span>: roughly holding position.
                   <br /><br />A higher line is a better return rank. The headline category rank uses a
                   risk-adjusted score, so the two can differ.
@@ -179,7 +179,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               By 3-year return, was #{a.rankTrajectory.priorRank}/{a.rankTrajectory.priorPeers}, now #
               {a.rankTrajectory.currentRank}/{a.rankTrajectory.currentPeers} in its category.
             </p>
-            {a.rankTrajectory.limited && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Limited evidence: small category ({a.rankTrajectory.currentPeers} peers).</p>}
+            {a.rankTrajectory.limited && <p className="mt-1 text-xs text-amber-800 dark:text-amber-400">Limited evidence: small category ({a.rankTrajectory.currentPeers} peers).</p>}
           </div>
         )}
 
@@ -195,7 +195,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               </InfoTip>
             </h4>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className={`text-2xl font-extrabold ${a.battingAverage.pct >= 65 ? 'text-emerald-600 dark:text-emerald-400' : a.battingAverage.pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>{a.battingAverage.pct}%</span>
+              <span className={`text-2xl font-extrabold ${a.battingAverage.pct >= 65 ? 'text-emerald-700 dark:text-emerald-400' : a.battingAverage.pct >= 50 ? 'text-amber-800 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}`}>{a.battingAverage.pct}%</span>
               <span className="text-xs text-faint">of measured 3-year periods beat the category median</span>
             </div>
             <Spectrum
@@ -212,7 +212,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               Based on {a.battingAverage.n} overlapping 3-year periods.
             </p>
             {a.battingAverage.limited && (
-              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+              <p className="mt-1 text-xs text-amber-800 dark:text-amber-400">
                 Limited history: {a.battingAverage.n} rolling periods available; the current history threshold is 24 periods.
               </p>
             )}
@@ -239,12 +239,12 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               <Stat
                 label="Up-capture"
                 value={a.capture.up != null ? `${a.capture.up}%` : '—'}
-                tone={a.capture.up == null ? 'text-faint' : a.capture.up >= 100 ? 'text-emerald-600 dark:text-emerald-400' : a.capture.up >= 90 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}
+                tone={a.capture.up == null ? 'text-faint' : a.capture.up >= 100 ? 'text-emerald-700 dark:text-emerald-400' : a.capture.up >= 90 ? 'text-amber-800 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
               />
               <Stat
                 label="Down-capture"
                 value={a.capture.down != null ? `${a.capture.down}%` : '—'}
-                tone={a.capture.down == null ? 'text-faint' : a.capture.down < 100 ? 'text-emerald-600 dark:text-emerald-400' : a.capture.down <= 110 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}
+                tone={a.capture.down == null ? 'text-faint' : a.capture.down < 100 ? 'text-emerald-700 dark:text-emerald-400' : a.capture.down <= 110 ? 'text-amber-800 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
               />
             </div>
             <p className="mt-2 text-xs text-muted">
@@ -256,7 +256,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 {peers.capture.map((p, i) => (
                   <span key={p.code}>
                     {i > 0 && ', '}
-                    <a href={`#/fund/${p.code}/${fundSlug(p.name)}`} className="text-brand-600 hover:underline">{shortName(p)}</a>{' '}
+                    <a href={`#/fund/${p.code}/${fundSlug(p.name)}`} className="text-brand-600 dark:text-brand-300 hover:underline">{shortName(p)}</a>{' '}
                     {p.analytics!.capture!.down}%
                   </span>
                 ))}.
@@ -280,8 +280,8 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               </InfoTip>
             </h4>
             <div className="mt-1">
-              {a.meanReversion.state === 'hot' && <span className="text-lg font-bold text-amber-600 dark:text-amber-400">Above historical average</span>}
-              {a.meanReversion.state === 'cold' && <span className="text-lg font-bold text-sky-600 dark:text-sky-400">Below historical average</span>}
+              {a.meanReversion.state === 'hot' && <span className="text-lg font-bold text-amber-800 dark:text-amber-400">Above historical average</span>}
+              {a.meanReversion.state === 'cold' && <span className="text-lg font-bold text-sky-700 dark:text-sky-400">Below historical average</span>}
               {a.meanReversion.state === 'normal' && <span className="text-lg font-bold text-muted">Near historical average</span>}
             </div>
             <Spectrum
@@ -364,7 +364,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
               <span className="text-faint">
                 ₹{SIP_MIN.toLocaleString('en-IN')} - ₹{SIP_MAX.toLocaleString('en-IN')}/mo.
                 {(sipAmount < SIP_MIN || sipAmount > SIP_MAX) && (
-                  <span className="text-amber-600 dark:text-amber-400"> Using ₹{clampSip(sipAmount).toLocaleString('en-IN')}.</span>
+                  <span className="text-amber-800 dark:text-amber-400"> Using ₹{clampSip(sipAmount).toLocaleString('en-IN')}.</span>
                 )}
               </span>
             </div>
@@ -384,9 +384,9 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   </InfoTip>
                 </h4>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <Stat label="Worst" value={pct(rollDist.min)} sub={`${fmtMonth(rollDist.minStart)}–${fmtMonth(rollDist.minEnd)}`} tone="text-rose-600 dark:text-rose-400" />
+                  <Stat label="Worst" value={pct(rollDist.min)} sub={`${fmtMonth(rollDist.minStart)}–${fmtMonth(rollDist.minEnd)}`} tone="text-rose-700 dark:text-rose-400" />
                   <Stat label="Median" value={pct(rollDist.median)} sub="per year" />
-                  <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}–${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-600 dark:text-emerald-400" />
+                  <Stat label="Best" value={pct(rollDist.max)} sub={`${fmtMonth(rollDist.maxStart)}–${fmtMonth(rollDist.maxEnd)}`} tone="text-emerald-700 dark:text-emerald-400" />
                 </div>
                 <p className="mt-2 text-xs text-muted">
                   {Math.round(rollDist.negPct * rollDist.n / 100)} of {rollDist.n} measured {horizon}-year periods lost money.
@@ -457,7 +457,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           {regimeCompare && (
             <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
               <span className="text-xs text-faint">Comparing with:</span>
-              <a href={`#/fund/${regimeCompare.code}/${fundSlug(regimeCompare.name)}`} className="text-xs font-semibold text-brand-600 hover:underline">{shortName(regimeCompare)}</a>
+              <a href={`#/fund/${regimeCompare.code}/${fundSlug(regimeCompare.name)}`} className="text-xs font-semibold text-brand-600 dark:text-brand-300 hover:underline">{shortName(regimeCompare)}</a>
               <button
                 onClick={() => setRegimeCompareOpen(true)}
                 className="text-xs text-muted hover:text-brand-600 underline"
@@ -491,7 +491,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   return (
                   <tr key={r.name} className="border-b border-line last:border-0">
                     <td className="px-2 py-1.5 group cursor-pointer" onClick={(e) => { const el = (e.currentTarget as HTMLElement).querySelector('[data-desc]'); if (el) el.classList.toggle('hidden') }}>
-                      <span className={ri?.market === 'down' ? 'text-rose-600 dark:text-rose-400' : ri?.market === 'up' ? 'text-emerald-600 dark:text-emerald-400' : ri?.market === 'mixed' ? 'text-amber-600 dark:text-amber-400' : 'text-muted'}>{r.name}</span>
+                      <span className={ri?.market === 'down' ? 'text-rose-700 dark:text-rose-400' : ri?.market === 'up' ? 'text-emerald-700 dark:text-emerald-400' : ri?.market === 'mixed' ? 'text-amber-800 dark:text-amber-400' : 'text-muted'}>{r.name}</span>
                       {ri && <span className="block text-xs text-faint">{ri.range}{ri.desc && <span className="ml-1 opacity-50">ⓘ</span>}</span>}
                       {ri?.desc && <span data-desc className="hidden block text-xs text-faint/80 mt-0.5 leading-snug">{ri.desc}</span>}
                     </td>
@@ -505,11 +505,11 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                       const winBg = 'rounded-md bg-emerald-50 dark:bg-emerald-900/30 px-1.5'
                       return (
                       <>
-                        <td className={`px-2 py-1.5 text-right font-semibold ${fundRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        <td className={`px-2 py-1.5 text-right font-semibold ${fundRet >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                           <span className={fundWins ? winBg : ''}>{pct(r.ret)}</span>
                         </td>
                         {regimeCompare && (
-                          <td className={`px-2 py-1.5 text-right font-semibold ${compRet == null ? 'text-muted' : compRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          <td className={`px-2 py-1.5 text-right font-semibold ${compRet == null ? 'text-muted' : compRet >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                             <span className={compWins ? winBg : ''}>{compRet != null ? pct(compRet) : '—'}</span>
                           </td>
                         )}
@@ -554,7 +554,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
 
               {/* Row 1: Fall depth + reason */}
               <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">{pct(dd.depthPct)}</span>
+                <span className="text-xl font-extrabold text-rose-700 dark:text-rose-400">{pct(dd.depthPct)}</span>
                 <span className="text-sm text-muted">
                   {fmtDate(dd.peakDate)} to {fmtDate(dd.troughDate)}
                   {regime && <span className="ml-1 text-faint">(during {regime})</span>}
@@ -569,7 +569,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                     {humanDuration(dd.recoveryDays as number)}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-sm font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-sm font-bold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                     Not yet ({humanDuration(dd.daysSinceTrough)} and counting)
                   </span>
                 )}
@@ -582,29 +582,29 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     {catMedianDD != null && (
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-semibold text-rose-600 dark:text-rose-400">{pct(catMedianDD)}</span>
+                        <span className="font-semibold text-rose-700 dark:text-rose-400">{pct(catMedianDD)}</span>
                         <span className="text-faint">category median max drawdown</span>
                       </div>
                     )}
                     {peerDD != null && peerName && (
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-semibold text-rose-600 dark:text-rose-400">{pct(peerDD)}</span>
+                        <span className="font-semibold text-rose-700 dark:text-rose-400">{pct(peerDD)}</span>
                         <span className="text-faint">top peer ({peerName})</span>
                       </div>
                     )}
                   </div>
                   {catMedianDD != null && dd.depthPct > catMedianDD && (
-                    <div className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <div className="mt-1.5 text-xs text-emerald-700 dark:text-emerald-400">
                       The full-history fall shown is smaller than the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2 && (
-                    <div className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">
+                    <div className="mt-1.5 text-xs text-rose-700 dark:text-rose-400 font-medium">
                       The full-history fall shown exceeds 1.2 times the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
                   {catMedianDD != null && dd.depthPct <= catMedianDD && !(catMedianDD < 0 && dd.depthPct / catMedianDD > 1.2) && (
-                    <div className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="mt-1.5 text-xs text-amber-800 dark:text-amber-400">
                       The full-history fall shown is at least as large as the category’s 3-year median drawdown. The periods differ.
                     </div>
                   )}
@@ -628,7 +628,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
           <div className="mt-2 grid grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-faint">Deepest fall</div>
-              <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">{pct(dd.depthPct)}</span>
+              <span className="text-xl font-extrabold text-rose-700 dark:text-rose-400">{pct(dd.depthPct)}</span>
               <div className="text-xs text-faint">{fmtDate(dd.peakDate)} to {fmtDate(dd.troughDate)}</div>
             </div>
             <div>
@@ -638,7 +638,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                   {humanDuration(dd.recoveryDays as number)}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-base font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-base font-bold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                   Not yet ({humanDuration(dd.daysSinceTrough)})
                 </span>
               )}
@@ -649,7 +649,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
 
       <p className="mt-3 text-xs text-faint">
         Based on this fund's actual history. See{' '}
-        <a href="#/methodology" className="text-brand-600 hover:underline">Methodology</a> for formulas and caveats.
+        <a href="#/methodology" className="text-brand-700 underline underline-offset-2 dark:text-brand-300">Methodology</a> for formulas and caveats.
       </p>
     </div>
   )

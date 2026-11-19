@@ -14,8 +14,8 @@ function fmtMonth(iso: string): string {
 
 const VERDICT_STYLE: Record<string, { tone: string; bg: string }> = {
   'Smart moves': { tone: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-  'Mixed moves': { tone: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-  'Questionable moves': { tone: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+  'Mixed moves': { tone: 'text-amber-800 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+  'Questionable moves': { tone: 'text-rose-700 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20' },
   'Insufficient price data': { tone: 'text-faint', bg: 'bg-surface2' },
 }
 
@@ -64,7 +64,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
         {/* Stocks ADDED */}
         {moves.added.length > 0 && (
           <div className="min-w-0">
-            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
               Added ({moves.added.length})
             </div>
             <div className="space-y-1.5">
@@ -76,7 +76,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                     {!s.ticker && <div className="text-xs text-faint">{s.pct.toFixed(1)}% weight</div>}
                   </div>
                   {s.postReturn != null ? (
-                    <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                       {signedPct(s.postReturn, 1)}
                     </span>
                   ) : (
@@ -91,7 +91,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
         {/* Stocks EXITED */}
         {moves.exited.length > 0 && (
           <div className="min-w-0">
-            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
               Exited ({moves.exited.length})
             </div>
             <div className="space-y-1.5">
@@ -103,7 +103,7 @@ export default function PortfolioMoves({ fund }: { fund: Fund }) {
                     {!s.ticker && <div className="text-xs text-faint">was {s.pct.toFixed(1)}%</div>}
                   </div>
                   {s.postReturn != null ? (
-                    <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    <span className={`ml-2 whitespace-nowrap text-xs font-bold ${s.postReturn <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                       {signedPct(s.postReturn, 1)}
                     </span>
                   ) : (

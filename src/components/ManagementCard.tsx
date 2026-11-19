@@ -8,9 +8,9 @@ function signalStyle(signal?: string): { tone: string; ring: string } {
     case 'Strong':
       return { tone: 'text-emerald-700 dark:text-emerald-300', ring: 'border-l-emerald-500' }
     case 'Solid':
-      return { tone: 'text-emerald-600 dark:text-emerald-400', ring: 'border-l-emerald-400' }
+      return { tone: 'text-emerald-700 dark:text-emerald-400', ring: 'border-l-emerald-400' }
     case 'Mixed':
-      return { tone: 'text-amber-600 dark:text-amber-400', ring: 'border-l-amber-400' }
+      return { tone: 'text-amber-800 dark:text-amber-400', ring: 'border-l-amber-400' }
     case 'Limited evidence':
       return { tone: 'text-muted', ring: 'border-l-slate-300' }
     default:
@@ -154,20 +154,20 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg bg-surface2 p-2">
               <div className="text-xs text-faint">Median alpha</div>
-              <div className={`font-bold ${tr.medianAlpha >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <div className={`font-bold ${tr.medianAlpha >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                 {signedPct(tr.medianAlpha)}/yr
               </div>
             </div>
             <div className="rounded-lg bg-surface2 p-2">
               <div className="text-xs text-faint">Beat their category</div>
-              <div className={`font-bold ${tr.beatRate >= 0.6 ? 'text-emerald-600 dark:text-emerald-400' : tr.beatRate >= 0.4 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <div className={`font-bold ${tr.beatRate >= 0.6 ? 'text-emerald-700 dark:text-emerald-400' : tr.beatRate >= 0.4 ? 'text-amber-800 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}`}>
                 {Math.round(tr.beatRate * 100)}%
               </div>
               <div className="mt-0.5 text-xs text-faint">of their funds</div>
             </div>
             <div className="rounded-lg bg-surface2 p-2">
               <div className="text-xs text-faint">In category top 25%</div>
-              <div className={`font-bold ${tr.topRankShare == null ? 'text-faint' : tr.topRankShare >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : tr.topRankShare > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <div className={`font-bold ${tr.topRankShare == null ? 'text-faint' : tr.topRankShare >= 0.5 ? 'text-emerald-700 dark:text-emerald-400' : tr.topRankShare > 0 ? 'text-amber-800 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}`}>
                 {tr.topRankShare != null ? `${Math.round(tr.topRankShare * 100)}%` : '—'}
               </div>
               <div className="mt-0.5 text-xs text-faint">of their funds</div>
@@ -186,7 +186,7 @@ export default function ManagementCard({ fund }: { fund: Fund }) {
                     title={sf.name}
                   >
                     <span className="text-muted">{sf.name.length > 26 ? sf.name.slice(0, 26) + '…' : sf.name}</span>{' '}
-                    <span className={`font-semibold ${(sf.alpha ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    <span className={`font-semibold ${(sf.alpha ?? 0) >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                       {sf.alpha != null ? signedPct(sf.alpha) : '—'}
                     </span>
                   </button>

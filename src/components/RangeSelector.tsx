@@ -111,7 +111,7 @@ export default function RangeSelector({ earliest, latest, start, end, onChange, 
 
       {/* Explicit date inputs */}
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2">
           <span className="text-faint">From</span>
           <input
             type="date"
@@ -121,8 +121,8 @@ export default function RangeSelector({ earliest, latest, start, end, onChange, 
             onChange={(e) => onChange(e.target.value, end, 'CUSTOM')}
             className="rounded-lg border border-line bg-surface px-2 py-1 text-fg"
           />
-        </div>
-        <div className="flex items-center gap-2">
+        </label>
+        <label className="flex items-center gap-2">
           <span className="text-faint">To</span>
           <input
             type="date"
@@ -132,7 +132,7 @@ export default function RangeSelector({ earliest, latest, start, end, onChange, 
             onChange={(e) => onChange(start, e.target.value, 'CUSTOM')}
             className="rounded-lg border border-line bg-surface px-2 py-1 text-fg"
           />
-        </div>
+        </label>
         <span className="ml-auto text-xs text-faint">
           {fmtDate(start)} – {fmtDate(end)}
         </span>

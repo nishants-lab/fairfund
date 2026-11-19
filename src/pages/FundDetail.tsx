@@ -220,7 +220,7 @@ export default function FundDetail() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
         <div className="text-2xl font-bold text-fg">Fund not found</div>
-        <Link to="/explore" className="mt-4 inline-block text-brand-600 hover:underline">
+        <Link to="/explore" className="mt-4 inline-block text-brand-600 dark:text-brand-300 hover:underline">
           Back to Explore
         </Link>
       </div>
@@ -342,7 +342,7 @@ export default function FundDetail() {
             return (
               <div className="mt-2 flex items-baseline flex-wrap gap-x-3 gap-y-1">
                 <span className="text-xl font-bold text-fg">{`\u20B9${curr.nav.toFixed(2)}`}</span>
-                <span className={`text-sm font-semibold ${isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <span className={`text-sm font-semibold ${isUp ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                   {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{changePct.toFixed(2)}%)
                 </span>
                 <span className="text-xs text-muted">
@@ -536,7 +536,7 @@ export default function FundDetail() {
             {!usesReducedSurface(fund) && (
             <button
               onClick={() => setChartMode('drawdown')}
-              className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-600 shadow-sm dark:text-rose-400' : 'text-muted'}`}
+              className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'drawdown' ? 'bg-surface text-rose-700 shadow-sm dark:text-rose-400' : 'text-muted'}`}
             >
               Drawdowns
             </button>
@@ -544,7 +544,7 @@ export default function FundDetail() {
             {fund.analytics?.rollingAlpha && fund.analytics.rollingAlpha.spark.length >= 3 && (
               <button
                 onClick={() => setChartMode('alpha')}
-                className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'alpha' ? 'bg-surface text-emerald-600 shadow-sm dark:text-emerald-400' : 'text-muted'}`}
+                className={`min-h-10 min-w-10 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition ${chartMode === 'alpha' ? 'bg-surface text-emerald-700 shadow-sm dark:text-emerald-400' : 'text-muted'}`}
               >
                 Alpha vs peers
               </button>

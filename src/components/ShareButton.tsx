@@ -112,10 +112,10 @@ export default function ShareButton({ fund, title, text, shareUrl, label = 'Shar
     >
       {copied ? (
         <>
-          <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="h-4 w-4 text-emerald-700 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
-          {label !== '' && <span className="text-sm text-emerald-600">Copied!</span>}
+          {label !== '' && <span className="text-sm text-emerald-700 dark:text-emerald-400">Copied!</span>}
         </>
       ) : (
         <>

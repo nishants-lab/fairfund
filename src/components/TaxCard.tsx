@@ -40,7 +40,7 @@ export default function TaxCard({ fund }: { fund: Fund }) {
         <ul className="mt-2 space-y-1">
           {t.extras.map((e, i) => (
             <li key={i} className="text-sm text-muted">
-              <span className="text-brand-500">-</span> {e}
+              <span className="text-brand-600 dark:text-brand-300">-</span> {e}
             </li>
           ))}
         </ul>

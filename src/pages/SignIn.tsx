@@ -18,7 +18,7 @@ export default function SignIn() {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-900/20">
-          <svg viewBox="0 0 24 24" className="h-8 w-8 text-brand-600" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <svg viewBox="0 0 24 24" className="h-8 w-8 text-brand-600 dark:text-brand-300" fill="none" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -42,7 +42,7 @@ export default function SignIn() {
       <div className="mx-auto max-w-lg px-4 py-16">
         <div className="rounded-2xl border border-line bg-surface p-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-amber-500" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <svg viewBox="0 0 24 24" className="h-7 w-7 text-amber-800 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
@@ -51,7 +51,7 @@ export default function SignIn() {
             You can research funds without an account. Your saved funds and imported portfolio stay in this browser.
           </p>
 
-          <Link to="/explore" className="mt-8 inline-block text-sm font-medium text-brand-600 hover:underline">
+          <Link to="/explore" className="mt-8 inline-block text-sm font-medium text-brand-600 dark:text-brand-300 hover:underline">
             Continue exploring funds
           </Link>
         </div>
@@ -162,13 +162,13 @@ export default function SignIn() {
         <p className="mt-6 text-center text-sm text-muted">
           {mode === 'signin' ? (
             <>Don't have an account?{' '}
-              <button onClick={() => { setMode('signup'); setError(null) }} className="font-medium text-brand-600 hover:underline">
+              <button onClick={() => { setMode('signup'); setError(null) }} className="font-medium text-brand-600 dark:text-brand-300 hover:underline">
                 Sign up free
               </button>
             </>
           ) : (
             <>Already have an account?{' '}
-              <button onClick={() => { setMode('signin'); setError(null) }} className="font-medium text-brand-600 hover:underline">
+              <button onClick={() => { setMode('signin'); setError(null) }} className="font-medium text-brand-600 dark:text-brand-300 hover:underline">
                 Sign in
               </button>
             </>
