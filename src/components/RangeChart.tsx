@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { useMemo } from 'react'
 import { drawdownSeries } from '../lib/nav'
+import { fmtDate, fmtMonth } from '../lib/metrics'
 import { useTheme } from '../lib/theme'
 import type { NavPoint } from '../types'
 
@@ -115,10 +116,10 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
       <div>{legend}<ResponsiveContainer width="100%" height={264}>
         <LineChart data={ddMerged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={grid} />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={(d) => d.slice(0, 7)} minTickGap={40} />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={fmtMonth} minTickGap={40} />
           <YAxis tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `${v}%`} />
           <Tooltip
-            contentStyle={tooltipStyle}
+            contentStyle={tooltipStyle} labelFormatter={(d) => fmtDate(d)}
             formatter={(v: number, key: string) => [`${v.toFixed(1)}%`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
           />
           {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
@@ -132,12 +133,12 @@ export default function RangeChart({ points, peer, peerName, mode = 'nav', loadi
     <div>{legend}<ResponsiveContainer width="100%" height={264}>
       <LineChart data={navMerged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={grid} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={(d) => d.slice(0, 7)} minTickGap={40} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={fmtMonth} minTickGap={40} />
         <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `₹${v.toFixed(0)}`} width={50} />
         <Tooltip
           contentStyle={tooltipStyle}
           formatter={(v: number, key: string) => [`₹${(v as number).toFixed(1)}`, key === 'fund' ? 'This fund' : peerName ?? 'Top peer']}
-          labelFormatter={(d) => `${d} · growth of ₹100`}
+          labelFormatter={(d) => `${fmtDate(d)} · growth of ₹100`}
         />
         {hasPeer && <Line type="monotone" dataKey="peer" stroke={PEER_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />}
         <Line type="monotone" dataKey="fund" stroke={FUND_COLOR} strokeWidth={2} dot={false} connectNulls />

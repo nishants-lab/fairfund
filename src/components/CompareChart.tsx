@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'recharts'
 import { sliceByRange, normalizeRange } from '../lib/compareUtil'
+import { fmtMonth } from '../lib/metrics'
 import { useTheme } from '../lib/theme'
 import type { Fund, NavPoint } from '../types'
 
@@ -64,7 +65,7 @@ export default function CompareChart({ funds, navData, start, end, colors, loadi
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={merged} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={grid} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} minTickGap={40} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: axis }} tickFormatter={fmtMonth} minTickGap={40} />
         <YAxis tick={{ fontSize: 11, fill: axis }} tickFormatter={(v) => `₹${v}`} width={50} domain={['auto', 'auto']} />
         <Tooltip
           content={({ active, payload, label }) => {
@@ -83,7 +84,7 @@ export default function CompareChart({ funds, navData, start, end, colors, loadi
                   padding: '8px 12px',
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 4, color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>{label}</div>
+                <div style={{ fontWeight: 600, marginBottom: 4, color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>{typeof label === 'string' ? fmtMonth(label) : label}</div>
                 {items.map((p) => {
                   const idx = Number(String(p.dataKey).replace('f', ''))
                   return (
