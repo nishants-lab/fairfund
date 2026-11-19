@@ -79,7 +79,7 @@ function SchemeCorrection({ name, code, onChange }: { name: string; code: number
     && terms.every(t => `${f.name} ${f.code}`.toLowerCase().includes(t))).slice(0, 30) : []
   return (
     <details className="mt-3">
-      <summary className="cursor-pointer text-sm font-semibold text-brand-600">Correct scheme match</summary>
+      <summary className="cursor-pointer text-sm font-semibold text-brand-600 dark:text-brand-300">Correct scheme match</summary>
       <p className="mt-2 text-xs text-muted">Search the bundled fund list by name or AMFI code. This changes every statement block with this exact name, including closed folios. It does not change units, values or dates.</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <input aria-label={`Search scheme for ${name}`} value={query} onChange={e => setQuery(e.target.value)} placeholder="Fund name or AMFI code" className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg" />
@@ -93,7 +93,7 @@ function SchemeCorrection({ name, code, onChange }: { name: string; code: number
           {f.name} · {f.planType === 'direct' ? 'Direct' : 'Regular'} · {f.optionType} · AMFI {f.code}{code === f.code ? ' (selected)' : ''}
         </button></li>)}
       </ul>
-      <button type="button" onClick={() => onChange(0)} className="mt-2 text-sm font-semibold text-brand-600">Leave unmatched</button>
+      <button type="button" onClick={() => onChange(0)} className="mt-2 text-sm font-semibold text-brand-600 dark:text-brand-300">Leave unmatched</button>
     </details>
   )
 }
@@ -144,7 +144,7 @@ export default function PortfolioImportReview({ portfolio, replacing, onConfirm,
         </article>
       })}
       <label className="flex items-start gap-2 text-sm text-fg"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} className="mt-1" />I have reviewed the suggested matches, plans, statement totals and warnings. I accept any remaining unmatched or uncertain holdings.</label>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}
       <div className="flex flex-wrap gap-3">
         <button type="button" disabled={!acknowledged || !groups.length} onClick={() => { try { onConfirm(draft) } catch { setError('Could not save in this browser. Your previous portfolio has not been replaced. Free browser storage and try again.') } }} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">{replacing ? 'Confirm and replace saved portfolio' : 'Confirm and save portfolio'}</button>
         <button type="button" onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg">Cancel import</button>

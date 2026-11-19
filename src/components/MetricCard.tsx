@@ -17,22 +17,22 @@ interface Props {
 
 const toneClasses: Record<NonNullable<Props['tone']>, string> = {
   default: 'text-fg',
-  good: 'text-emerald-600 dark:text-emerald-400',
-  bad: 'text-rose-600 dark:text-rose-400',
-  warn: 'text-amber-600 dark:text-amber-400',
+  good: 'text-emerald-700 dark:text-emerald-400',
+  bad: 'text-rose-700 dark:text-rose-400',
+  warn: 'text-amber-800 dark:text-amber-400',
 }
 
 const subToneClasses: Record<NonNullable<Props['tone']>, string> = {
   default: 'text-muted',
-  good: 'text-emerald-600 dark:text-emerald-400',
-  bad: 'text-rose-600 dark:text-rose-400',
-  warn: 'text-amber-600 dark:text-amber-400',
+  good: 'text-emerald-700 dark:text-emerald-400',
+  bad: 'text-rose-700 dark:text-rose-400',
+  warn: 'text-amber-800 dark:text-amber-400',
 }
 
 const verdictTone: Record<string, string> = {
-  good: 'text-emerald-600 dark:text-emerald-400',
-  bad: 'text-rose-600 dark:text-rose-400',
-  warn: 'text-amber-600 dark:text-amber-400',
+  good: 'text-emerald-700 dark:text-emerald-400',
+  bad: 'text-rose-700 dark:text-rose-400',
+  warn: 'text-amber-800 dark:text-amber-400',
   neutral: 'text-muted',
 }
 

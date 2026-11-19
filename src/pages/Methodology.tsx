@@ -189,10 +189,10 @@ export default function Methodology() {
                 : `${mon(s)} ${s.getFullYear()} - ${mon(e)} ${e.getFullYear()}`
             const color =
               r.market === "down"
-                ? "text-rose-600 dark:text-rose-400"
+                ? "text-rose-700 dark:text-rose-400"
                 : r.market === "up"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-amber-600 dark:text-amber-400"
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-amber-800 dark:text-amber-400"
             return (
               <li key={r.name}>
                 <span className={color}>{r.name}</span> ({range})

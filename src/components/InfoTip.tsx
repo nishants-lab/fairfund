@@ -54,7 +54,7 @@ export default function InfoTip({ children, label = 'More information', width = 
   return <span className="inline-flex align-middle">
     <button ref={btnRef} type="button" aria-label={label} aria-expanded={open}
       aria-describedby={open ? tooltipId : undefined}
-      className={`relative inline-flex h-4 w-4 items-center justify-center rounded-full border text-xs font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 before:absolute before:-inset-[14px] before:content-[''] ${open ? 'border-brand-400 text-brand-600' : 'border-line text-faint hover:border-brand-400 hover:text-brand-600'}`}
+      className={`relative inline-flex h-4 w-4 items-center justify-center rounded-full border text-xs font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-brand-300 before:absolute before:-inset-[14px] before:content-[''] ${open ? 'border-brand-400 text-brand-600 dark:text-brand-300' : 'border-line text-faint hover:border-brand-400 hover:text-brand-600'}`}
       onFocus={() => setOpen(true)}
       onBlur={event => { if (!contains(event.relatedTarget)) setOpen(false) }}
       onPointerEnter={event => { if (event.pointerType === 'mouse') setOpen(true) }}

@@ -62,7 +62,7 @@ export default function SectorBreakdown({ fund }: { fund: Fund }) {
     <div className="mt-6 card p-5">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-fg">Sector concentration</h3>
-        <span className={`text-xs font-semibold ${concentration > 40 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+        <span className={`text-xs font-semibold ${concentration > 40 ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
           {concentration > 40 ? 'Concentrated' : 'Diversified'}
         </span>
       </div>

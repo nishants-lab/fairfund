@@ -571,8 +571,8 @@ function vs1Y(f: Fund): number | null {
 }
 
 function toneClass(t: Tone): string {
-  return t === 'pos' ? 'font-semibold text-emerald-600 dark:text-emerald-400'
-    : t === 'neg' ? 'font-semibold text-red-500 dark:text-red-400'
+  return t === 'pos' ? 'font-semibold text-emerald-700 dark:text-emerald-400'
+    : t === 'neg' ? 'font-semibold text-red-700 dark:text-red-400'
     : t === 'mute' ? 'text-muted' : 'text-fg'
 }
 const TD = 'whitespace-nowrap px-3 py-2.5 text-right tabular-nums'
@@ -762,8 +762,8 @@ function StockTable({ rows, s, shown, onMore, onPick, onSort }: {
             <button onClick={() => onPick(r.key)} className="text-left font-medium text-fg hover:text-brand-600">{r.name}</button>
             <div className="text-xs text-faint">{r.sector}</div>
           </td>
-          <td className={`${TD} text-emerald-600 dark:text-emerald-400`}>{r.buyers}</td>
-          <td className={`${TD} text-red-500 dark:text-red-400`}>{r.sellers}</td>
+          <td className={`${TD} text-emerald-700 dark:text-emerald-400`}>{r.buyers}</td>
+          <td className={`${TD} text-red-700 dark:text-red-400`}>{r.sellers}</td>
           <td className={`${TD} ${toneClass(signTone(r.netBuyers))}`}>{fmtMeasure('netBuyers', r.netBuyers)}</td>
           <td className={`${TD} text-muted`}>{r.added}</td>
           <td className={`${TD} text-muted`}>{r.exited}</td>
@@ -780,8 +780,8 @@ function SectorTable({ rows, total, sectors, onPick }: { rows: SectorRow[]; tota
   const cells = (g: SectorRow) => (
     <>
       <td className={`${TD} text-muted`}>{g.stocks}</td>
-      <td className={`${TD} text-emerald-600 dark:text-emerald-400`}>{g.buyers}</td>
-      <td className={`${TD} text-red-500 dark:text-red-400`}>{g.sellers}</td>
+      <td className={`${TD} text-emerald-700 dark:text-emerald-400`}>{g.buyers}</td>
+      <td className={`${TD} text-red-700 dark:text-red-400`}>{g.sellers}</td>
       <td className={`${TD} ${toneClass(signTone(g.netBuyers))}`}>{fmtMeasure('netBuyers', g.netBuyers)}</td>
       <td className={`${TD} text-muted`}>{g.added}</td>
       <td className={`${TD} text-muted`}>{g.exited}</td>
@@ -822,7 +822,7 @@ function StockDetail({ row, stock, data, action, onAll, onBack }: {
   return (
     <div className="mt-2">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <button onClick={onBack} className="text-sm text-brand-600 hover:underline">← All stocks</button>
+        <button onClick={onBack} className="text-sm text-brand-600 dark:text-brand-300 hover:underline">← All stocks</button>
         <h2 className="text-lg font-semibold text-fg">{name}</h2>
         {row && <span className="text-sm text-muted">{row.sector} · {row.buyers} bought, {row.sellers} sold{row.priceMove != null ? ` · price move about ${signedPct(row.priceMove, 1)}` : ''}</span>}
       </div>
@@ -878,7 +878,7 @@ function TableShell({ head, foot, total, children, testId }: { head: ReactNode; 
 
 function MoreButton({ left, onClick }: { left: number; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="w-full border-t border-line bg-surface2/50 py-2.5 text-sm font-medium text-brand-600 hover:bg-surface2">
+    <button onClick={onClick} className="w-full border-t border-line bg-surface2/50 py-2.5 text-sm font-medium text-brand-600 dark:text-brand-300 hover:bg-surface2">
       Show {Math.min(left, PAGE)} more ({left} left)
     </button>
   )

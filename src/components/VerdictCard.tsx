@@ -12,9 +12,9 @@ function scoreBand(score: number): {
   if (score >= 75)
     return { ring: 'border-l-blue-600', text: 'text-blue-700 dark:text-blue-300', bar: 'bg-blue-600' }
   if (score >= 60)
-    return { ring: 'border-l-blue-500', text: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500' }
+    return { ring: 'border-l-blue-500', text: 'text-blue-700 dark:text-blue-400', bar: 'bg-blue-500' }
   if (score >= 45)
-    return { ring: 'border-l-blue-400', text: 'text-blue-500 dark:text-blue-300', bar: 'bg-blue-400' }
+    return { ring: 'border-l-blue-400', text: 'text-blue-700 dark:text-blue-300', bar: 'bg-blue-400' }
   return { ring: 'border-l-slate-400', text: 'text-slate-500 dark:text-slate-400', bar: 'bg-slate-400' }
 }
 
@@ -154,8 +154,8 @@ const DTONE_RING: Record<string, string> = {
 }
 const DTONE_TEXT: Record<string, string> = {
   good: 'text-emerald-700 dark:text-emerald-300',
-  warn: 'text-amber-600 dark:text-amber-400',
-  bad: 'text-rose-600 dark:text-rose-400',
+  warn: 'text-amber-800 dark:text-amber-400',
+  bad: 'text-rose-700 dark:text-rose-400',
   neutral: 'text-muted',
 }
 const DTONE_BAR: Record<string, string> = {
@@ -232,7 +232,7 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
         <ul className="mt-4 grid gap-2 sm:grid-cols-3">
           {v.pillars.map((p, i) => (
             <li key={i} className="rounded-lg border border-line bg-surface2/40 p-3">
-              <div className={`text-sm font-bold ${p.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : p.tone === 'bad' ? 'text-rose-600 dark:text-rose-400' : 'text-fg'}`}>{p.label}</div>
+              <div className={`text-sm font-bold ${p.tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : p.tone === 'bad' ? 'text-rose-700 dark:text-rose-400' : 'text-fg'}`}>{p.label}</div>
               <div className="mt-0.5 text-xs text-muted">{p.detail}</div>
             </li>
           ))}

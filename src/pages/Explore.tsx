@@ -96,8 +96,8 @@ const DEBT_COLUMNS: { key: SortKey; label: string; align: 'left' | 'right'; defa
 ]
 
 const TREND_TONE: Record<string, string> = {
-  climbing: 'text-emerald-600 dark:text-emerald-400',
-  fading: 'text-rose-600 dark:text-rose-400',
+  climbing: 'text-emerald-700 dark:text-emerald-400',
+  fading: 'text-rose-700 dark:text-rose-400',
   steady: 'text-faint',
 }
 
@@ -268,7 +268,7 @@ export default function Explore() {
           <div className="h-8 w-px bg-line" />
           <div>
             <div className="text-xs text-faint">Best {horizon} CAGR</div>
-            <div className="font-bold text-emerald-600 dark:text-emerald-400">{pct(horizonStats.top)}</div>
+            <div className="font-bold text-emerald-700 dark:text-emerald-400">{pct(horizonStats.top)}</div>
           </div>
           <div className="h-8 w-px bg-line" />
           <div>
@@ -420,7 +420,7 @@ export default function Explore() {
                     )}
                     {!isDebtCat && <td className={`px-4 py-3 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>}
                     {!isDebtCat && <td className="px-4 py-3 text-right text-muted">{num(m.sharpe)}</td>}
-                    {!isDebtCat && <td className="px-4 py-3 text-right text-rose-500">{pct(m.maxDrawdown)}</td>}
+                    {!isDebtCat && <td className="px-4 py-3 text-right text-rose-700 dark:text-rose-400">{pct(m.maxDrawdown)}</td>}
                     {!isDebtCat && (
                     <td className="px-4 py-3 text-right">
                       {f.analytics?.battingAverage ? (

@@ -10,6 +10,18 @@ import { fundSlug, categoryFundsLabel, fixed } from '../lib/format'
 import { formatAumCr, landscapeAum } from '../lib/landscape'
 import type { Fund, Horizon } from '../types'
 
+// Recharts marks every dot role="img"; a <title> gives each one an accessible
+// name (the fund) and a native hover label. Same circle as the default shape.
+function landscapeDot(p: any) {
+  const r = Math.sqrt((p.size ?? 64) / Math.PI)
+  return (
+    <g>
+      <title>{p.payload?.current ? `${p.payload.name} (this fund)` : p.payload?.name}</title>
+      <circle cx={p.cx} cy={p.cy} r={r} fill={p.fill} fillOpacity={p.fillOpacity} stroke={p.stroke} strokeOpacity={p.strokeOpacity} strokeWidth={p.strokeWidth} />
+    </g>
+  )
+}
+
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b)
   const m = Math.floor(s.length / 2)
@@ -88,7 +100,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
         <div className="font-semibold text-fg">{d.name}{d.current ? ' (this fund)' : ''}</div>
         <div className="mt-0.5 text-muted">Return {d.y.toFixed(1)}% · Risk {d.x.toFixed(1)}</div>
         {d.aum ? <div className="text-faint">AUM {formatAumCr(d.aum)}</div> : null}
-        <div className="mt-1 text-xs text-brand-500">Click to open</div>
+        <div className="mt-1 text-xs text-brand-600 dark:text-brand-300">Click to open</div>
       </div>
     )
   }
@@ -117,7 +129,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
         Hover any fund for detail; click to open it.
       </p>
       {fundMissing && (
-        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
           This fund has no {sel} track record yet, so it can't be placed on this {sel} chart. The peers shown all have {sel} history.
         </p>
       )}
@@ -146,6 +158,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
             data={rows}
             onClick={(d: any) => d?.code && navigate(`/fund/${d.code}/${fundSlug(d.name)}`)}
             style={{ cursor: 'pointer' }}
+            shape={landscapeDot}
           >
             {rows.map((r) => (
               <Cell

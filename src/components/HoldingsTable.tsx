@@ -8,17 +8,17 @@ import { displayStockName } from '../lib/stockNames'
 function coverageLabel(cov?: string): { text: string; tone: string } {
   switch (cov) {
     case 'stock_level':
-      return { text: 'Stock-level disclosure', tone: 'text-emerald-600 dark:text-emerald-400' }
+      return { text: 'Stock-level disclosure', tone: 'text-emerald-700 dark:text-emerald-400' }
     case 'lookthrough_domestic':
     case 'lookthrough_etf':
-      return { text: 'Look-through via underlying fund', tone: 'text-emerald-600 dark:text-emerald-400' }
+      return { text: 'Look-through via underlying fund', tone: 'text-emerald-700 dark:text-emerald-400' }
     case 'fof_level':
-      return { text: 'Fund-of-fund (underlying funds disclosed)', tone: 'text-sky-600 dark:text-sky-400' }
+      return { text: 'Fund-of-fund (underlying funds disclosed)', tone: 'text-sky-700 dark:text-sky-400' }
     case 'feeder_domestic':
-      return { text: 'Fund-of-fund (tracks an Indian ETF)', tone: 'text-amber-600 dark:text-amber-400' }
+      return { text: 'Fund-of-fund (tracks an Indian ETF)', tone: 'text-amber-800 dark:text-amber-400' }
     case 'feeder_foreign':
     case 'feeder_unresolved':
-      return { text: 'Overseas feeder fund', tone: 'text-amber-600 dark:text-amber-400' }
+      return { text: 'Overseas feeder fund', tone: 'text-amber-800 dark:text-amber-400' }
     case 'no_disclosure':
     case 'unresolved':
     default:
@@ -28,7 +28,7 @@ function coverageLabel(cov?: string): { text: string; tone: string } {
 
 function ChangeCell({ change }: { change?: number | null }) {
   if (change === undefined || change === null) {
-    return <span className="text-xs text-brand-500 font-medium">New</span>
+    return <span className="text-xs text-brand-600 dark:text-brand-300 font-medium">New</span>
   }
   if (change === 0) {
     return <span className="text-xs text-faint">—</span>
@@ -36,7 +36,7 @@ function ChangeCell({ change }: { change?: number | null }) {
   const positive = change > 0
   const bps = Math.abs(Math.round(change * 100))
   return (
-    <span className={`text-xs font-medium tabular-nums ${positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+    <span className={`text-xs font-medium tabular-nums ${positive ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
       {positive ? '▲' : '▼'} {bps} bps
     </span>
   )
@@ -83,7 +83,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
           {peerCode && (
             <Link
               to={`/compare?codes=${fund.code},${peerCode}#overlap`}
-              className="text-sm font-semibold text-brand-600 hover:underline"
+              className="text-sm font-semibold text-brand-600 dark:text-brand-300 hover:underline"
             >
               Compare with top peer
             </Link>
@@ -153,7 +153,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
       {holdings.length > 10 && (
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="mt-3 text-sm font-semibold text-brand-600 hover:underline"
+          className="mt-3 text-sm font-semibold text-brand-600 dark:text-brand-300 hover:underline"
         >
           {expanded ? 'Show top 10 only' : `Show all ${holdings.length} holdings`}
         </button>

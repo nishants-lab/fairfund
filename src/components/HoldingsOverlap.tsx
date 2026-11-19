@@ -12,9 +12,9 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 function overlapTone(pct: number): string {
-  if (pct >= 50) return 'text-rose-600 dark:text-rose-400'
-  if (pct >= 25) return 'text-amber-600 dark:text-amber-400'
-  return 'text-emerald-600 dark:text-emerald-400'
+  if (pct >= 50) return 'text-rose-700 dark:text-rose-400'
+  if (pct >= 25) return 'text-amber-800 dark:text-amber-400'
+  return 'text-emerald-700 dark:text-emerald-400'
 }
 
 function overlapVerdict(pct: number): string {
@@ -102,7 +102,7 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
       </div>
       {shared.length > MAX && (
         <button
-          className="mt-3 text-[13px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
+          className="mt-3 text-[13px] font-semibold text-blue-700 hover:underline dark:text-blue-400"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? 'Show fewer' : `Show all ${shared.length} shared holdings`}
@@ -159,7 +159,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
           <div className="flex h-7 overflow-hidden rounded-lg border border-line">
             <div
               className="flex items-center justify-center text-xs font-semibold text-white"
-              style={{ width: `${ov}%`, backgroundColor: '#6366f1' }}
+              style={{ width: `${ov}%`, backgroundColor: '#4f46e5' }}
             >
               {ov >= 18 ? 'shared' : ''}
             </div>

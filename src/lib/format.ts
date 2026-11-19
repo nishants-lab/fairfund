@@ -37,11 +37,11 @@ export function riskColor(level: string): string {
     case 'Low':
       return 'bg-teal-100 text-teal-700'
     case 'Low to Moderate':
-      return 'bg-emerald-100 text-emerald-600'
+      return 'bg-green-100 text-green-800'
     case 'Moderate':
       return 'bg-emerald-100 text-emerald-700'
     case 'Moderately High':
-      return 'bg-amber-100 text-amber-700'
+      return 'bg-amber-100 text-amber-800'
     case 'High':
       return 'bg-orange-100 text-orange-700'
     case 'Very High':
@@ -60,8 +60,7 @@ export function fundSlug(name: string): string {
 }
 
 export function alphaColor(alpha: number): string {
-  if (alpha > 2) return 'text-emerald-600'
-  if (alpha > 0) return 'text-emerald-500'
-  if (alpha > -2) return 'text-amber-600'
-  return 'text-rose-600'
+  if (alpha > 0) return 'text-emerald-700 dark:text-emerald-400'
+  if (alpha > -2) return 'text-amber-800 dark:text-amber-400'
+  return 'text-rose-700 dark:text-rose-400'
 }

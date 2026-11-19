@@ -259,9 +259,9 @@ export default function Compare() {
   // Semantic tone for a metric value (consistent with FundDetail):
   // drawdown never green; negative ratios always red; returns/months by sign.
   function valueToneClass(key: keyof ComputedMetrics, v: number): string {
-    if (key === 'maxDrawdown') return v <= -25 ? 'text-rose-600 dark:text-rose-400' : v <= -10 ? 'text-amber-600 dark:text-amber-400' : 'text-fg'
-    if (key === 'sharpe' || key === 'sortino' || key === 'calmar') return v < 0 ? 'text-rose-600 dark:text-rose-400' : v >= 1 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
-    if (key === 'cagr' || key === 'totalReturn' || key === 'best1M' || key === 'worst1M') return v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-fg'
+    if (key === 'maxDrawdown') return v <= -25 ? 'text-rose-700 dark:text-rose-400' : v <= -10 ? 'text-amber-800 dark:text-amber-400' : 'text-fg'
+    if (key === 'sharpe' || key === 'sortino' || key === 'calmar') return v < 0 ? 'text-rose-700 dark:text-rose-400' : v >= 1 ? 'text-emerald-700 dark:text-emerald-400' : 'text-fg'
+    if (key === 'cagr' || key === 'totalReturn' || key === 'best1M' || key === 'worst1M') return v < 0 ? 'text-rose-700 dark:text-rose-400' : 'text-fg'
     return 'text-fg'
   }
 
@@ -312,7 +312,7 @@ export default function Compare() {
 
   // Green pill class for the winning cell in a row (#17). Applies whenever there
   // is more than one fund; a small caption warns when categories differ.
-  const winClass = 'rounded-md bg-emerald-100 px-2 py-0.5 dark:bg-emerald-700/50'
+  const winClass = 'rounded-md bg-emerald-100 px-2 py-0.5 dark:bg-emerald-900/60'
 
   // Overall verdicts for the final row (#18) - conviction score per fund.
   const verdicts = useMemo(() => funds.map((f) =>
@@ -615,7 +615,7 @@ export default function Compare() {
                   <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">Form <span className="text-xs text-faint">(rank trend)</span></td>
                   {funds.map((f) => {
                     const dir = f.analytics?.rankTrajectory?.direction
-                    const tone = dir === 'climbing' ? 'text-emerald-600 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-600 dark:text-rose-400' : 'text-muted'
+                    const tone = dir === 'climbing' ? 'text-emerald-700 dark:text-emerald-400' : dir === 'fading' ? 'text-rose-700 dark:text-rose-400' : 'text-muted'
                     const label = dir === 'climbing' ? 'Climbing' : dir === 'fading' ? 'Fading' : dir === 'steady' ? 'Steady' : '—'
                     return <td key={f.code} className={`px-4 py-3 text-right font-semibold ${tone}`}>{label}</td>
                   })}

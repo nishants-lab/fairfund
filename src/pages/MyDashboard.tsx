@@ -55,7 +55,7 @@ export default function MyDashboard() {
       <section className="mt-8">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-fg">Portfolio</h2>
-          <Link to="/my/portfolio" className="text-sm font-medium text-brand-600 hover:underline">
+          <Link to="/my/portfolio" className="text-sm font-medium text-brand-600 dark:text-brand-300 hover:underline">
             {hasPortfolio ? 'View details' : 'Upload CAMS'}
           </Link>
         </div>
@@ -63,7 +63,7 @@ export default function MyDashboard() {
         {!hasPortfolio && !loading && (
           <div className="mt-4 rounded-xl border-2 border-dashed border-line bg-surface p-8 text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-900/20">
-              <svg viewBox="0 0 24 24" className="h-7 w-7 text-brand-500" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <svg viewBox="0 0 24 24" className="h-7 w-7 text-brand-600 dark:text-brand-300" fill="none" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
             </div>
@@ -99,23 +99,23 @@ export default function MyDashboard() {
                 label="Total gain"
                 value={`₹${(analysis.totalGain / 100000).toFixed(1)}L`}
                 sub={`${signedPct(analysis.totalGainPct, 1)}`}
-                color={analysis.totalGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}
+                color={analysis.totalGain >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}
               />
               <StatCard
                 label="Manager alerts"
                 value={String(analysis.managerAlerts.length)}
                 sub={analysis.managerAlerts.length > 0 ? 'Needs attention' : 'All clear'}
-                color={analysis.managerAlerts.length > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
+                color={analysis.managerAlerts.length > 0 ? 'text-amber-800 dark:text-amber-400' : undefined}
               />
               <StatCard
                 label="Rank drifted"
                 value={`${analysis.reshuffleScore.filter(r => r.drift != null && r.drift > 3).length} funds`}
                 sub="dropped 3+ ranks"
-                color={analysis.reshuffleScore.some(r => r.drift != null && r.drift > 3) ? 'text-amber-600 dark:text-amber-400' : undefined}
+                color={analysis.reshuffleScore.some(r => r.drift != null && r.drift > 3) ? 'text-amber-800 dark:text-amber-400' : undefined}
               />
             </div>
             <div className="mt-3 text-right">
-              <Link to="/my/portfolio" className="text-sm font-medium text-brand-600 hover:underline">
+              <Link to="/my/portfolio" className="text-sm font-medium text-brand-600 dark:text-brand-300 hover:underline">
                 Full analysis
               </Link>
             </div>
@@ -127,7 +127,7 @@ export default function MyDashboard() {
       <section className="mt-10">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-fg">Watchlist</h2>
-          <Link to="/wishlist" className="text-sm font-medium text-brand-600 hover:underline">
+          <Link to="/wishlist" className="text-sm font-medium text-brand-600 dark:text-brand-300 hover:underline">
             {hasWatchlist ? `${wishlistFunds.length} funds` : 'Add funds'}
           </Link>
         </div>
@@ -165,7 +165,7 @@ export default function MyDashboard() {
               )
             })}
             {wishlistFunds.length > 5 && (
-              <Link to="/wishlist" className="block text-center text-sm text-brand-600 hover:underline">
+              <Link to="/wishlist" className="block text-center text-sm text-brand-600 dark:text-brand-300 hover:underline">
                 View all {wishlistFunds.length} funds
               </Link>
             )}

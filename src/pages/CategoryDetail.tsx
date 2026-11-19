@@ -225,7 +225,7 @@ export default function CategoryDetail() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-fg">Category not found</h1>
-        <p className="mt-2 text-muted">Try browsing from <Link to="/explore" className="text-brand-600 hover:underline">Explore</Link>.</p>
+        <p className="mt-2 text-muted">Try browsing from <Link to="/explore" className="text-brand-600 dark:text-brand-300 hover:underline">Explore</Link>.</p>
       </div>
     )
   }
@@ -318,7 +318,7 @@ export default function CategoryDetail() {
         <section className="mt-10">
           <h2 className="text-xl font-semibold text-fg">Regime stress test</h2>
           <p className="mt-1 text-sm text-muted">How the median {catInfo.display} fund performed during each market regime.</p>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-line" tabIndex={0} role="region" aria-label="Regime stress test table">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line bg-surface2 text-xs uppercase tracking-wide text-faint">
@@ -333,16 +333,16 @@ export default function CategoryDetail() {
               <tbody>
                 {regimeStats.map(r => {
                   const fmtMon = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
-                  const mktColor = r.market === 'down' ? 'text-rose-500' : r.market === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                  const mktColor = r.market === 'down' ? 'text-rose-700 dark:text-rose-400' : r.market === 'up' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-800 dark:text-amber-400'
                   return (
                     <tr key={r.name} className="border-b border-line/60 last:border-0">
                       <td className="px-4 py-2.5 font-medium text-fg">{r.name}</td>
                       <td className="px-4 py-2.5 text-muted">{fmtMon(r.start)} &ndash; {fmtMon(r.end)}</td>
                       <td className={`px-4 py-2.5 text-center text-xs font-semibold uppercase ${mktColor}`}>{r.market}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold ${r.medianRet != null && r.medianRet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                      <td className={`px-4 py-2.5 text-right font-semibold ${r.medianRet != null && r.medianRet >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                         {r.medianRet != null ? `${signedPct(r.medianRet, 1)}` : '\u2014'}
                       </td>
-                      <td className={`px-4 py-2.5 text-right ${r.medianAlpha != null && r.medianAlpha >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                      <td className={`px-4 py-2.5 text-right ${r.medianAlpha != null && r.medianAlpha >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                         {r.medianAlpha != null ? `${signedPct(r.medianAlpha, 1)}` : '\u2014'}
                       </td>
                       <td className="px-4 py-2.5 text-right text-muted">{r.fundCount}</td>
@@ -387,7 +387,7 @@ export default function CategoryDetail() {
           <div className="mt-4 flex gap-4">
             {hotCold.hot > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-900/10">
-                <span className="font-display text-2xl font-semibold text-amber-700 dark:text-amber-400">{hotCold.hot}</span>
+                <span className="font-display text-2xl font-semibold text-amber-800 dark:text-amber-400">{hotCold.hot}</span>
                 <span className="ml-2 text-sm text-muted">above historical average</span>
               </div>
             )}
@@ -446,7 +446,7 @@ export default function CategoryDetail() {
             See all {catInfo.fundCount}
           </Link>
         </div>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-line">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-line" tabIndex={0} role="region" aria-label="Current standings table">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line bg-surface2 text-xs uppercase tracking-wide text-faint">
@@ -477,7 +477,7 @@ export default function CategoryDetail() {
                     <td className="px-4 py-2.5 text-right font-semibold text-fg">{pct(m.cagr)}</td>
                     {!isDebt && <td className={`px-4 py-2.5 text-right font-semibold ${alphaColor(m.alpha)}`}>{signedPct(m.alpha)}</td>}
                     {!isDebt && <td className="px-4 py-2.5 text-right text-muted">{m.sharpe?.toFixed(2) ?? '\u2014'}</td>}
-                    {!isDebt && <td className="px-4 py-2.5 text-right text-rose-500">{pct(m.maxDrawdown)}</td>}
+                    {!isDebt && <td className="px-4 py-2.5 text-right text-rose-700 dark:text-rose-400">{pct(m.maxDrawdown)}</td>}
                   </tr>
                 )
               })}

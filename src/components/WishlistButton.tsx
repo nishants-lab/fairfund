@@ -29,7 +29,7 @@ export default function WishlistButton({ code, compact, className = '' }: Props)
         }
         before:absolute before:-inset-[6px] before:content-['']
         ${wishlisted
-          ? 'text-rose-500 dark:text-rose-400'
+          ? 'text-rose-700 dark:text-rose-400'
           : 'text-muted hover:text-rose-400 dark:hover:text-rose-500'
         }
         ${className}

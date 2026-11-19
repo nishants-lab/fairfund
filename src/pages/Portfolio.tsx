@@ -143,7 +143,7 @@ function UploadPanel({ onParsed }: { onParsed: (p: ParsedPortfolio) => void }) {
           ) : (
             <>
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-900/20">
-                <svg viewBox="0 0 24 24" className="h-7 w-7 text-brand-500" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <svg viewBox="0 0 24 24" className="h-7 w-7 text-brand-600 dark:text-brand-300" fill="none" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                 </svg>
               </div>
@@ -280,7 +280,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
       {showWarn && diag && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/30">
           <div className="font-semibold text-amber-800 dark:text-amber-300">Some holdings may be incomplete</div>
-          <ul className="mt-1 space-y-0.5 text-amber-700 dark:text-amber-400">
+          <ul className="mt-1 space-y-0.5 text-amber-800 dark:text-amber-400">
             {dropped > 0 && (
               <li>Read {diag.activeHoldings} active {diag.activeHoldings === 1 ? 'holding' : 'holdings'}, but {dropped} {dropped === 1 ? 'scheme' : 'schemes'} in your statement could not be read and {dropped === 1 ? 'is' : 'are'} not shown below.</li>
             )}
@@ -305,7 +305,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
             <div className="text-xs font-medium uppercase text-faint">1-day change</div>
             <div className="text-xs text-muted">{fmtNavDate(analysis.navPrevAsOf)} to {fmtNavDate(analysis.navAsOf)}</div>
           </div>
-          <div className={`mt-1 text-2xl font-bold ${analysis.dayChangeValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+          <div className={`mt-1 text-2xl font-bold ${analysis.dayChangeValue >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
             {analysis.dayChangeValue >= 0 ? '+' : '-'}₹{fmtL(Math.abs(analysis.dayChangeValue))}
             <span className="ml-2 text-lg">{signedPct(analysis.dayChangePct, 2)}</span>
           </div>
@@ -322,7 +322,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
         </div>
         <div className="rounded-xl border border-line bg-surface p-4">
           <div className="text-xs font-medium uppercase text-faint">Total gain</div>
-          <div className={`mt-1 text-xl font-bold ${analysis.totalGain >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+          <div className={`mt-1 text-xl font-bold ${analysis.totalGain >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
             {analysis.totalGain >= 0 ? '+' : ''}₹{(Math.abs(analysis.totalGain) / 100000).toFixed(1)}L
           </div>
           <div className="text-xs text-muted">{signedPct(analysis.totalGainPct, 1)}</div>
@@ -380,10 +380,10 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-fg whitespace-nowrap">{r.weight.toFixed(1)}%</td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">₹{fmtL(r.value)}</td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.gainPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.gainPct >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                     {signedPct(r.gainPct, 1)}
                   </td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.xirr == null ? 'text-faint' : r.xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${r.xirr == null ? 'text-faint' : r.xirr >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                     {r.xirr == null ? '—' : `${signedPct(r.xirr, 1)}`}
                     <div className="ml-auto max-w-[10rem] whitespace-normal text-xs font-normal text-faint">
                       {/* Why there is no number, and separately the date the
@@ -396,23 +396,23 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   <td className="px-2.5 py-2.5 text-right tabular-nums text-muted whitespace-nowrap">
                     {r.fund3y != null ? `${signedPct(r.fund3y, 1)}` : <span className="text-faint">—</span>}
                   </td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums text-xs font-medium whitespace-nowrap ${r.dayChangePct == null ? 'text-faint' : r.dayChangePct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums text-xs font-medium whitespace-nowrap ${r.dayChangePct == null ? 'text-faint' : r.dayChangePct >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                     {r.dayChangePct == null ? 'n/a' : `${signedPct(r.dayChangePct, 2)}`}
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap">
                     {r.rankAtPurchase != null && r.rankNow != null ? (
                       <span className={`text-xs font-semibold ${
-                        (r.drift ?? 0) < 0 ? 'text-emerald-600 dark:text-emerald-400' :
-                        (r.drift ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted'
+                        (r.drift ?? 0) < 0 ? 'text-emerald-700 dark:text-emerald-400' :
+                        (r.drift ?? 0) > 0 ? 'text-red-700 dark:text-red-400' : 'text-muted'
                       }`}>#{r.rankAtPurchase}→#{r.rankNow}</span>
                     ) : <span className="text-faint">—</span>}
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap">
                     {r.verdict ? (
                       <span className={`text-xs font-semibold ${
-                        r.verdict === 'Strong' ? 'text-emerald-600' :
-                        r.verdict === 'Solid' ? 'text-brand-600' :
-                        r.verdict === 'Mixed' ? 'text-amber-600' : 'text-muted'
+                        r.verdict === 'Strong' ? 'text-emerald-700 dark:text-emerald-400' :
+                        r.verdict === 'Solid' ? 'text-brand-600 dark:text-brand-300' :
+                        r.verdict === 'Mixed' ? 'text-amber-800 dark:text-amber-400' : 'text-muted'
                       }`}>{r.verdict}</span>
                     ) : <span className="text-faint">—</span>}
                   </td>
@@ -471,12 +471,12 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                   <span className="text-muted">#{r.rankAtPurchase}</span>
                   <span className="text-faint">to</span>
                   <span className={`font-bold ${
-                    r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
-                    r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg'
+                    r.drift! > 3 ? 'text-red-700 dark:text-red-400' :
+                    r.drift! < -3 ? 'text-emerald-700 dark:text-emerald-400' : 'text-fg'
                   }`}>#{r.rankNow}</span>
                   <span className={`text-xs font-semibold ${
-                    r.drift! > 3 ? 'text-red-600 dark:text-red-400' :
-                    r.drift! < -3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'
+                    r.drift! > 3 ? 'text-red-700 dark:text-red-400' :
+                    r.drift! < -3 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'
                   }`}>
                     ({r.drift! > 0 ? '+' : ''}{r.drift})
                   </span>
@@ -538,10 +538,10 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                           <span className="mr-1.5 inline-block w-2 text-faint">{open ? '▾' : '▸'}</span>
                           {s.name}
                         </td>
-                        <td className={`px-3 py-2 text-right font-semibold ${s.weight > 5 ? 'text-amber-600 dark:text-amber-400' : 'text-fg'}`}>
+                        <td className={`px-3 py-2 text-right font-semibold ${s.weight > 5 ? 'text-amber-800 dark:text-amber-400' : 'text-fg'}`}>
                           {s.weight.toFixed(1)}%
                         </td>
-                        <td className={`px-3 py-2 text-right ${s.fundCount >= 3 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-muted'}`}>
+                        <td className={`px-3 py-2 text-right ${s.fundCount >= 3 ? 'font-semibold text-amber-800 dark:text-amber-400' : 'text-muted'}`}>
                           {s.fundCount}
                         </td>
                       </tr>
@@ -654,14 +654,14 @@ export default function Portfolio() {
       <div className="mt-6">
         {pending && <PortfolioImportReview key={pending.id} portfolio={pending} replacing={!!portfolio} onConfirm={confirmImport} onCancel={() => { setPending(null); setImporting(false) }} />}
         {!pending && (!portfolio || importing) && <UploadPanel onParsed={handleParsed} />}
-        {portfolio && importing && !pending && <button onClick={() => setImporting(false)} className="mt-3 text-sm font-semibold text-brand-600">Cancel import</button>}
-        {analysisError && <p role="alert" className="mt-4 text-sm text-red-600">{analysisError}</p>}
+        {portfolio && importing && !pending && <button onClick={() => setImporting(false)} className="mt-3 text-sm font-semibold text-brand-600 dark:text-brand-300">Cancel import</button>}
+        {analysisError && <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-400">{analysisError}</p>}
 
         {portfolio && portfolio.matcherVersion !== MATCHER_VERSION && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-900/20">
             <div>
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Fund matching has improved since this analysis was saved</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400">Some funds may be mislabeled. Import your CAMS statement again and review it before replacing the saved portfolio.</p>
+              <p className="text-xs text-amber-800 dark:text-amber-400">Some funds may be mislabeled. Import your CAMS statement again and review it before replacing the saved portfolio.</p>
             </div>
             <button
               onClick={() => { setPending(null); setImporting(true) }}
@@ -752,10 +752,10 @@ function DebugPanel({ portfolio }: { portfolio: ParsedPortfolio }) {
   return (
     <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50/50 p-4 dark:border-amber-800 dark:bg-amber-900/10">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-bold text-amber-700 dark:text-amber-400">Parse debug: fund summaries from CAMS</h3>
+        <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Parse debug: fund summaries from CAMS</h3>
         <button
           onClick={copyTable}
-          className="shrink-0 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-900/30"
+          className="shrink-0 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-900/30"
         >
           {copied ? 'Copied' : 'Copy full table'}
         </button>
@@ -781,7 +781,7 @@ function DebugPanel({ portfolio }: { portfolio: ParsedPortfolio }) {
             {summaries.map((s, i) => (
               <tr key={i} className={s.closingUnits <= 0.001 ? 'opacity-40' : ''}>
                 <td className="px-3 py-2 text-fg">{s.fundName}</td>
-                <td className={`px-2 py-2 text-right font-mono ${s.fundCode > 0 ? 'text-fg' : 'text-red-500'}`}>
+                <td className={`px-2 py-2 text-right font-mono ${s.fundCode > 0 ? 'text-fg' : 'text-red-700 dark:text-red-400'}`}>
                   {s.fundCode > 0 ? s.fundCode : 'NO MATCH'}
                 </td>
                 <td className="px-2 py-2 text-right font-mono">{s.closingUnits.toLocaleString()}</td>

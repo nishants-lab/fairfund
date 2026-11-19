@@ -5,7 +5,7 @@ export default function NotFound() {
   usePageMeta('Page not found')
   return (
     <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-      <div className="text-6xl font-extrabold text-brand-200 dark:text-brand-900">404</div>
+      <div className="text-6xl font-extrabold text-brand-600 dark:text-brand-300">404</div>
       <h1 className="mt-4 text-2xl font-bold text-fg">Page not found</h1>
       <p className="mt-2 text-muted">
         The page you're looking for doesn't exist or may have been moved.

@@ -201,7 +201,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
           if (opt.kind === 'intent') {
             return (
               <button key="intent" {...common} className={optionClass(idx, 'py-3 border-b border-line')}>
-                <svg className="h-5 w-5 shrink-0 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <svg className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
                 <span className="text-sm font-semibold text-fg">{opt.intent.label}</span>
