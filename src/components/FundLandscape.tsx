@@ -8,6 +8,7 @@ import { useTheme } from '../lib/theme'
 import { funds as ALL } from '../lib/data'
 import { fundSlug, categoryFundsLabel, fixed } from '../lib/format'
 import { formatAumCr, landscapeAum } from '../lib/landscape'
+import { niceTicks } from '../lib/niceTicks'
 import type { Fund, Horizon } from '../types'
 
 // Recharts marks every dot role="img"; a <title> gives each one an accessible
@@ -54,7 +55,7 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
     )
   }, [catKey])
 
-  const { rows, xDomain, yDomain, xMed, yMed, n, catDisplay, fundPlotted } = useMemo(() => {
+  const { rows, xAxis, yAxis, xDomain, yDomain, xMed, yMed, n, catDisplay, fundPlotted } = useMemo(() => {
     const peers = ALL.filter(
       (f) => f.category === catKey && f.metrics[sel]?.volatility && f.metrics[sel]?.cagr != null,
     )
@@ -70,10 +71,12 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
     const xs = rows.map((r) => r.x), ys = rows.map((r) => r.y)
     const xPad = (Math.max(...xs) - Math.min(...xs)) * 0.08 || 1
     const yPad = (Math.max(...ys) - Math.min(...ys)) * 0.08 || 1
+    const xAxis = niceTicks(Math.min(...xs) - xPad, Math.max(...xs) + xPad)
+    const yAxis = niceTicks(Math.min(...ys) - yPad, Math.max(...ys) + yPad)
     return {
-      rows, n: rows.length,
-      xDomain: [Math.min(...xs) - xPad, Math.max(...xs) + xPad],
-      yDomain: [Math.min(...ys) - yPad, Math.max(...ys) + yPad],
+      rows, n: rows.length, xAxis, yAxis,
+      xDomain: xAxis.domain,
+      yDomain: yAxis.domain,
       xMed: median(xs), yMed: median(ys),
       catDisplay: peers[0]?.categoryDisplay ?? catKey ?? '',
       fundPlotted: currentCode != null && rows.some((r) => r.current),
@@ -142,13 +145,13 @@ export default function FundLandscape({ fund, category, horizon = '3Y' }: { fund
           <ReferenceLine x={xMed} stroke={axis} strokeDasharray="4 4" strokeOpacity={0.6} />
           <ReferenceLine y={yMed} stroke={axis} strokeDasharray="4 4" strokeOpacity={0.6} />
           <XAxis
-            type="number" dataKey="x" domain={xDomain} tick={{ fontSize: 11, fill: axis }}
-            tickFormatter={(v) => fixed(v, 0)} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
+            type="number" dataKey="x" domain={xDomain} ticks={xAxis.ticks} interval={0} tick={{ fontSize: 11, fill: axis }}
+            tickFormatter={(v) => fixed(v, xAxis.decimals)} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             label={{ value: 'Volatility (risk)', position: 'insideBottom', offset: -8, fontSize: 11, fill: axis }}
           />
           <YAxis
-            type="number" dataKey="y" domain={yDomain} tick={{ fontSize: 11, fill: axis }}
-            tickFormatter={(v) => `${fixed(v, 0)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
+            type="number" dataKey="y" domain={yDomain} ticks={yAxis.ticks} interval={0} tick={{ fontSize: 11, fill: axis }}
+            tickFormatter={(v) => `${fixed(v, yAxis.decimals)}%`} axisLine={{ stroke: grid }} tickLine={{ stroke: grid }}
             width={44}
             label={{ value: `${sel} CAGR (return)`, angle: -90, position: 'insideLeft', fontSize: 11, fill: axis, style: { textAnchor: 'middle' } }}
           />
