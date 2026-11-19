@@ -1,23 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type { Fund } from '../types'
 import { computeOverlap, type OverlapResult } from '../lib/overlap'
+import { oneWord, shortName } from '../lib/fundLabels'
 
 // Must match the Compare page's series palette (supports up to 5 funds).
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
-
-function shortName(f: Fund): string {
-  // first 2-3 words for compact headers
-  return f.name.split(' ').slice(0, 3).join(' ')
-}
-
-// One-word label for column headers / dumbbell legend (drops generic suffixes).
-function oneWord(f: Fund): string {
-  let n = f.name
-  for (const w of [' Fund', ' - Direct', ' Plan', ' Growth', ' Large Cap', ' Large', ' Cap', 'Index']) {
-    n = n.split(w)[0]
-  }
-  return (n.trim() || f.name).split(' ')[0]
-}
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -99,7 +86,7 @@ function WeightGrid({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult 
               className="max-w-full truncate text-center text-[10.5px] font-bold text-muted"
               title={funds[i].name}
             >
-              {oneWord(funds[i])}
+              {oneWord(funds[i], funds)}
             </span>
           </div>
         ))}
@@ -156,11 +143,11 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
       <div className="mb-1.5 flex items-center justify-end gap-4 text-xs">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[a] }} />
-          <span className="text-muted">{oneWord(funds[a])}</span>
+          <span className="text-muted">{oneWord(funds[a], funds)}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[b] }} />
-          <span className="text-muted">{oneWord(funds[b])}</span>
+          <span className="text-muted">{oneWord(funds[b], funds)}</span>
         </span>
       </div>
 
@@ -187,7 +174,7 @@ function Dumbbell({ funds, overlap }: { funds: Fund[]; overlap: OverlapResult })
         </div>
       </div>
       <p className="mt-2 text-[13px] text-muted">
-        ₹{ov.toFixed(1)} of every ₹100 is invested in the same {sharedCount} stocks. {oneWord(funds[a])} holds {nA} stocks, {oneWord(funds[b])} holds {nB}.
+        ₹{ov.toFixed(1)} of every ₹100 is invested in the same {sharedCount} stocks. {oneWord(funds[a], funds)} holds {nA} stocks, {oneWord(funds[b], funds)} holds {nB}.
       </p>
 
       {/* Who bets bigger */}
@@ -317,12 +304,12 @@ export default function HoldingsOverlap({ funds, loading, loadTick }: { funds: F
                 const ov = overlap.pairOverlap[i][j]
                 return (
                   <div key={`${a.code}-${b.code}`} className="rounded-xl border border-line bg-surface2/40 p-3">
-                    <div className="flex items-center gap-1.5 text-xs text-muted">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                      <span className="truncate">{shortName(a)}</span>
+                    <div data-testid="overlap-pair-names" className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                      <span className="break-words">{shortName(a)}</span>
                       <span className="text-faint">×</span>
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[j] }} />
-                      <span className="truncate">{shortName(b)}</span>
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[j] }} />
+                      <span className="break-words">{shortName(b)}</span>
                     </div>
                     <div className={`mt-1 text-2xl font-extrabold ${overlapTone(ov)}`}>{ov.toFixed(1)}%</div>
                     <div className="text-xs text-faint">{overlapVerdict(ov)}</div>
