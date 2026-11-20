@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -146,14 +146,14 @@ jobs:
           fi
 
       - name: Build site
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci && npm run build
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -165,7 +165,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   monthly-holdings:
     if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
@@ -175,11 +175,11 @@ jobs:
     outputs:
       changed: ${{ steps.commit-holdings.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -275,7 +275,7 @@ jobs:
       # are published here instead of waiting for the next daily refresh.
       - name: Build site with new holdings
         if: steps.commit-holdings.outputs.changed == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -284,7 +284,7 @@ jobs:
 
       - name: Upload Pages artifact with new holdings
         if: steps.commit-holdings.outputs.changed == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           name: github-pages-holdings
           path: dist
@@ -299,6 +299,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         with:
           artifact_name: github-pages-holdings

@@ -109,13 +109,13 @@ class PublishingContractTests(unittest.TestCase):
         self.assertRegex(deploy, r'needs:\s*\[deploy-pages, monthly-holdings\]')
         self.assertIn("needs.monthly-holdings.outputs.changed == 'true'", deploy)
         self.assertIn("needs.monthly-holdings.result == 'success'", deploy)
-        self.assertIn('actions/deploy-pages@v4', deploy)
+        self.assertIn('actions/deploy-pages@v5', deploy)
         self.assertIn('artifact_name: github-pages-holdings', deploy)
         self.assertIn('name: github-pages', deploy)
 
     def test_common_action_runs_the_release_gate(self):
         action = (ROOT / '.github/actions/validate/action.yml').read_text(encoding='utf-8')
-        for command in ('actions/setup-node@v4', 'actions/setup-python@v5',
+        for command in ('actions/setup-node@v7', 'actions/setup-python@v7',
                         'python -m pip install -r pipeline/requirements.txt',
                         'npm ci', 'bash scripts/ci/install-browser.sh', 'npm run check:release'):
             self.assertIn(command, action)
@@ -123,6 +123,18 @@ class PublishingContractTests(unittest.TestCase):
         self.assertLess(action.index('scripts/ci/install-browser.sh'), action.index('npm run check:release'))
         # --with-deps fails the whole gate when Ubuntu's archive is unreachable (2026-11-11).
         self.assertNotIn('--with-deps', action)
+
+    def test_actions_run_on_node_24(self):
+        # Node 20 action majors were deprecated on hosted runners (2026-11).
+        minimum = {'checkout': 5, 'setup-node': 5, 'setup-python': 6,
+                   'upload-pages-artifact': 4, 'deploy-pages': 5}
+        for path in list((ROOT / '.github').rglob('*.yml')):
+            text = path.read_text(encoding='utf-8')
+            for name, major in re.findall(r'uses:\s*actions/([\w-]+)@v(\d+)', text):
+                self.assertIn(name, minimum, f'{path.name}: unreviewed action actions/{name}')
+                self.assertGreaterEqual(int(major), minimum[name], f'{path.name}: actions/{name}@v{major}')
+        # v4+ drops dotfiles from the Pages artifact; the site must not depend on any.
+        self.assertFalse([p.name for p in (ROOT / 'public').iterdir() if p.name.startswith('.')])
 
     def test_browser_install_survives_an_unreachable_package_archive(self):
         script = (ROOT / 'scripts/ci/install-browser.sh').read_text(encoding='utf-8')
