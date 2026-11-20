@@ -181,7 +181,7 @@ function CategoryLeaders({ leaders }: { leaders: Fund[] }) {
           const m = f.metrics['3Y']!
           const color = getCategoryColor(f.category)
           return <Link key={f.code} to={`/fund/${f.code}/${fundSlug(f.name)}`} className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brand-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
-            <div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${color.bg} ${color.text}`}>{f.categoryDisplay}</span><span className="text-xs text-muted">#{m.catRank} of {m.catSize}</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${color.bg} ${color.text}`}>{f.categoryDisplay}</span><span className="text-xs text-muted" data-testid="leader-rank">#{m.catRank} of {m.catSize} with a 3Y record</span></div>
             <h3 className="mt-3 text-lg font-semibold leading-snug text-fg">{f.name}</h3>
             <p className="mt-4 border-t border-line pt-3 text-xs text-muted">3Y annualised return <span className="float-right font-display text-xl font-semibold text-fg">{pct(m.cagr)}</span></p>
           </Link>
