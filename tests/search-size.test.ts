@@ -20,3 +20,7 @@ test('exact name matches still beat size', () => {
   assert.match(names('sbi small cap', 1)[0] ?? '', /^SBI Small Cap Fund/)
   assert.match(names('motilal nasdaq', 1)[0] ?? '', /Nasdaq 100/)
 })
+
+test('size never turns a non-match into a result', () => {
+  for (const q of ['zzzzzzzzzz', 'qqqqqq', 'zqxjv']) assert.deepEqual(names(q, 8), [], q)
+})

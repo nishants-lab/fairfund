@@ -312,8 +312,9 @@ export function searchFunds(query: string, limit = 8): Fund[] {
     // Then size within the category, gently: of two equally good matches the
     // fund most people hold comes first ("ppfas" -> Parag Parikh Flexi Cap).
     // Measured against its own category, so large liquid funds do not crowd
-    // out equity funds on an AMC-only search.
-    if (score > 0) score += Math.max(0, 6 - e.sizeRank)
+    // out equity funds on an AMC-only search. Only orders funds that already
+    // match: it must never lift a weak match over the cut below.
+    if (score > 10) score += Math.max(0, 6 - e.sizeRank)
 
     return { f, score }
   })
