@@ -49,7 +49,7 @@ for (const f of funds) {
   erByCategory.get(f.category).push(f.expenseRatio)
 }
 const asOf = /^\d{4}-\d{2}-\d{2}$/.test(data.anchor ?? '')
-  ? `<p style="font-size:13px;color:#475569">Analysis snapshot through <time datetime="${data.anchor}">${data.anchor}</time>. Reporting periods can differ.</p>` : ''
+  ? `<p style="font-size:13px;color:#475569">Analysis snapshot through <time datetime="${data.anchor}">${fmtDay(data.anchor)}</time>. Reporting periods can differ.</p>` : ''
 
 // Mirror src/lib/format.ts fundSlug exactly so shell paths match ShareButton.
 function fundSlug(name) {
@@ -460,7 +460,7 @@ const compareBody = pageBody("Compare mutual funds side by side", [
 const nfoPath = join(ROOT, 'src/data/nfo.json')
 const nfoData = existsSync(nfoPath) ? JSON.parse(readFileSync(nfoPath, 'utf-8')) : { nfos: [], generatedAt: '' }
 const buildDay = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10)
-const nfoStatus = n => n.nav ? 'Now trading' : n.launchDate > buildDay ? `Opens ${n.launchDate}` : n.closeDate && n.closeDate < buildDay ? `Closed ${n.closeDate}` : n.closeDate ? `Open until ${n.closeDate}` : `Opened ${n.launchDate}`
+const nfoStatus = n => n.nav ? 'Now trading' : n.launchDate > buildDay ? `Opens ${fmtDay(n.launchDate)}` : n.closeDate && n.closeDate < buildDay ? `Closed ${fmtDay(n.closeDate)}` : n.closeDate ? `Open until ${fmtDay(n.closeDate)}` : `Opened ${fmtDay(n.launchDate)}`
 const nfoRows = nfoData.nfos.map(n =>
   // Two columns so the list fits a 320px screen: category and benchmark sit under the name.
   `<tr><td style="padding:6px 16px 6px 0;white-space:normal;min-width:10rem">${esc(n.name)}<div style="font-size:12px;color:#64748b">${esc(n.amc)} &middot; ${esc(data.categories?.[n.category]?.display ?? n.category)}</div><div style="font-size:12px;color:#64748b">Benchmark: ${esc(n.details?.benchmark || '-')}</div></td><td style="padding:6px 0;white-space:normal;min-width:6rem">${esc(nfoStatus(n))}</td></tr>`

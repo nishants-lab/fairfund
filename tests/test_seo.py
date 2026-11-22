@@ -94,7 +94,7 @@ class SeoTests(unittest.TestCase):
         self.save_data()
         self.assertEqual(self.run_script('gen-unfurls.mjs').returncode,0)
         html=(self.base/'dist/c/large-cap/index.html').read_text()
-        self.assertIn('<time datetime="2026-09-30">2026-09-30</time>',html)
+        self.assertIn('<time datetime="2026-09-30">30 Sep 2026</time>',html)
         self.assertIn('Reporting periods can differ.',html)
         self.assertIn(SITE+'/f/1/',html)
         self.assertNotIn(SITE+'/f/2/',html)
@@ -154,7 +154,8 @@ class SeoTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'<td\b',table)),2)
         self.assertIn('Benchmark: NIFTY Realty TRI',table)
         self.assertIn('Index - Sectoral / Thematic',table)
-        self.assertIn('Open until 2099-11-09',table)
+        self.assertIn('Open until 9 Nov 2099',table)
+        self.assertNotRegex(re.sub(r'<[^>]+>',' ',table), r'\b\d{4}-\d{2}-\d{2}\b')  # dates read '9 Nov 2099'
 
     def test_external_names_cannot_break_out_of_jsonld(self):
         name='Example </script><script>alert(1)</script> & Fund'
