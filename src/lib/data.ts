@@ -112,6 +112,8 @@ interface SearchEntry {
   others: string[]
   othersRaw: string[]
   isIndex: boolean
+  /** Place by assets under management within the fund's own category, 1 = largest. */
+  sizeRank: number
 }
 let searchIndex: SearchEntry[] | null = null
 /** Every word in the search text, with how many funds use it (for spelling fixes). */
@@ -135,8 +137,18 @@ function getSearchIndex(): SearchEntry[] {
       others,
       othersRaw,
       isIndex: (f.category ?? '').startsWith('Index'),
+      sizeRank: 99,
     }
   })
+  const byCategory = new Map<string, SearchEntry[]>()
+  for (const e of searchIndex) {
+    if (e.f.aum?.current == null) continue
+    const key = e.f.category ?? ''
+    byCategory.set(key, [...(byCategory.get(key) ?? []), e])
+  }
+  for (const group of byCategory.values()) {
+    group.sort((a, b) => (b.f.aum?.current ?? 0) - (a.f.aum?.current ?? 0)).forEach((e, i) => { e.sizeRank = i + 1 })
+  }
   vocabulary = new Map()
   for (const e of searchIndex) {
     for (const w of new Set(e.hayAll.split(' '))) {
@@ -297,6 +309,11 @@ export function searchFunds(query: string, limit = 8): Fund[] {
     // Boost better-ranked funds slightly so top funds surface first
     const rank3y = f.metrics['3Y']?.catRank ?? 99
     score += Math.max(0, 10 - rank3y)
+    // Then size within the category, gently: of two equally good matches the
+    // fund most people hold comes first ("ppfas" -> Parag Parikh Flexi Cap).
+    // Measured against its own category, so large liquid funds do not crowd
+    // out equity funds on an AMC-only search.
+    if (score > 0) score += Math.max(0, 6 - e.sizeRank)
 
     return { f, score }
   })
