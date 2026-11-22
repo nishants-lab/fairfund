@@ -50,6 +50,8 @@ export default function Compare() {
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [preset, setPreset] = useState<Preset>('3Y')
+  // Codes in the link that FairFund does not have (closed, merged or mistyped), said out loud.
+  const [missing, setMissing] = useState<number[]>([])
 
   // Load funds from URL whenever the `codes` param changes (mount, link nav,
   // or fund-detail "Compare" button). Only reset when the URL actually differs
@@ -65,6 +67,7 @@ export default function Compare() {
     if (current === desired) return // already in sync (e.g. our own setParams)
     const loaded = codes.map((c) => getFund(c)).filter(Boolean) as Fund[]
     setFunds(loaded)
+    setMissing(codes.filter((c) => !getFund(c)))
   }, [codesParam])
 
   // Fetch NAV for any newly added fund
@@ -171,6 +174,7 @@ export default function Compare() {
 
   function sync(next: Fund[]) {
     setFunds(next)
+    setMissing([])
     setParams({ codes: next.map((f) => f.code).join(',') }, { replace: true })
   }
   function add(fund: Fund) {
@@ -401,6 +405,11 @@ export default function Compare() {
           <p className="mt-2 text-xs text-muted">{comparisonSummary.basis}</p>
         </>}
       </section>}
+      {missing.length > 0 && (
+        <p role="status" data-testid="compare-missing" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+          {missing.length === 1 ? 'One fund in this link was not found' : `${missing.length} funds in this link were not found`} ({missing.length === 1 ? 'code' : 'codes'} {missing.join(', ')}), so {missing.length === 1 ? 'it is' : 'they are'} left out.
+        </p>
+      )}
       {funds.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-12 text-center text-faint">
           Search above to add funds. Try comparing two funds in the same category.

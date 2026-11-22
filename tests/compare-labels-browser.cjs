@@ -27,5 +27,24 @@ const CODES=[120716,147625];
    await ctx.close();
    console.log(`PASS compare overlap labels ${width}px: ${text}`);
   }
+  // A shared link with a code FairFund does not have says so instead of dropping it silently,
+  // and the note goes once the reader changes the selection.
+  {
+   const ctx=await browser.newContext({viewport:{width:390,height:900},serviceWorkers:'block'});
+   const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route('https://api.mfapi.in/**',r=>r.abort());
+   await page.goto(base+'/#/compare?codes=999999,'+CODES.join(','));
+   const note=page.getByTestId('compare-missing');
+   await note.waitFor({timeout:60000});
+   assert.equal(await note.innerText(),'One fund in this link was not found (code 999999), so it is left out.');
+   await page.getByRole('button',{name:'Remove UTI Nifty 50 Index Fund'}).click();
+   await note.waitFor({state:'detached',timeout:10000});
+   await page.goto(base+'/#/compare?codes=999998,999999');
+   await note.waitFor({timeout:60000});
+   assert.equal(await note.innerText(),'2 funds in this link were not found (codes 999998, 999999), so they are left out.');
+   assert.deepEqual(errors,[]);
+   await ctx.close();
+   console.log('PASS compare link with unknown codes');
+  }
  } finally { await browser.close() }
 })().catch(e=>{console.error(e);process.exit(1)});
