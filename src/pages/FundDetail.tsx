@@ -219,7 +219,7 @@ export default function FundDetail() {
   if (!fund) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <div className="text-2xl font-bold text-fg">Fund not found</div>
+        <h1 className="text-2xl font-bold text-fg">Fund not found</h1>
         <Link to="/explore" className="mt-4 inline-block text-brand-600 dark:text-brand-300 hover:underline">
           Back to Explore
         </Link>
@@ -507,7 +507,7 @@ export default function FundDetail() {
             </div>
           </div>
           <p className="mt-2 text-xs text-faint">
-            Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics{baseline.windowStart && baseline.windowEnd ? ` from ${baseline.windowStart} to ${baseline.windowEnd}` : ` (anchor ${data.anchor})`}.{' '}
+            Our <strong className="text-muted">{baselineHorizon} fixed-window</strong> metrics{baseline.windowStart && baseline.windowEnd ? ` from ${fmtDate(baseline.windowStart)} to ${fmtDate(baseline.windowEnd)}` : ` (as of ${fmtDate(data.anchor)})`}.{' '}
             {error
               ? 'Custom-range analysis is unavailable because the NAV source is not responding. Showing stored metrics.'
               : 'Select a range to calculate return and risk metrics from daily NAV.'}

@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { fmtDate } from '../src/lib/metrics'
 import assert from 'node:assert/strict'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -25,10 +26,12 @@ const render = (f: Fund, compact = false, withheld = false) => renderToStaticMar
 test('current rank uses exact cohort count and complete observed period', () => {
   const html = render(fund())
   assert.match(html, /Rank #2 of 7 \(3Y\)/)
-  assert.ok(html.includes(`${metric.windowStart} to ${metric.windowEnd}`))
+  assert.ok(html.includes(`${fmtDate(metric.windowStart)} to ${fmtDate(metric.windowEnd)}`))
+  // Dates read as '20 Nov 2026', never the raw '2026-11-20' (text and tooltip).
+  assert.doesNotMatch(html + render(fund(), true), /\d{4}-\d{2}-\d{2}/)
   assert.doesNotMatch(html, /99|Previous ranking/)
   assert.match(render(fund(), true), /title="3Y ranking period:/)
-  assert.ok(render(fund(), true).includes(`Through ${metric.windowEnd}`))
+  assert.ok(render(fund(), true).includes(`Through ${fmtDate(metric.windowEnd)}`))
 })
 
 test('previous rank is display-only and appears only for an absent current horizon', () => {
@@ -91,7 +94,7 @@ test('debt scored card displays persisted rank evidence and separate excluded ho
   }
   const m = f.metrics['1Y']!
   assert.ok(html.includes(`Rank #${m.catRank} of ${m.catSize} (1Y)`))
-  assert.ok(html.includes(`${m.windowStart} to ${m.windowEnd}`))
+  assert.ok(html.includes(`${fmtDate(m.windowStart)} to ${fmtDate(m.windowEnd)}`))
   assert.match(html, /Previous ranking #2 of 7 \(3Y\)/)
   assert.doesNotMatch(html, /ranks #|Ranked #/)
 })

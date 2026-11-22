@@ -6,6 +6,7 @@ const fundData = require('../src/data/funds.json')
 const { funds } = fundData
 const { routeFundIndex } = require('./fixtures/fund-index-route.cjs')
 const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
+const fmtD = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 const dated = f => !f.dataQuality && !f.isDebt && !f.isArbitrage && f.metrics?.['3Y']?.catRank && f.metrics['3Y'].windowStart && f.metrics['3Y'].windowEnd
 const peerOf = f => funds.find(p => p.category === f.category && p.code !== f.code && dated(p))
 // Live scenario: Parag Parikh when currently dated-ranked, else any dated-ranked fund with a
@@ -51,7 +52,7 @@ const disclaimer = 'These simulated values use the fund’s historical returns a
    await verdict.getByText('Composite data score',{exact:true}).waitFor()
    const rank=verdict.locator('[data-ranking="current"]')
    assert.match(await rank.innerText(),new RegExp(`Rank #${metric.catRank} of ${metric.catSize}`))
-   assert.ok((await rank.innerText()).includes(`${metric.windowStart} to ${metric.windowEnd}`))
+   assert.ok((await rank.innerText()).includes(`${fmtD(metric.windowStart)} to ${fmtD(metric.windowEnd)}`))
    assert.equal(await page.getByText('No matched-period score available',{exact:true}).count(),0)
    assert.equal(await page.getByText('Monthly excess-return test',{exact:true}).count(),0)
    const simulation=page.locator('.card').filter({has:page.getByRole('heading',{name:/historical-return simulation/})})

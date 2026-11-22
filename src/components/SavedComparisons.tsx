@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { fmtDate } from '../lib/metrics'
 import {
   COMPARISON_LIMITS, SAVED_COMPARISONS_KEY, deleteComparison, loadComparison,
   readSavedComparisons, saveComparison, type SavedComparison,
@@ -79,7 +80,7 @@ export default function SavedComparisons({ fundCodes, start, end, onLoad }: Prop
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button className="btn-primary text-sm" type="submit">Save comparison</button>
-          <span className="text-xs text-muted">{fundCodes.length} funds{start && end ? `, ${start} to ${end}` : ', select dates above'}</span>
+          <span className="text-xs text-muted">{fundCodes.length} funds{start && end ? `, ${fmtDate(start)} to ${fmtDate(end)}` : ', select dates above'}</span>
         </div>
       </form>
       {error && <p role="alert" className="mt-3 text-sm text-amber-800 dark:text-amber-300">{error}</p>}
@@ -94,7 +95,7 @@ export default function SavedComparisons({ fundCodes, start, end, onLoad }: Prop
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="break-words text-sm font-semibold text-fg">{record.name}</p>
-                <p className="text-xs text-muted">{record.fundCodes.length} funds, {record.start} to {record.end}</p>
+                <p className="text-xs text-muted">{record.fundCodes.length} funds, {fmtDate(record.start)} to {fmtDate(record.end)}</p>
               </div>
               <div className="flex gap-2">
                 <button type="button" className="btn-ghost text-xs" onClick={() => load(record.id)} aria-label={`Load ${record.name}`}>Load</button>

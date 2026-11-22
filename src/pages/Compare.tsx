@@ -24,7 +24,7 @@ import type { Fund, NavPoint, Horizon } from '../types'
 function ScorePeriod({ fund, horizon }: { fund: Fund; horizon?: Horizon }) {
   const metric = horizon ? fund.metrics[horizon] : undefined
   if (!horizon || !metric?.windowStart || !metric.windowEnd) return <span className="text-xs text-faint">Score period unavailable</span>
-  return <span className="text-xs font-normal text-faint" title={`Score return period: ${metric.windowStart} to ${metric.windowEnd}`}>{horizon} score basis: {metric.windowStart} to {metric.windowEnd}</span>
+  return <span className="text-xs font-normal text-faint" title={`Score return period: ${fmtDate(metric.windowStart)} to ${fmtDate(metric.windowEnd)}`}>{horizon} score basis: {fmtDate(metric.windowStart)} to {fmtDate(metric.windowEnd)}</span>
 }
 
 // Up to 5 funds - 5 distinct, theme-safe series colors.
@@ -396,7 +396,7 @@ export default function Compare() {
       {funds.length >= 2 && <section className="mt-5 rounded-xl border border-line bg-surface p-4" aria-label="Differences over the same period">
         <h2 className="font-semibold text-fg">Differences over the same period</h2>
         {comparisonSummary.warning ? <p className="mt-2 text-sm text-muted">{comparisonSummary.warning}</p> : <>
-          <p className="mt-1 text-xs text-muted">{comparisonSummary.period?.start} to {comparisonSummary.period?.end}</p>
+          {comparisonSummary.period && <p className="mt-1 text-xs text-muted">{fmtDate(comparisonSummary.period.start)} to {fmtDate(comparisonSummary.period.end)}</p>}
           {comparisonSummary.differences.length ? <ul className="mt-2 list-inside list-disc text-sm text-fg">{comparisonSummary.differences.map(text=><li key={text}>{text}</li>)}</ul> : <p className="mt-2 text-sm text-muted">No gaps reach the thresholds below.</p>}
           <p className="mt-2 text-xs text-muted">{comparisonSummary.basis}</p>
         </>}

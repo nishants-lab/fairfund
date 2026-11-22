@@ -65,7 +65,7 @@ try {
     assert.equal(await page.getByText(`${fund.riskLevel} risk`, { exact: true }).count(), 0)
     const headline = page.locator('.card').filter({ has: page.getByRole('button', { name: 'About 3Y CAGR', exact: true }) }).first()
     assert.match(await headline.innerText(), /to 5 Nov 2026/)
-    assert.match(await page.locator('[data-ranking]').first().innerText(), new RegExp(`Through ${fund.metrics['3Y'].windowEnd}`))
+    assert.match(await page.locator('[data-ranking]').first().innerText(), new RegExp(`Through ${new Date(fund.metrics['3Y'].windowEnd + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`))
     const checkColors = async color => {
       const swatch = legend.locator('span[style]').first()
       assert.equal(await swatch.evaluate(el => el.style.borderColor), color)

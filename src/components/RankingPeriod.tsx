@@ -1,4 +1,5 @@
 import { isIsoDate, istToday } from '../lib/marketDate'
+import { fmtDate } from '../lib/metrics'
 import type { Fund, Horizon, WindowMetrics } from '../types'
 
 const HORIZONS: Horizon[] = ['1Y', '3Y', '5Y']
@@ -25,13 +26,13 @@ export default function RankingPeriod({ fund, horizon, compact = false, withheld
   if (!hasDatedRanking(metric)) {
     return <span className="text-xs text-faint">No current {horizon} ranking</span>
   }
-  const period = `${metric.windowStart} to ${metric.windowEnd}`
+  const period = `${fmtDate(metric.windowStart)} to ${fmtDate(metric.windowEnd)}`
   return (
     <span className="inline-flex max-w-full flex-col gap-0.5 text-xs" data-ranking={previous ? 'previous' : 'current'} title={`${horizon} ranking period: ${period}`}>
       <span className={previous ? 'font-medium text-muted' : 'font-semibold text-fg'}>
         {previous ? 'Previous ranking' : 'Rank'} #{metric.catRank} of {metric.catSize} ({horizon})
       </span>
-      <span className="font-normal text-faint">{compact ? `Through ${metric.windowEnd}` : period}</span>
+      <span className="font-normal text-faint">{compact ? `Through ${fmtDate(metric.windowEnd)}` : period}</span>
     </span>
   )
 }
