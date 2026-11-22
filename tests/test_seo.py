@@ -155,6 +155,7 @@ class SeoTests(unittest.TestCase):
         self.assertIn('Benchmark: NIFTY Realty TRI',table)
         self.assertIn('Index - Sectoral / Thematic',table)
         self.assertIn('Open until 9 Nov 2099',table)
+        self.assertIn('Source: AMFI, 5 Nov 2026.',html)
         self.assertNotRegex(re.sub(r'<[^>]+>',' ',table), r'\b\d{4}-\d{2}-\d{2}\b')  # dates read '9 Nov 2099'
 
     def test_external_names_cannot_break_out_of_jsonld(self):
