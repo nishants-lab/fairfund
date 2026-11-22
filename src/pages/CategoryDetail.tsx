@@ -7,6 +7,7 @@ import { data, funds as allFunds, categoryOrder, categoryScope } from '../lib/da
 import { pct, signedPct, alphaColor, fundSlug, categoryFundsLabel } from '../lib/format'
 import { getCategoryColor } from '../lib/categoryColors'
 import { REGIMES } from '../lib/regimes'
+import { useRegimesByFund } from '../lib/regimesByFund'
 import ShareButton from '../components/ShareButton'
 import InfoTip from '../components/InfoTip'
 import type { Fund } from '../types'
@@ -132,12 +133,13 @@ export default function CategoryDetail() {
   }, [catFunds])
 
   // Regime stress table
+  const regimesByFund = useRegimesByFund()
   const regimeStats = useMemo(() => {
     return REGIMES.map(r => {
       const rets: number[] = []
       const alphas: number[] = []
       for (const f of catFunds) {
-        const rp = f.analytics?.regimes?.find(x => x.name === r.name)
+        const rp = regimesByFund?.[f.code]?.find(x => x.name === r.name)
         if (!rp) continue
         if (rp.ret != null) rets.push(rp.ret)
         if (rp.alpha != null) alphas.push(rp.alpha)
@@ -152,7 +154,7 @@ export default function CategoryDetail() {
         fundCount: rets.length,
       }
     }).filter(r => r.fundCount >= 3)
-  }, [catFunds])
+  }, [catFunds, regimesByFund])
 
   // Historical category metrics
   const performanceStats = useMemo(() => {

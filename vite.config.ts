@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync } from 'node:fs'
+import { splitRegimes } from './build/split-regimes'
 
 // Read the live fund count from the canonical index so static HTML stays in sync
 // with the dataset. Injected into index.html at build time via the placeholder below.
@@ -24,6 +25,7 @@ function injectFundCount() {
 export default defineConfig({
   plugins: [
     react(),
+    splitRegimes(new URL('./src/data/funds.json', import.meta.url)),
     injectFundCount(),
     VitePWA({
       registerType: 'autoUpdate',

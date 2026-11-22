@@ -26,7 +26,10 @@ async function open(browser,failures){
    const loads=[];page.on('load',()=>loads.push(Date.now()));
    await page.evaluate(()=>{location.hash='#/movers'});
    await page.getByRole('heading',{name:'Movers',level:1}).waitFor({timeout:90000});
-   assert.equal(loads.length,1,'exactly one reload');
+   // The reloaded page can render Movers a moment before its load event fires; count after it.
+   for(const end=Date.now()+15000;loads.length<1&&Date.now()<end;)await page.waitForTimeout(100);
+   await page.waitForTimeout(1000); // a second reload would land here
+   assert.equal(loads.length,1,'exactly one reload, got '+loads.length);
    assert.equal(await page.getByTestId('page-error').count(),0);
    await ctx.close();
   }
@@ -37,7 +40,9 @@ async function open(browser,failures){
    await page.evaluate(()=>{location.hash='#/movers'});
    await page.getByTestId('page-error').waitFor({timeout:90000});
    assert.match(await page.getByTestId('page-error').innerText(),/This page did not load/);
-   assert.equal(loads.length,1,'one reload, then the error, never a loop');
+   for(const end=Date.now()+15000;loads.length<1&&Date.now()<end;)await page.waitForTimeout(100);
+   await page.waitForTimeout(1000); // a loop would add reloads here
+   assert.equal(loads.length,1,'one reload, then the error, never a loop, got '+loads.length);
    assert.ok(await page.getByRole('banner').isVisible()&&await page.getByRole('contentinfo').count()>0,'header and footer stay');
    // Moving to another page clears the error.
    await page.evaluate(()=>{location.hash='#/methodology'});

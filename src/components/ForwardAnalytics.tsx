@@ -9,6 +9,7 @@ import Sparkline from './Sparkline'
 import InfoTip from './InfoTip'
 import Spectrum from './Spectrum'
 import { matchRegime, regimeInfo } from '../lib/regimes'
+import { useRegimesByFund } from '../lib/regimesByFund'
 import SearchBox from './SearchBox'
 
 const DIR_STYLE: Record<string, { txt: string; tone: string }> = {
@@ -58,6 +59,10 @@ const SIP_DEFAULT = 100000
 
 export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPoint[] }) {
   const a = fund.analytics
+  // The bundled index no longer carries regimes; the hydrated shell or the regimes chunk does.
+  const regimesByFund = useRegimesByFund()
+  const regimes = a?.regimes ?? regimesByFund?.[fund.code]
+  const regimesKnown = !!a?.regimes || regimesByFund !== null
   const [horizon, setHorizon] = useState(3)
   const [invMode, setInvMode] = useState<'lumpsum' | 'sip'>('lumpsum')
   const [sipAmount, setSipAmount] = useState(SIP_DEFAULT)
@@ -114,7 +119,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
   }, [fund.category])
 
   const hasAny =
-    a && (a.rankTrajectory || a.battingAverage || a.capture || a.meanReversion || a.regimes?.length)
+    a && (a.rankTrajectory || a.battingAverage || a.capture || a.meanReversion || regimes?.length)
   const navAvailable = nav.length > 30
 
   if (usesReducedSurface(fund)) return null // forward analytics are not meaningful for cash-equivalent debt or fully-hedged arbitrage funds
@@ -432,7 +437,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
 
 
       {/* Regime performance */}
-      {a?.regimes && a.regimes.some((r) => r.active) && (
+      {regimes && regimes.some((r) => r.active) && (
         <div className="mt-4 card p-4">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h4 className="font-semibold text-fg">How it behaved in each market regime</h4>
@@ -486,7 +491,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                 </tr>
               </thead>
               <tbody>
-                {a.regimes.map((r) => {
+                {regimes.map((r) => {
                   const ri = regimeInfo(r.name)
                   return (
                   <tr key={r.name} className="border-b border-line last:border-0">
@@ -496,7 +501,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
                       {ri?.desc && <span data-desc className="hidden block text-xs text-faint/80 mt-0.5 leading-snug">{ri.desc}</span>}
                     </td>
                     {r.active ? (() => {
-                      const compRegime = regimeCompare?.analytics?.regimes?.find(x => x.name === r.name)
+                      const compRegime = (regimeCompare ? regimesByFund?.[regimeCompare.code] : undefined)?.find(x => x.name === r.name)
                       const compRet = compRegime?.active ? compRegime.ret : null
                       const fundRet = r.ret ?? 0
                       // For down markets, less negative is better; for up markets, more positive is better. In both cases, higher number wins
@@ -617,7 +622,7 @@ export default function ForwardAnalytics({ fund, nav }: { fund: Fund; nav: NavPo
       )}
 
       {/* Fallback: show worst fall standalone if no regime data */}
-      {dd && !(a?.regimes && a.regimes.some((r) => r.active)) && (
+      {dd && regimesKnown && !(regimes && regimes.some((r) => r.active)) && (
         <div className="mt-4 card p-4">
           <h4 className="flex items-center gap-1.5 font-semibold text-fg">
             Worst historical fall & recovery
