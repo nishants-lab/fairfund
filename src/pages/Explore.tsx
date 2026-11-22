@@ -108,6 +108,14 @@ export default function Explore() {
   const initial = params.get('cat') ?? 'Flexi Cap'
   const initialH = (params.get('h') as Horizon) || '3Y'
   const [cat, setCat] = useState(initial)
+  // Its own title: without one the tab kept the previous page's (a fund name after "Back to Explore").
+  const catLabel = data.categories[cat]?.display
+  usePageMeta(
+    catLabel ? `Explore ${catLabel} funds` : 'Explore funds by category',
+    catLabel
+      ? `Compare ${fundsByCategory(cat).length} ${catLabel} funds by return, risk and cost over 1, 3 and 5 years.`
+      : 'Compare Indian mutual funds within each category by return, risk and cost.',
+  )
   const isDebtCat = cat === 'Liquid' || cat === 'Money Market' || cat === 'Arbitrage'
   const EQUITY_ONLY_KEYS = new Set(['alpha', 'sharpe', 'maxDrawdown', 'batting', 'score'])
   const cols = isDebtCat ? [...COLUMNS.filter((c) => !EQUITY_ONLY_KEYS.has(c.key)), ...DEBT_COLUMNS] : COLUMNS

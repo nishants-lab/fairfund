@@ -8,6 +8,7 @@ import { usePageMeta } from '../lib/usePageMeta'
 import { useSearchParams, Link, useLocation } from 'react-router-dom'
 import { getFund, fetchFundDetail, mergeFundDetail, usesReducedSurface } from '../lib/data'
 import SearchBox from '../components/SearchBox'
+import { shortName } from '../lib/fundLabels'
 import RangeSelector, { type Preset } from '../components/RangeSelector'
 import CompareChart from '../components/CompareChart'
 import ShareButton from '../components/ShareButton'
@@ -42,7 +43,8 @@ export default function Compare() {
   const [holdingsLoading, setHoldingsLoading] = useState(false)
 
   usePageMeta(
-    funds.length ? `Compare: ${funds.map(f => f.name.split(" ")[0]).join(" vs ")}` : 'Compare Funds',
+    // Short names keep what tells the funds apart: 'UTI Nifty 50 vs Motilal Oswal Nifty 500', not 'UTI vs Motilal'.
+    funds.length ? `Compare: ${funds.map(shortName).join(' vs ')}` : 'Compare Funds',
     'Compare mutual funds over a selected period and review overlap in their disclosed holdings.'
   )
 
