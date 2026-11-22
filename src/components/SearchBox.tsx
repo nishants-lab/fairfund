@@ -5,6 +5,8 @@ import { matchedOtherName, searchFunds, searchCategories } from '../lib/data'
 import type { CategoryResult } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
 import { parseIntent } from '../lib/intentParser'
+import { applyCoverage } from '../lib/notCovered'
+import { normalizeSearch } from '../lib/searchText'
 import type { Intent } from '../lib/intentParser'
 import type { Fund } from '../types'
 
@@ -40,6 +42,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
   const [results, setResults] = useState<Fund[]>([])
   const [catResults, setCatResults] = useState<CategoryResult[]>([])
   const [intent, setIntent] = useState<Intent | null>(null)
+  const [note, setNote] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(0)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -60,7 +63,10 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
   }, [intent, catResults, results])
 
   useEffect(() => {
-    setResults(searchFunds(query, 10))
+    // Hybrid, gold, bond... queries: say FairFund does not cover them (src/lib/notCovered.ts).
+    const { results: kept, note: line } = applyCoverage(query, searchFunds(query, 10), normalizeSearch)
+    setResults(kept)
+    setNote(line)
     setCatResults(searchCategories(query))
     setIntent(parseIntent(query))
     setActiveIdx(0)
@@ -183,6 +189,7 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
         hidden={!listOpen}
         className={`absolute right-0 z-50 mt-2 max-h-80 ${panelWidth} overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-xl`}
       >
+        {note && <div role="presentation" data-testid="search-not-covered" className="border-b border-line px-4 py-2.5 text-xs text-muted">{note}</div>}
         {options.map((opt, idx) => {
           const selected = idx === activeIdx
           const common = {
@@ -243,7 +250,9 @@ export default function SearchBox({ placeholder, autoFocus, onPick, large, input
 
       {noMatch && (
         <div className={`absolute right-0 z-50 mt-2 ${panelWidth} rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-xl`}>
-          No funds match “{query}”. Try a fund name like “HDFC Flexi” or a category like “small cap”.
+          {note
+            ? <><span data-testid="search-not-covered">{note}</span> Try a fund name like “HDFC Flexi” or a category like “small cap”.</>
+            : <>No funds match “{query}”. Try a fund name like “HDFC Flexi” or a category like “small cap”.</>}
         </div>
       )}
     </div>

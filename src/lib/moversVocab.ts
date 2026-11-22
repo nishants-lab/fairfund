@@ -231,17 +231,7 @@ export const GROUP_WORDS: [string, 'category' | 'amc' | 'sector' | 'theme' | 'fu
   ['which sector|which sectors|sectors|by sector|sector wise|sectorwise|industries|industry|which industry|which industries|sector', 'sector'],
 ]
 
-export const NOT_COVERED: [string, string][] = [
-  ['hybrid|hybrids|balanced|balanced advantage|baf|dynamic asset allocation|multi asset|multi asset allocation|aggressive hybrid|conservative hybrid|equity savings', 'Hybrid funds are not part of FairFund yet.'],
-  ['gold|silver|precious metals', 'Gold and silver funds are not part of FairFund yet.'],
-  ['gilt|corporate bond|credit risk|overnight|dynamic bond|short duration|ultra short|low duration|medium duration|long duration|banking and psu debt|banking and psu fund|banking and psu funds|floater|bond|bonds|g sec|gsec|target maturity', 'Only liquid and money market funds are covered on the debt side.'],
-  ['etf|etfs|exchange traded', 'ETFs are not part of FairFund; index funds are.'],
-  ['ulip|ulips|nps|ppf|fixed deposit|fd|fds|insurance|crypto|bitcoin|pms|aif', 'FairFund covers mutual funds only.'],
-  ['direct plan|direct plans|regular plan|regular plans|direct|regular|idcw|dividend option|dividend payout|growth option|growth plan|payout|reinvestment', 'FairFund tracks the direct growth plan of each fund; figures here are for that plan.'],
-  ['fund of funds|fof|fofs', 'Funds of funds that invest abroad are listed under International; other funds of funds are not covered.'],
-  ['nav|navs|price|nav change', 'Movers works with month-end size, flows, costs, ranks and returns; for a fund\'s NAV open its page.'],
-  ['exit load|exit loads|lock in|lockin|sip|sips|minimum investment|min sip|lumpsum', 'Exit loads and investment minimums are on each fund\'s page.'],
-]
+export { NOT_COVERED } from './notCovered'
 
 export const ADVICE_WORDS = 'should i|should we|shall i|should one|do i buy|do i invest|recommend|recommendation|recommendations|recommended|advice|advise|suggest|suggestion|suggestions|worth buying|worth investing|worth it|good investment|good to invest|good to buy|safe to invest|best fund to buy|best funds to buy|best fund to invest|best funds to invest|best to invest|invest now|buy now|right time|which to buy|where to invest|where should i invest|what to buy|guaranteed|sure shot|which should i|which is better|which one is better|is it better|better to invest|better option|better choice|good choice|safe bet|can i invest|switch to|should switch'
 
