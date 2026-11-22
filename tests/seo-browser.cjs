@@ -30,7 +30,7 @@ function buildSyntheticPages(){
  const tmp=fs.mkdtempSync(path.join((process.env.FF_TEST_TMPDIR||os.tmpdir()),'ff-seo-browser-'));
  for(const d of ['scripts','src/data','dist'])fs.mkdirSync(path.join(tmp,d),{recursive:true});
  for(const n of ['gen-unfurls.mjs','site-config.mjs','research-pages.mjs'])fs.copyFileSync(path.join(root,'scripts',n),path.join(tmp,'scripts',n));
- fs.copyFileSync(path.join(root,'src/data/stock_names.json'),path.join(tmp,'src/data/stock_names.json'));
+ for(const n of ['stock_names.json','category_scope.json'])fs.copyFileSync(path.join(root,'src/data',n),path.join(tmp,'src/data',n));
  fs.writeFileSync(path.join(tmp,'src/data/funds.json'),JSON.stringify({generatedAt:'2026-01-02T00:00:00Z',anchor:'2026-01-02',totalFunds:syntheticFunds.length,categories:{'Synthetic Equity':{display:'Synthetic Equity',fundCount:syntheticFunds.length}},funds:syntheticFunds}));
  fs.copyFileSync(path.join(root,'dist/index.html'),path.join(tmp,'dist/index.html'));
  const run=spawnSync(process.execPath,[path.join(tmp,'scripts/gen-unfurls.mjs')],{cwd:tmp,encoding:'utf8',timeout:60000});
