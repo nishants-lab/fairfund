@@ -124,11 +124,13 @@ jobs:
         continue-on-error: true
 
       # Fund-house names from AMFI, then the data behind the Movers page
-      # (estimated flows, costs, manager and portfolio changes).
+      # (estimated flows, costs, manager and portfolio changes) and the monthly
+      # holdings report (what funds bought and sold).
       - name: Build Movers data
         run: |
           python scripts/normalize_amc.py
           python scripts/build_movers.py
+          python scripts/build_holdings_report.py
 
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py
@@ -247,11 +249,13 @@ jobs:
         run: python scripts/build_former_names.py
 
       # Fund-house names from AMFI, then the data behind the Movers page
-      # (estimated flows, costs, manager and portfolio changes).
+      # (estimated flows, costs, manager and portfolio changes) and the monthly
+      # holdings report (what funds bought and sold).
       - name: Build Movers data
         run: |
           python scripts/normalize_amc.py
           python scripts/build_movers.py
+          python scripts/build_holdings_report.py
 
       - name: Smoke test (validate data integrity)
         run: python tests/smoke.py

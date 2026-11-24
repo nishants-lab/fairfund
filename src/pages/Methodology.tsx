@@ -247,6 +247,21 @@ export default function Methodology() {
         </p>
       </Section>
 
+      <Section title="Fund buying report">
+        <p>
+          The monthly fund buying report estimates which shares mutual funds bought and sold, across every
+          covered fund except debt and arbitrage funds. For each fund and stock, buying is the value held at the end of the month less the value at the
+          start grown by the stock's price move. A stock's price move is read from the funds that held it at
+          both ends; where too few did, the fund's own return stands in. Index funds count in rupees but not in
+          the number of funds adding or cutting. Arbitrage funds are left out because they sell futures
+          against the shares they buy.
+        </p>
+        <p className="mt-2">
+          As a check, the report sets the estimate beside new money into the same funds plus cash they moved
+          into shares. The two should land near each other; the report shows how far apart they are.
+        </p>
+      </Section>
+
       <Section title="Fund-page composite score">
         <p>
           The equity fund-page composite score (0-100) uses category rank (25%), peer-relative alpha (20.45%),

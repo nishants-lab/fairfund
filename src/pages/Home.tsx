@@ -4,6 +4,7 @@ import { makeEdition, validConsistency, CONSISTENCY_EXPLANATION, type Edition } 
 import type { Fund } from '../types'
 import { Link, useNavigate } from 'react-router-dom'
 import SearchBox from '../components/SearchBox'
+import FundBuyingBand from '../components/FundBuyingBand'
 import InfoTip from '../components/InfoTip'
 import { categoryOrder, data, funds } from '../lib/data'
 import { getCategoryColor } from '../lib/categoryColors'
@@ -218,6 +219,7 @@ export default function Home() {
         <div className="min-w-0"><WindowBoard key={category} initialCategory={category} /></div>
       </div>
     </section>
+    <FundBuyingBand />
     <section className="border-b border-line bg-surface" aria-labelledby="edition-title">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 sm:px-6 sm:py-10">
         <div className="max-w-2xl">

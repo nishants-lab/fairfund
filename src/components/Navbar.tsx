@@ -8,11 +8,12 @@ import { useTheme } from '../lib/theme'
 const links = [
   { to: '/explore', label: 'Explore' },
   { to: '/compare', label: 'Compare' },
+  { to: '/fund-buying', label: 'Fund buying' },
   { to: '/movers', label: 'Movers' },
-  // Top bar from lg up only: at md widths a sixth link pushes the bar past the screen edge. Always in the menu.
+  // wideOnly: top bar from lg up only, since at md widths more than five links push the bar past the screen edge. Always in the menu.
   { to: '/nfo', label: 'NFOs', wideOnly: true },
   { to: '/my', label: 'My Portfolio' },
-  { to: '/methodology', label: 'Methodology' },
+  { to: '/methodology', label: 'Methodology', wideOnly: true },
 ]
 
 export default function Navbar() {

@@ -1,0 +1,105 @@
+{
+  "month": "2026-10",
+  "monthLong": "October 2026",
+  "complete": true,
+  "net": 35680.2,
+  "funds": 767,
+  "houses": 49,
+  "inflow": 27935.7,
+  "cashUsed": 4270.5,
+  "buys": [
+    {
+      "name": "Jio Platforms",
+      "net": 3781.7,
+      "funds": 75
+    },
+    {
+      "name": "ITC",
+      "net": 2758.2,
+      "funds": 31
+    },
+    {
+      "name": "Zetwerk",
+      "net": 2249.9,
+      "funds": 51
+    },
+    {
+      "name": "Persistent Systems",
+      "net": 1812.7,
+      "funds": 49
+    },
+    {
+      "name": "Max Healthcare Institute",
+      "net": 1574.6,
+      "funds": 24
+    }
+  ],
+  "sells": [
+    {
+      "name": "Infosys",
+      "net": -2877.9,
+      "funds": 57
+    },
+    {
+      "name": "LIC",
+      "net": -1456.1,
+      "funds": 23
+    },
+    {
+      "name": "HCL Technologies",
+      "net": -915.5,
+      "funds": 18
+    },
+    {
+      "name": "ONGC",
+      "net": -860,
+      "funds": 14
+    },
+    {
+      "name": "State Bank of India",
+      "net": -748.4,
+      "funds": 29
+    }
+  ],
+  "sectorsUp": [
+    {
+      "name": "Industrials",
+      "net": 10136.8
+    },
+    {
+      "name": "Financial",
+      "net": 6137.1
+    },
+    {
+      "name": "Healthcare",
+      "net": 5734.7
+    },
+    {
+      "name": "Technology",
+      "net": 4875.2
+    }
+  ],
+  "sectorsDown": [
+    {
+      "name": "Diversified",
+      "net": -304.4
+    }
+  ],
+  "newStakes": [
+    {
+      "name": "Jio Platforms",
+      "funds": 75,
+      "net": 3781.7
+    },
+    {
+      "name": "Zetwerk",
+      "funds": 51,
+      "net": 2249.9
+    },
+    {
+      "name": "Bonfiglioli Transmissions",
+      "funds": 43,
+      "net": 1074.2
+    }
+  ]
+}

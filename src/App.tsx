@@ -27,6 +27,7 @@ const Portfolio = lazy(withChunkReload(() => import('./pages/Portfolio')))
 const Movers = lazy(withChunkReload(() => import('./pages/Movers')))
 const CategoryDetail = lazy(withChunkReload(() => import('./pages/CategoryDetail')))
 const Nfo = lazy(withChunkReload(() => import('./pages/Nfo')))
+const HoldingsReport = lazy(withChunkReload(() => import('./pages/HoldingsReport')))
 
 function PageLoader() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/movers" element={<Movers />} />
+            <Route path="/fund-buying" element={<HoldingsReport />} />
             <Route path="/fund/:code/:slug?" element={<FundDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/methodology" element={<Methodology />} />

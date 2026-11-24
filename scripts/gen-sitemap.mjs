@@ -17,6 +17,8 @@ const funds = data.funds
 const site = new URL(SITE)
 if (site.protocol !== 'https:' || site.search || site.hash || SITE.endsWith('/')) throw new Error('SITE must be an HTTPS base without query, fragment or trailing slash')
 const paths = ['','s/explore/','s/compare/','s/movers/','s/nfo/','s/methodology/']
+// The fund buying report page exists whenever its data does (gen-unfurls.mjs).
+if (existsSync(join(ROOT, 'src/data/holdings_report.json'))) paths.push('s/fund-buying/')
 const catSlug = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 for (const [key, category] of Object.entries(data.categories ?? {})) {
   if (category.fundCount > 0) {

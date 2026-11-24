@@ -20,6 +20,10 @@ import {
   type FundRow, type GroupRow, type SectorRow, type StockAction, type StockRow,
 } from '../lib/moversRows'
 import { dayMonthYear } from '../lib/dates'
+import reportSummary from '../data/holdings_summary.json'
+import { monthLabel as reportMonthLabel } from '../lib/holdingsReport'
+
+const reportLead = (reportSummary as { lead: string | null }).lead ? reportMonthLabel((reportSummary as { lead: string }).lead) : null
 
 // Movers: what changed across the fund universe, read from monthly disclosures.
 // One state object (lib/moversState) drives the tabs, the filters, the question box
@@ -101,6 +105,7 @@ export default function Movers() {
   const [shown, setShown] = useState(PAGE)
   const [local, setLocal] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
   const [nameText, setNameText] = useState(state.names.join(' '))
+  const [moreFilters, setMoreFilters] = useState(false)
 
   useEffect(() => { loadMovers().then(setData, () => setFailed(true)) }, [])
   useEffect(() => {
@@ -167,6 +172,7 @@ export default function Movers() {
 
   const s = state
   const isStocks = s.view === 'stocks'
+  const extraFilters = [s.groupBy !== 'fund', s.type !== 'all', s.young !== 'all'].filter(Boolean).length
   const ref = data?.refMonth ?? null
   const coverage = isStocks ? stocks?.coverage : data?.coverage
   const showCoverage = ['flows', 'size', 'stocks'].includes(s.view) && (!s.month || s.month === ref)
@@ -202,6 +208,12 @@ export default function Movers() {
         <ShareButton title="Movers" text="Fund flows, size, rank, costs, manager changes and portfolio moves on FairFund" className="mt-0.5 shrink-0" />
       </div>
       <p className="mt-1 text-sm text-muted">{BLURB[s.view]}</p>
+      {reportLead && (
+        <Link to="/fund-buying" className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm transition-colors hover:border-brand-300">
+          <span className="min-w-0"><span className="font-semibold text-fg">What funds bought in {reportLead}</span> <span className="text-muted">· most bought and sold stocks, by sector and fund house</span></span>
+          <span aria-hidden="true" className="shrink-0 text-brand-700 dark:text-brand-300">→</span>
+        </Link>
+      )}
 
       <form className="mt-4 flex gap-2" onSubmit={e => { e.preventDefault(); ask(text) }} role="search">
         <label htmlFor="movers-q" className="sr-only">Ask a question about fund movers</label>
@@ -213,9 +225,9 @@ export default function Movers() {
       </form>
       {!parsed && (
         <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Example questions">
-          {EXAMPLES.map(q => (
+          {EXAMPLES.map((q, i) => (
             <button key={q} onClick={() => ask(q)} disabled={!data}
-              className="rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-muted transition hover:text-fg disabled:opacity-50">{q}</button>
+              className={`${i > 2 ? 'hidden sm:inline-block ' : ''}rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-muted transition hover:text-fg disabled:opacity-50`}>{q}</button>
           ))}
         </div>
       )}
@@ -287,6 +299,11 @@ export default function Movers() {
       </div>
 
       <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <button type="button" onClick={() => setMoreFilters(v => !v)} aria-expanded={moreFilters} aria-controls="movers-filters"
+          className="min-h-10 rounded-lg border border-line bg-surface px-3 py-1.5 text-left text-sm font-medium text-fg sm:hidden">
+          {moreFilters ? 'Hide filters' : `Filters${extraFilters ? ` (${extraFilters})` : ''}`}
+        </button>
+        <div id="movers-filters" className={`${moreFilters ? 'grid' : 'hidden'} col-span-2 row-start-2 grid-cols-2 gap-2 sm:contents`}>
         <Select label="Show" value={s.groupBy} onChange={v => patch({ groupBy: v as GroupBy, stock: null, count: false })}
           options={GROUPS[isStocks ? 'stocks' : s.view === 'debt' ? 'debt' : 'fund']} />
         <Select label="Add category" value="" onChange={v => v && patch({ categories: [...new Set([...s.categories, v])] })}
@@ -299,8 +316,9 @@ export default function Movers() {
         )}
         <Select label="Fund age" value={s.young} onChange={v => patch({ young: v as MoversState['young'] })}
           options={[['all', 'Any age'], ['only', 'New funds'], ['exclude', 'Established funds']]} />
+        </div>
         <input value={nameText} onChange={e => setNameText(e.target.value)} placeholder="Fund name" aria-label="Filter by fund name"
-          className="min-w-0 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg placeholder:text-faint sm:min-w-[120px] sm:max-w-[220px] sm:flex-1" />
+          className="min-h-10 min-w-0 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-fg placeholder:text-faint sm:order-last sm:min-w-[120px] sm:max-w-[220px] sm:flex-1" />
       </div>
 
       <FilterChips s={s} data={data} onChange={next => update(next)} />

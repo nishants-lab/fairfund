@@ -125,6 +125,16 @@ h1.uppercase, h2.uppercase, h3.uppercase {
   background: rgb(var(--text-faint));
 }
 
+/* An inverted band (home page fund buying): dark on light themes, raised surface on dark. */
+.band { --band-bg: var(--text-base); --band-fg: var(--canvas); background: rgb(var(--band-bg)); color: rgb(var(--band-fg)); }
+.dark .band { --band-bg: var(--surface); --band-fg: var(--text-base); }
+
+@layer utilities {
+  /* Horizontal chip rows scroll by touch without a visible bar. */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
 @layer components {
   .card {
     @apply bg-surface rounded-2xl border border-line shadow-sm;

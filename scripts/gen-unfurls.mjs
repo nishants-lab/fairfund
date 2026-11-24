@@ -105,6 +105,66 @@ function head(title, desc, url, image, jsonld) {
 
 // Keep the public URL and its content stable even when JavaScript executes.
 // The interactive view remains available through an explicit ordinary link.
+//
+// One stylesheet for every shell: warm paper, serif headings, theme variables (with a
+// dark scheme). Page bodies still carry a few inline colours from before; themeInline
+// maps them onto the variables so every page follows the same palette.
+const SHELL_CSS = `
+:root{--paper:#fbfaf6;--surface:#ffffff;--ink:#1b1f24;--muted:#56606b;--faint:#6b7480;--line:#e6e1d6;--accent:#1f4fa3;--accent-ink:#ffffff;--up:#047857;--down:#be123c;--wash:#f3efe6;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--paper:#101317;--surface:#171b21;--ink:#eceae4;--muted:#b4bac2;--faint:#99a1ab;--line:#2b3139;--accent:#8fb3ff;--accent-ink:#0c1220;--up:#34d399;--down:#fb7185;--wash:#1a1f26;color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,'Segoe UI',sans-serif;font-feature-settings:'tnum' 1;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 1.25rem}
+.top{border-bottom:1px solid var(--line);background:var(--surface)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1.25rem;padding-top:.75rem;padding-bottom:.75rem}
+.brand{display:inline-flex;align-items:center;gap:.5rem;color:var(--ink);font:600 1.2rem/1 Newsreader,Georgia,serif;text-decoration:none}
+.brand-mark{display:inline-block;width:28px;height:28px;border-radius:7px;background:center/contain no-repeat}
+nav{display:flex;flex-wrap:wrap;gap:.25rem 1rem;font-size:14px}
+nav a{color:var(--muted);text-decoration:none;padding:.25rem 0}
+nav a:hover{color:var(--ink);text-decoration:underline}
+main{max-width:780px;margin:0 auto;padding:2rem 1.25rem 3rem}
+h1,h2,h3{font-family:Newsreader,Georgia,Cambria,serif;font-optical-sizing:auto;color:var(--ink);line-height:1.15}
+h1{letter-spacing:-.015em;font-weight:600}
+h2{font-size:22px;font-weight:600;margin:36px 0 10px;letter-spacing:-.01em}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--ink);outline-offset:4px;border-radius:2px}
+a.cta{display:inline-block;padding:11px 18px;border-radius:10px;background:var(--ink);color:var(--paper)!important;font-weight:600;text-decoration:none}
+a.cta:hover{opacity:.9}
+p,li{color:inherit}
+table{max-width:100%;border-collapse:collapse}
+th,td{border-color:var(--line)}
+tbody tr{border-top:1px solid var(--line)}
+.metrics-scroll{overflow-x:auto}.metrics-scroll th,.metrics-scroll td{white-space:nowrap;overflow-wrap:normal}.metrics-scroll thead th{white-space:normal}
+.data-scroll{overflow-x:auto}.data-scroll table{font-size:14px}.data-scroll th,.data-scroll td{white-space:nowrap;overflow-wrap:normal;padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+.data-scroll thead th{border-bottom:1px solid var(--line);font-weight:600;white-space:normal;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.data-scroll td.name{white-space:normal;min-width:7.5rem}.data-scroll tr>:last-child{padding-right:0}.data-scroll td.label{white-space:normal;min-width:5rem}
+.data-scroll .sub{display:block;font-size:12px;color:var(--faint)}.data-scroll .num{text-align:right}
+.up{color:var(--up)}.down{color:var(--down)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+.lede{font-size:18px;color:var(--muted);max-width:40rem}
+.ledger{display:grid;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:28px 0}
+.ledger>div{padding:16px 0;border-top:1px solid var(--line)}.ledger>div:first-child{border-top:0}
+.ledger .v{font:600 30px/1.1 Newsreader,Georgia,serif;margin:4px 0}
+@media (min-width:640px){.ledger{grid-template-columns:repeat(3,1fr)}.ledger>div{border-top:0;border-left:1px solid var(--line);padding:18px 20px}.ledger>div:first-child{border-left:0;padding-left:0}}
+.method{background:var(--wash);border-radius:16px;padding:18px 20px;margin-top:32px;font-size:14px;color:var(--muted)}
+.foot{border-top:1px solid var(--line);color:var(--faint);font-size:13px}
+.foot .wrap{padding-top:1.25rem;padding-bottom:2rem}
+img{max-width:100%;height:auto}
+`.replace(/\n/g, '')
+
+const INLINE_THEME = [
+  [/color:#(?:475569|64748b)/g, 'color:var(--muted)'],
+  [/color:#(?:1e293b|0f172a)/g, 'color:var(--ink)'],
+  [/color:#(?:2563eb|1d4ed8)/g, 'color:var(--accent)'],
+  [/#e2e8f0/g, 'var(--line)'],
+]
+function themeInline(html) {
+  let out = html.replace(/<a href="([^"]+)" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#1d4ed8;color:#fff;font-weight:600;text-decoration:none">/g, '<a href="$1" class="cta">')
+  for (const [re, to] of INLINE_THEME) out = out.replace(re, to)
+  return out
+}
+
 function writeShell({ dir, hash, title, desc, canonicalPath, image = COVER_IMAGE, jsonld = '', bodyHtml = '' }) {
   const outDir = join(DIST, dir)
   mkdirSync(outDir, { recursive: true })
@@ -116,13 +176,16 @@ function writeShell({ dir, hash, title, desc, canonicalPath, image = COVER_IMAGE
 <html lang="en">
 <head>
 ${head(title, desc, url, image, jsonld)}
-<style>
-*{box-sizing:border-box}body{overflow-wrap:anywhere}a{color:#1d4ed8}a:focus-visible{outline:2px solid #1e293b;outline-offset:4px}nav{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}table{max-width:100%}.metrics-scroll{overflow-x:auto}.metrics-scroll th,.metrics-scroll td{white-space:nowrap;overflow-wrap:normal}.data-scroll{overflow-x:auto}.data-scroll table{border-collapse:collapse;font-size:14px}.data-scroll th,.data-scroll td{white-space:nowrap;overflow-wrap:normal;padding:6px 10px 6px 0;text-align:left;vertical-align:top}.data-scroll thead th{border-bottom:1px solid #e2e8f0;font-weight:600;white-space:normal;font-size:13px}.data-scroll td.name{white-space:normal;min-width:7.5rem}.data-scroll tr>:last-child{padding-right:0}.data-scroll td.label{white-space:normal;min-width:5rem}.metrics-scroll thead th{white-space:normal}.data-scroll .sub{display:block;font-size:12px;color:#64748b}.data-scroll .num{text-align:right}h2{font-size:18px;margin:28px 0 8px}img{max-width:100%;height:auto}
-</style>
+<link rel="icon" href="${SITE}/favicon.svg" type="image/svg+xml"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+<style>${SHELL_CSS}</style>
 </head>
-<body style="font-family:system-ui,-apple-system,sans-serif;max-width:760px;margin:0 auto;padding:2rem 1.25rem;color:#1e293b;line-height:1.6">
-<nav aria-label="Research pages"><a href="${SITE}/">FairFund home</a><a href="${SITE}/s/explore/">Browse categories</a><a href="${SITE}/s/methodology/">Methodology</a></nav>
-<main>${fallback}${asOf}</main>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="${SITE}/"><span class="brand-mark" aria-hidden="true" style="background-image:url(${SITE}/favicon.svg)"></span>FairFund</a><nav aria-label="Research pages"><a href="${SITE}/s/fund-buying/">Fund buying</a><a href="${SITE}/s/explore/">Browse categories</a><a href="${SITE}/s/stocks/">Stocks</a><a href="${SITE}/s/methodology/">Methodology</a></nav></div></header>
+<main>${themeInline(fallback)}${themeInline(asOf)}</main>
+<footer class="foot"><div class="wrap"><a href="${SITE}/">FairFund home</a> &middot; Indian mutual fund research. Data for research only, not investment advice.</div></footer>
 </body>
 </html>
 `
@@ -501,6 +564,87 @@ const pages = [
 for (const [dir, hash, title, desc, bodyHtml, jsonld] of pages) {
   writeShell({ dir, hash, title, desc, canonicalPath: `${dir}/`, bodyHtml, jsonld })
 }
+
+// ---- Fund buying: the monthly holdings report as a static page -------------
+// Same numbers as the app's report (src/data/holdings_report.json, built by
+// scripts/build_holdings_report.py). Skipped when the file is absent.
+const reportPath = join(ROOT, 'src/data/holdings_report.json')
+const LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const monthLong = ym => { const [y, m] = String(ym).split('-').map(Number); return LONG_MONTHS[m - 1] ? `${LONG_MONTHS[m - 1]} ${y}` : esc(String(ym)) }
+const crore = (n, signed = false) => {
+  const v = Math.round(Math.abs(n)).toLocaleString('en-IN')
+  const sign = signed ? (Math.round(n) > 0 ? '+' : Math.round(n) < 0 ? '&minus;' : '') : (n < 0 ? '&minus;' : '')
+  return `${sign}&#8377;${v}&nbsp;cr`
+}
+const toneClass = n => n >= 0 ? 'up' : 'down'
+const fundBuyingPage = existsSync(reportPath) ? (() => {
+  const report = JSON.parse(readFileSync(reportPath, 'utf-8'))
+  const mo = report.lead && report.months?.[report.lead]
+  if (!mo) return null
+  const t = mo.totals
+  const nameOf = k => stockLabel(mo.stocks[k]?.name ?? mo.refs?.[k]?.[0] ?? k)
+  const stockCell = k => {
+    const slug = stockSlug(k)
+    const name = esc(nameOf(k))
+    return research.stockBySlug.has(slug) ? `<a href="${SITE}/st/${slug}/">${name}</a>` : name
+  }
+  const month = monthLong(mo.month)
+  const monthOnly = month.split(' ')[0]
+  const list = (keys, sell) => `<div class="data-scroll" role="region" aria-label="${sell ? 'Most sold' : 'Most bought'} stocks" tabindex="0"><table><thead><tr><th>#</th><th>Stock</th><th class="num">Net ${sell ? 'selling' : 'buying'}</th><th class="num">Funds added</th><th class="num">Funds cut</th></tr></thead><tbody>${keys.map((k, i) => {
+    const r = mo.stocks[k]
+    return `<tr><td>${i + 1}</td><td class="name">${stockCell(k)}<span class="sub">${esc(r.sector)}${r.new ? ` &middot; ${r.new} new` : ''}${r.exited ? ` &middot; ${r.exited} sold out` : ''}</span></td><td class="num ${toneClass(r.net)}">${crore(r.net, true)}</td><td class="num">${r.added}</td><td class="num">${r.cut}</td></tr>`
+  }).join('')}</tbody></table></div>`
+  const buy = mo.lists.buys[0], sell = mo.lists.sells[0]
+  const sector = mo.sectors[0]
+  const ledger = `<div class="ledger">${[
+    buy && ['Most bought', stockCell(buy), crore(mo.stocks[buy].net, true), 'up', `${mo.stocks[buy].added} funds added`],
+    sell && ['Most sold', stockCell(sell), crore(mo.stocks[sell].net, true), 'down', `${mo.stocks[sell].cut} funds cut`],
+    sector && ['Biggest sector move', esc(sector[0]), crore(sector[1], true), toneClass(sector[1]), 'net across the sector'],
+  ].filter(Boolean).map(([cap, what, v, cls, sub]) => `<div><p class="eyebrow">${cap}</p><div style="font-weight:600">${what}</div><div class="v ${cls}">${v}</div><div style="font-size:14px;color:var(--muted)">${sub}</div></div>`).join('')}</div>`
+  const sectorRows = mo.sectors.filter(([n]) => !/^(unspecified|other)$/i.test(n)).map(([n, v]) => `<tr><td class="label">${esc(n)}</td><td class="num ${toneClass(v)}">${crore(v, true)}</td></tr>`).join('')
+  const cats = mo.categories.filter(c => c.funds >= 5).slice(0, 10).map(c => `<h3 style="font-size:18px;margin:22px 0 4px">${esc(c.name)}</h3><p style="margin:0 0 6px;font-size:14px;color:var(--muted)">${c.funds} funds, net ${crore(c.net, true)}. Most bought: ${c.buys.slice(0, 3).map(([k, v]) => `${stockCell(k)} (${crore(v, true)})`).join(', ') || 'none'}. Most sold: ${c.sells.slice(0, 3).map(([k, v]) => `${stockCell(k)} (${crore(v, true)})`).join(', ') || 'none'}.</p>`).join('')
+  const houseRows = mo.houses.slice(0, 15).map(h => `<tr><td class="name">${esc(h.name)}<span class="sub">${h.funds} funds</span></td><td class="num ${toneClass(h.net)}">${crore(h.net, true)}</td><td class="name">${h.buys[0] ? stockCell(h.buys[0][0]) : '-'}</td></tr>`).join('')
+  const trendRows = report.trend.map(p => `<tr><td>${monthLong(p.month)}${p.complete ? '' : ' (partial)'}</td><td class="num ${toneClass(p.net)}">${crore(p.net, true)}</td><td class="num">${crore(p.inflow + p.cashUsed, true)}</td><td class="num">${p.funds}</td></tr>`).join('')
+  const videoPath = join(ROOT, 'src/data/report_video.json')
+  const video = existsSync(videoPath) ? JSON.parse(readFileSync(videoPath, 'utf-8')) : null
+  const media = [
+    video?.month === mo.month && existsSync(join(DIST, video.video)) && `<a href="${SITE}/${esc(video.video)}">${monthOnly} in ${video.seconds} seconds (video)</a>`,
+    existsSync(join(DIST, 'media/fund-buying.gif')) && `<a href="${SITE}/media/fund-buying.gif">animated chart (GIF)</a>`,
+  ].filter(Boolean)
+  const title = `What mutual funds bought in ${month} - FairFund`
+  const desc = `Indian mutual funds bought an estimated ${crore(t.net).replace(/&#8377;/, 'Rs ').replace(/&nbsp;/g, ' ').replace('&minus;', '-')} of shares in ${month}. Most bought and sold stocks, by sector, category and fund house.`
+  const bodyHtml = `<p class="eyebrow">Holdings report &middot; ${month}</p>
+<h1 style="font-size:36px;margin:0 0 14px">Mutual funds ${t.net >= 0 ? 'bought' : 'sold'} an estimated <span class="${toneClass(t.net)}">${crore(Math.abs(t.net))}</span> of shares in ${monthOnly}.</h1>
+<p class="lede">From the portfolios of ${t.funds.toLocaleString('en-IN')} funds across ${t.houses} fund houses. New money into them came to ${crore(t.inflow)}, and they moved ${crore(Math.abs(t.cashUsed))} ${t.cashUsed >= 0 ? 'out of cash into shares' : 'from shares into cash'}.</p>
+${mo.coverage.complete ? '' : `<p style="border:1px solid #d9a440;border-radius:12px;padding:10px 14px">${mo.coverage.funds} of ${mo.coverage.of} funds have disclosed their ${monthOnly} portfolio so far. Figures will change as the rest report.</p>`}
+${ledger}
+<p><a href="${SHELL_UP}#/fund-buying" class="cta">Open the interactive report &rarr;</a></p>
+${media.length ? `<p style="font-size:15px;color:var(--muted)">For posts: ${media.join(' &middot; ')}</p>` : ''}
+<h2>Most bought</h2>
+${list(mo.lists.buys.slice(0, 20), false)}
+<h2>Most sold</h2>
+${list(mo.lists.sells.slice(0, 20), true)}
+<h2>Most widely bought</h2>
+<p style="font-size:14px;color:var(--muted);margin:0 0 8px">Ranked by how many active funds raised the stock beyond its price move.</p>
+${list(mo.lists.widest.slice(0, 10), false)}
+<h2>By sector</h2>
+<div class="data-scroll" role="region" aria-label="Net buying by sector" tabindex="0"><table><thead><tr><th>Sector</th><th class="num">Net buying</th></tr></thead><tbody>${sectorRows}</tbody></table></div>
+<h2>By fund category</h2>
+${cats}
+<h2>By fund house</h2>
+<div class="data-scroll" role="region" aria-label="Net buying by fund house" tabindex="0"><table><thead><tr><th>Fund house</th><th class="num">Net buying</th><th>Top buy</th></tr></thead><tbody>${houseRows}</tbody></table></div>
+<h2>Month by month</h2>
+<div class="data-scroll" role="region" aria-label="Net buying by month" tabindex="0"><table><thead><tr><th>Month</th><th class="num">Net buying</th><th class="num">New money plus cash</th><th class="num">Funds</th></tr></thead><tbody>${trendRows}</tbody></table></div>
+<div class="method"><h2 style="margin-top:0;font-size:19px">How these numbers are made</h2>
+<p>Funds publish what share of their portfolio each stock is and how big the fund is, every month. For each fund and stock, buying is the value held at the end of the month less the value at the start grown by the stock's price move. A stock's price move is read from the funds that held it at both ends.</p>
+<p>Check for ${month}: estimated buying ${crore(t.net, true)}; new money ${crore(t.inflow, true)} plus cash moved into shares ${crore(t.cashUsed, true)} comes to ${crore(t.inflow + t.cashUsed, true)}.</p>
+<p>Fund counts include only active funds whose position moved by more than its price explains. Arbitrage funds are left out. Overseas stocks are not in these lists. Estimates for research only, not investment advice.</p></div>
+<p style="margin-top:24px"><a href="${SHELL_UP}#/fund-buying" style="color:var(--accent);font-weight:600">Open the interactive report on FairFund &rarr;</a></p>`
+  writeShell({ dir: 's/fund-buying', hash: '/fund-buying', title, desc, canonicalPath: 's/fund-buying/',
+    image: existsSync(join(DIST, 'og/fund-buying.png')) ? `${SITE}/og/fund-buying.png` : COVER_IMAGE,
+    jsonld: pageJsonld(`What mutual funds bought in ${month}`, desc, 's/fund-buying/'), bodyHtml })
+  return { month: mo.month }
+})() : null
 
 
 // ---- Per-category deep-dive shells -----------------------------------------
