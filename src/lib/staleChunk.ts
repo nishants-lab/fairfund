@@ -35,3 +35,21 @@ export function withChunkReload<T>(load: () => Promise<T>, onStale: () => boolea
 function safeSession(): Storage | null {
   try { return typeof sessionStorage === 'undefined' ? null : sessionStorage } catch { return null }
 }
+
+type WorkerHost = Pick<ServiceWorkerContainer, 'controller' | 'addEventListener'>
+
+/** A returning visitor's tab starts from the service worker's stored copy of the previous build. The new
+ * build's worker installs in the background and takes over the tab, but the app on screen is still the
+ * old one, so a link to a page added in this release shows "Page not found". Reload once when a new
+ * worker takes over a tab that already had one. On a first visit no worker is in control yet, so
+ * installing the first worker does not reload. */
+export function reloadOnNewWorker(sw: WorkerHost | undefined = safeWorker(), reload: () => unknown = () => reloadForNewDeploy()): boolean {
+  if (!sw || !sw.controller) return false
+  let done = false
+  sw.addEventListener('controllerchange', () => { if (done) return; done = true; reload() })
+  return true
+}
+
+function safeWorker(): WorkerHost | undefined {
+  try { return typeof navigator === 'undefined' ? undefined : navigator.serviceWorker } catch { return undefined }
+}

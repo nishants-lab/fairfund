@@ -1,7 +1,7 @@
 /** A page opened before a deploy must recover when its next page's code file is gone, and never loop. */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isStaleChunkError, reloadForNewDeploy, withChunkReload } from '../src/lib/staleChunk'
+import { isStaleChunkError, reloadForNewDeploy, reloadOnNewWorker, withChunkReload } from '../src/lib/staleChunk'
 
 function store() { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) } }
 
@@ -36,4 +36,24 @@ test('withChunkReload: stale chunk reloads and holds; other errors and a spent r
   assert.equal(asked, 1)
   await assert.rejects(withChunkReload(() => Promise.reject(new TypeError('Failed to fetch dynamically imported module: a.js')), () => false)(), /dynamically imported/)
   await assert.rejects(withChunkReload(() => Promise.reject(new RangeError('bad')), () => assert.fail('not a chunk error'))(), /bad/)
+})
+
+function worker(controller: object | null) {
+  const fns: Array<() => void> = []
+  return { controller: controller as ServiceWorker | null, addEventListener: (type: string, fn: () => void) => { if (type === 'controllerchange') fns.push(fn) }, fire: () => fns.forEach(f => f()) }
+}
+
+test('a returning tab reloads once when the new build takes over', () => {
+  const sw = worker({}); let reloads = 0
+  assert.equal(reloadOnNewWorker(sw, () => { reloads++ }), true)
+  sw.fire(); sw.fire()
+  assert.equal(reloads, 1)
+})
+
+test('a first visit does not reload when the first worker installs', () => {
+  const sw = worker(null); let reloads = 0
+  assert.equal(reloadOnNewWorker(sw, () => { reloads++ }), false)
+  sw.fire()
+  assert.equal(reloads, 0)
+  assert.equal(reloadOnNewWorker(undefined, () => { reloads++ }), false)
 })

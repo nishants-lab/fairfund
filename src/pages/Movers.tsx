@@ -234,14 +234,21 @@ export default function Movers() {
       {parsed && <ParseNotes out={parsed} onClear={() => { setText(''); update(structuredCloneState(s)) }} />}
 
       <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1">
-        <div className="flex w-max gap-2" role="tablist" aria-label="Views">
-          {VIEWS.map(v => (
-            <button key={v} role="tab" aria-selected={s.view === v} onClick={() => changeView(v)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                s.view === v ? 'bg-brand-600 text-white' : 'border border-line bg-surface text-muted hover:text-fg'}`}>
-              {VIEW_LABEL[v]}
-            </button>
-          ))}
+        <div className="flex w-max gap-2">
+          <div className="flex gap-2" role="tablist" aria-label="Views">
+            {VIEWS.map(v => (
+              <button key={v} role="tab" aria-selected={s.view === v} onClick={() => changeView(v)}
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  s.view === v ? 'bg-brand-600 text-white' : 'border border-line bg-surface text-muted hover:text-fg'}`}>
+                {VIEW_LABEL[v]}
+              </button>
+            ))}
+          </div>
+          {reportLead && (
+            <Link to="/fund-buying" className="whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-300 dark:text-brand-300">
+              Fund buying <span aria-hidden="true">→</span>
+            </Link>
+          )}
         </div>
       </div>
 
