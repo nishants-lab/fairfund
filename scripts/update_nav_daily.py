@@ -7,6 +7,7 @@ data looks incomplete, never deletes points, only appends strictly-newer dates.
 """
 import os, json, sys
 import urllib.request
+import http.client
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -63,10 +64,25 @@ def fetch_mfapi_history(code):
             time.sleep(1 * (2 ** attempt))
     return {}
 
+def read_amfi_text(attempts=4, sleep=None):
+    """NAVAll.txt as text. AMFI sometimes resets the connection (24 Nov 2026 run
+    45356827155 failed on one reset); retry with backoff before failing the run."""
+    import time
+    sleep = sleep or time.sleep
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(AMFI_URL, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return r.read().decode("utf-8", errors="replace")
+        except (OSError, http.client.HTTPException) as err:  # URLError, resets, timeouts
+            if attempt == attempts - 1:
+                raise
+            print(f"AMFI fetch failed ({err}); retry {attempt + 1} of {attempts - 1}")
+            sleep(5 * (2 ** attempt))
+
+
 def fetch_amfi():
-    req = urllib.request.Request(AMFI_URL, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        raw = r.read().decode("utf-8", errors="replace")
+    raw = read_amfi_text()
     latest = {}
     for line in raw.splitlines():
         parts = line.split(";")

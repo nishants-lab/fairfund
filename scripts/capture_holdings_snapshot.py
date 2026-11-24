@@ -248,6 +248,33 @@ def stored_slug_for(code):
 MAX_STOCK_LEVEL_SUM = 115
 
 
+def previous_month(today_iso):
+    """'2026-11-24' -> '2026-10': the portfolio month fund houses are publishing now."""
+    y, m = int(today_iso[:4]), int(today_iso[5:7])
+    return f"{y - 1}-12" if m == 1 else f"{y}-{m - 1:02d}"
+
+
+def coverage_warnings(today_iso, added, fetch_errors, attempted, covered, tracked):
+    """GitHub warnings for a capture run. covered = funds holding last month's portfolio,
+    tracked = funds with any snapshot. Late in the month a low share means the capture
+    is missing published portfolios (433 of 940 on 24 Nov 2026), so say so loudly."""
+    out = []
+    month = previous_month(today_iso)
+    day = int(today_iso[8:10])
+    share = covered / tracked if tracked else 1.0
+    if added == 0 and share < 0.9 and day <= 15:
+        out.append(f"Holdings capture produced 0 new snapshots this run. {month} portfolios: "
+                   f"{covered} of {tracked} funds. Possible cause: Groww rate-limiting, downtime "
+                   f"or a format change. Fetch errors: {fetch_errors}/{attempted}.")
+    if day >= 20 and share < 0.9:
+        out.append(f"Only {covered} of {tracked} funds have their {month} portfolio on day {day}. "
+                   f"Fund houses publish within 10 days of month end, so the capture is behind.")
+    if attempted and fetch_errors > attempted * 0.5:
+        out.append(f"Over 50% of fund fetches failed ({fetch_errors}/{attempted}). "
+                   "Groww may be rate-limiting or blocking CI IPs.")
+    return out
+
+
 def capture_one(code, name, smap, today, fetch=None):
     """Returns (code, snap, status, final_slug, reset_history)."""
     fetch = fetch or fetch_scheme_verified
@@ -415,6 +442,8 @@ def main():
 
     # write/refresh a manifest summarizing the dataset
     manifest = {"updatedAt": today, "funds": 0, "totalSnapshots": 0, "multiSnapshot": 0}
+    month = previous_month(today)
+    month_covered = 0
     for fn in os.listdir(HIST_DIR):
         if not fn.endswith(".json") or fn.startswith("_"):
             continue
@@ -427,6 +456,9 @@ def main():
         manifest["totalSnapshots"] += ns
         if ns >= 2:
             manifest["multiSnapshot"] += 1
+        if any(str(k).startswith(month) for k in rec.get("snapshots", {})):
+            month_covered += 1
+    manifest["latestMonth"] = {"month": month, "funds": month_covered}
     json.dump(manifest, open(os.path.join(HIST_DIR, "_manifest.json"), "w",
                              encoding="utf-8"), separators=(",", ":"))
 
@@ -436,20 +468,17 @@ def main():
     print(f"Dataset: {manifest['funds']} funds, {manifest['totalSnapshots']} total snapshots, "
           f"{manifest['multiSnapshot']} funds with >=2 snapshots (ready for change analysis).")
     print(f"::NEW_SNAPSHOTS::{added_snaps}")
+    print(f"::COVERAGE::{month}:{month_covered}/{manifest['funds']}")
 
-    # Minimum-capture threshold: if this is a scheduled CI run (not a manual
-    # dispatch or local test with FF_CAPTURE_LIMIT) and we captured ZERO new
-    # snapshots, something is likely wrong (Groww down, rate-limited, API changed).
-    # Emit a GitHub Actions warning annotation so the run shows a yellow badge.
+    # Scheduled CI runs only (not FF_CAPTURE_LIMIT smoke tests): warn on zero new
+    # snapshots early in the month, a coverage stall late in the month, or mass
+    # fetch failures. Warnings give the run a yellow badge.
     is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
-    is_limited = os.environ.get("FF_CAPTURE_LIMIT")
-    if is_ci and not is_limited and added_snaps == 0:
-        print("::warning::Holdings capture produced 0 new snapshots this run. "
-              "Possible cause: Groww API rate-limiting, downtime, or format change. "
-              f"Fetch errors: {fetch_errors}/{len(todo)}. Check the logs above.")
-    if is_ci and not is_limited and fetch_errors > len(todo) * 0.5:
-        print(f"::warning::Over 50% of fund fetches failed ({fetch_errors}/{len(todo)}). "
-              "Groww may be rate-limiting or blocking CI IPs.")
+    is_limited = os.environ.get("FF_CAPTURE_LIMIT") or os.environ.get("FF_CAPTURE_CODES")
+    if is_ci and not is_limited:
+        for message in coverage_warnings(today, added_snaps, fetch_errors, len(todo),
+                                         month_covered, manifest["funds"]):
+            print(f"::warning::{message}")
 
 
 if __name__ == "__main__":

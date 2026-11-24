@@ -3,7 +3,10 @@ name: Refresh Fund Data
 on:
   schedule:
     - cron: "30 22 * * 1-5"
-    - cron: "30 3 6-15,27 * *"
+    # Monthly holdings: every day from the 6th to month end. Groww posts fund
+    # houses' portfolios over two to three weeks. The old 6-15,27 window stopped
+    # at 433 of 940 October portfolios; on 24 Nov the source had October for the rest.
+    - cron: "30 3 6-31 * *"
   workflow_dispatch:
     inputs:
       full_refresh:
@@ -168,7 +171,7 @@ jobs:
         uses: actions/deploy-pages@v5
 
   monthly-holdings:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-15,27 * *'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_monthly || github.event_name == 'schedule' && github.event.schedule == '30 3 6-31 * *'
     runs-on: ubuntu-26.04
     timeout-minutes: 120
     needs: daily-nav
