@@ -57,7 +57,7 @@ function Headline({ mo, report }: { mo: MonthReport; report: Report }) {
         of shares in {monthName(mo.month)}.
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-        From the portfolios of {t.funds.toLocaleString('en-IN')} equity and hybrid funds across {t.houses} fund houses.
+        From the portfolios of {t.funds.toLocaleString('en-IN')} funds across {t.houses} fund houses.
         New money into them came to {crore(t.inflow)}, and they moved {crore(Math.abs(t.cashUsed))} {t.cashUsed >= 0 ? 'out of cash into shares' : 'from shares into cash'}.
       </p>
       {!mo.coverage.complete && (
@@ -70,8 +70,8 @@ function Headline({ mo, report }: { mo: MonthReport; report: Report }) {
   )
 }
 
-const addedLine = (s: StockRow) => s.added && s.new === s.added ? `${s.added} funds bought it for the first time`
-  : `${s.added} funds added${s.new ? `, ${s.new} of them for the first time` : ''}`
+const addedLine = (s: StockRow) => s.added && s.new === s.added ? `${s.added} funds opened a new position`
+  : `${s.added} funds added${s.new ? `, ${s.new} of them new positions` : ''}`
 const cutLine = (s: StockRow) => s.cut && s.exited === s.cut ? `${s.cut} funds sold out of it`
   : `${s.cut} funds cut${s.exited ? `, ${s.exited} of them sold out` : ''}`
 
