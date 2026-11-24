@@ -11,7 +11,7 @@ async function coverageLine(page,data,size=false){
  const line=page.getByTestId('movers-coverage');
  const c=data.coverage;
  if(data.refMonth&&c&&c.reported<c.of){
-  const month=new Date(data.refMonth+'-01T00:00:00').toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+  const month=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(data.refMonth.slice(5,7))-1]+' '+data.refMonth.slice(0,4);
   const note=size?` Funds that have not reported ${month} yet show their latest AUM.`:'';
   assert.equal(await line.innerText(),`${month} figures are in for ${c.reported} of ${c.of} funds so far; the rest appear as their fund houses report.`+note);
  } else assert.equal(await line.count(),0,'complete or absent coverage stays hidden');

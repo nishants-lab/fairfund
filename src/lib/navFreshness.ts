@@ -13,6 +13,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import { data } from './data'
 import { isFutureOrInvalidNavDate, isIsoDate, istToday } from './marketDate'
+import { dayMonthYear } from './dates'
 
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? './'
 const manifestUrl = `${BASE.endsWith('/') ? BASE : BASE + '/'}nav/_manifest.json?v=${__DATA_VERSION__}`
@@ -86,7 +87,7 @@ export function useNavFreshness(): string {
 export function fmtNavDate(iso: string): string {
   try {
     const d = new Date(iso + 'T00:00:00')
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    return dayMonthYear(d)
   } catch {
     return iso
   }

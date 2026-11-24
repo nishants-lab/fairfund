@@ -1,3 +1,4 @@
+import { monthYear } from '../lib/dates'
 /** Mini rank-trajectory chart for a 0-100 within-category percentile series
  *  (higher = better rank). Unlike a bare sparkline it draws labelled axes so a
  *  fund pinned near the top reads as "consistently top-ranked" rather than a
@@ -8,7 +9,7 @@
  *  Optionally overlays a second (peer) series for comparison. */
 
 function fmtMon(d: Date): string {
-  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  return monthYear(d, true)
 }
 
 export default function Sparkline({

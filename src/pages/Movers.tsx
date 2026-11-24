@@ -19,6 +19,7 @@ import {
   RATIO_MEASURES, ratioExempt, ratioExemptCount, stockRows, sumOf, summarize, thresholdLabel, waitingFunds, waitingOnlyGroups, windowLabel,
   type FundRow, type GroupRow, type SectorRow, type StockAction, type StockRow,
 } from '../lib/moversRows'
+import { dayMonthYear } from '../lib/dates'
 
 // Movers: what changed across the fund universe, read from monthly disclosures.
 // One state object (lib/moversState) drives the tabs, the filters, the question box
@@ -894,7 +895,7 @@ function People({ list }: { list: [string, string][] }) {
 }
 function fmtDay(iso: string): string {
   const d = new Date(iso.slice(0, 10) + 'T00:00:00')
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return Number.isNaN(d.getTime()) ? iso : dayMonthYear(d)
 }
 
 function Footnote({ s, data }: { s: MoversState; data: MoversData }) {

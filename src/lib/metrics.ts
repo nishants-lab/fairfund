@@ -1,5 +1,6 @@
 import type { NavPoint } from '../types'
 import { navQualityIssue } from './navQuality'
+import { dayMonthYear, monthYear } from './dates'
 
 const RF_ANNUAL = 0.07
 const RF_DAILY = RF_ANNUAL / 252
@@ -230,11 +231,11 @@ export function localDate(iso: string): Date {
 }
 
 export function fmtDate(iso: string): string {
-  return localDate(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return dayMonthYear(localDate(iso))
 }
 
 /** Compact month-year, e.g. "Mar 2020" - for tight metric sub-lines and chart axes.
  */
 export function fmtMonth(iso: string): string {
-  return localDate(iso.slice(0, 7)).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+  return monthYear(localDate(iso.slice(0, 7)))
 }

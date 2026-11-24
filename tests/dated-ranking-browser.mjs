@@ -10,7 +10,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const require = createRequire(import.meta.url)
 const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
-const fmtD = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+// Same fixed month names as src/lib/dates.ts ('30 Sep 2026', never the browser's 'Sept').
+const fmtD = iso => `${Number(iso.slice(8, 10))} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
 // Complete synthetic cohort: independent of which live funds are currently ranked, held or quarantined.
 const data = JSON.parse(readFileSync(resolve(root, 'src/data/funds.json'), 'utf8'))
 const mk = (code, name, category, extra = {}) => syntheticFund(code, name, category, { categorySize: 99, ...extra })

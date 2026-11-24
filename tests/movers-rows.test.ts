@@ -348,7 +348,7 @@ test('labels read the way people say them', () => {
   assert.equal(thresholdLabel({ field: 'flow', op: 'gt', a: 5, pct: true }), 'Estimated net flow above 5%')
   assert.equal(thresholdLabel({ field: 'vsCategory', op: 'gt', a: 0 }), 'Return vs category median positive')
   assert.equal(thresholdLabel({ field: 'cagr', op: 'between', a: 10, b: 15 }), 'Return 10% to 15%')
-  assert.equal(windowLabel('2026-09', 1), 'Sept 2026'.replace('Sept', new Date('2026-09-01T00:00:00').toLocaleDateString('en-IN', { month: 'short' })))
+  assert.equal(windowLabel('2026-09', 1), 'Sep 2026')
   assert.match(windowLabel('2026-09', 3), /^\S+ to \S+ 2026$/)
   assert.match(windowLabel('2026-02', 6), /2025 to .* 2026$/)
   assert.equal(fmtCrore(-1234.5, true), '-₹1.2K Cr')

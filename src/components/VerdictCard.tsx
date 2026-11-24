@@ -5,6 +5,7 @@ import { buildVerdict } from '../lib/verdict'
 import { buildDebtVerdict, subcategoryInfo } from '../lib/debtVerdict'
 import { funds as ALL_FUNDS } from '../lib/data'
 import { signedPct } from '../lib/format'
+import { dayMonthYear } from '../lib/dates'
 
 // Blue intensity varies with score without assigning a qualitative rating.
 function scoreBand(score: number): {
@@ -113,7 +114,7 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
 function NoMatchedPeriod({ fund }: { fund: Fund }) {
   const si = fund.si
   const sinceTxt = fund.inceptionDate
-    ? localDate(fund.inceptionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? dayMonthYear(localDate(fund.inceptionDate))
     : null
   return (
     <div className="mt-6 card border-l-4 border-l-violet-400 p-5">

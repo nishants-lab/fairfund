@@ -2,6 +2,7 @@ import { localDate } from '../lib/metrics'
 import { data } from "../lib/data"
 import { usePageMeta } from "../lib/usePageMeta"
 import { REGIMES } from "../lib/regimes"
+import { monthAbbr } from '../lib/dates'
 
 export default function Methodology() {
   usePageMeta(
@@ -181,7 +182,7 @@ export default function Methodology() {
         <ul className="ml-5 mt-2 list-disc space-y-1 text-sm">
           {REGIMES.map((r) => {
             const s = localDate(r.start), e = localDate(r.end)
-            const mon = (d: Date) => d.toLocaleDateString("en-IN", { month: "short" })
+            const mon = monthAbbr
             const range =
               s.getFullYear() === e.getFullYear()
                 ? mon(s) === mon(e)

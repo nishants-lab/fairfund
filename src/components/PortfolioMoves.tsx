@@ -2,11 +2,12 @@ import type { Fund } from '../types'
 import InfoTip from './InfoTip'
 import { displayStockName } from '../lib/stockNames'
 import { signedPct } from '../lib/format'
+import { monthYear } from '../lib/dates'
 
 function fmtMonth(iso: string): string {
   try {
     const d = new Date(iso + 'T00:00:00')
-    return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+    return monthYear(d)
   } catch {
     return iso
   }

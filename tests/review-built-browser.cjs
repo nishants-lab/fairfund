@@ -6,7 +6,8 @@ const fundData = require('../src/data/funds.json')
 const { funds } = fundData
 const { routeFundIndex } = require('./fixtures/fund-index-route.cjs')
 const { syntheticFund, syntheticMetric, ensureCategory } = require('./fixtures/browser-timebomb-fixtures.cjs')
-const fmtD = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+// Same fixed month names as src/lib/dates.ts ('30 Sep 2026', never the browser's 'Sept').
+const fmtD = iso => `${Number(iso.slice(8, 10))} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
 const dated = f => !f.dataQuality && !f.isDebt && !f.isArbitrage && f.metrics?.['3Y']?.catRank && f.metrics['3Y'].windowStart && f.metrics['3Y'].windowEnd
 const peerOf = f => funds.find(p => p.category === f.category && p.code !== f.code && dated(p))
 // Live scenario: Parag Parikh when currently dated-ranked, else any dated-ranked fund with a

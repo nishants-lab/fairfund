@@ -11,6 +11,7 @@ import WishlistButton from '../components/WishlistButton'
 import ShareButton from '../components/ShareButton'
 import type { Horizon, Fund } from '../types'
 import RankingPeriod from '../components/RankingPeriod'
+import { dayMonthYear, monthYear } from '../lib/dates'
 
 type SortKey = 'rank' | 'name' | 'cagr' | 'alpha' | 'sharpe' | 'maxDrawdown' | 'score' | 'batting' | 'ter' | 'aum'
 type SortDir = 'asc' | 'desc'
@@ -297,7 +298,7 @@ export default function Explore() {
           <div className="hidden sm:block">
             <div className="text-xs text-faint">Data as of</div>
             <div className="font-bold text-fg">
-              {localDate(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {dayMonthYear(localDate(data.generatedAt))}
             </div>
           </div>
           <div className="hidden h-8 w-px bg-line sm:block" />
@@ -380,7 +381,7 @@ export default function Explore() {
                 if (!m) {
                   const si = f.dataQuality?.status === 'quarantined' ? undefined : f.si
                   const launched = f.inceptionDate
-                    ? localDate(f.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+                    ? monthYear(localDate(f.inceptionDate))
                     : null
                   return (
                     <tr

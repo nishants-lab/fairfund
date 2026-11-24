@@ -2,6 +2,7 @@
 // Imported by ForwardAnalytics and FundDetail for display + drawdown matching.
 import { localDate } from './metrics'
 import regimesData from '../data/regimes.json'
+import { monthYear } from './dates'
 
 export interface Regime {
   name: string
@@ -60,7 +61,7 @@ export function regimeInfo(name: string): { range: string; desc: string; market:
   if (!r) return undefined
   const fmtMon = (iso: string) => {
     const d = localDate(iso)
-    return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+    return monthYear(d)
   }
   const range = r.end >= new Date().toISOString().slice(0, 10)
     ? `${fmtMon(r.start)} - today`

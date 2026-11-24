@@ -9,6 +9,7 @@ import type { ParseContext } from './moversQuery'
 import type { Win } from './moversState'
 import { displayStockName, formerStockName } from './stockNames'
 import { withChunkReload } from './staleChunk'
+import { monthYear } from './dates'
 
 /** [month YYYY-MM, AUM crore, estimated net flow crore | null, NAV return % | null] */
 export type MonthRow = [string, number, number | null, number | null]
@@ -111,7 +112,7 @@ function firstFlowMonth(data: MoversData | null): string | null {
 export function monthLabel(ym: string | null | undefined): string {
   if (!ym) return ''
   const d = new Date(ym.slice(0, 7) + '-01T00:00:00')
-  return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+  return monthYear(d)
 }
 export function addMonths(ym: string, k: number): string {
   const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7))

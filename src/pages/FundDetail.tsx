@@ -31,6 +31,7 @@ import { usePageMeta } from '../lib/usePageMeta'
 
 // Regime data imported from auto-generated regimes.json (pipeline/detect_regimes.py)
 import { fallReason, riseContext } from '../lib/regimes'
+import { dayMonthYear, monthYear } from '../lib/dates'
 
 function catSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -323,14 +324,14 @@ export default function FundDetail() {
                 className="pill bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
                 title={`Launched ${fmtDate(fund.inceptionDate)} · ${fund.navPoints ?? 0} trading days of history. Long-window metrics (3Y/5Y) and category rank are not yet available; judged on since-inception performance.`}
               >
-                New fund · since {localDate(fund.inceptionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                New fund · since {monthYear(localDate(fund.inceptionDate))}
               </span>
             )}
           </div>
           <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
           <Link to={`/category/${catSlug(fund.category)}`} className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">See all {fund.metrics['3Y']?.catSize ?? ''} {categoryFundsLabel(fund.categoryDisplay)} →</Link>
-          <div className='text-xs text-faint'>Data as of {localDate(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+          <div className='text-xs text-faint'>Data as of {dayMonthYear(localDate(data.generatedAt))}</div>
 
           {/* Latest NAV with day change */}
           {allNav.length >= 2 && (() => {
@@ -346,7 +347,7 @@ export default function FundDetail() {
                   {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{changePct.toFixed(2)}%)
                 </span>
                 <span className="text-xs text-muted">
-                  NAV as of {localDate(curr.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  NAV as of {dayMonthYear(localDate(curr.date))}
                 </span>
               </div>
             )

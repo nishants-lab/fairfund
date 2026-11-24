@@ -11,6 +11,7 @@ import { useRegimesByFund } from '../lib/regimesByFund'
 import ShareButton from '../components/ShareButton'
 import InfoTip from '../components/InfoTip'
 import type { Fund } from '../types'
+import { dayMonthYear, monthYear } from '../lib/dates'
 
 /* ---------- helpers ---------- */
 
@@ -248,7 +249,7 @@ export default function CategoryDetail() {
           </div>
           <p className="mt-2 text-sm text-muted">
             {catInfo.fundCount} funds &middot; Typical for category: {catInfo.riskLevel} risk &middot; Data as of{' '}
-            {localDate(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {dayMonthYear(localDate(data.generatedAt))}
           </p>
           {scope && <p data-testid="category-scope" className="mt-2 max-w-2xl text-sm text-fg">{scope}</p>}
         </div>
@@ -335,7 +336,7 @@ export default function CategoryDetail() {
               </thead>
               <tbody>
                 {regimeStats.map(r => {
-                  const fmtMon = (iso: string) => localDate(iso).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+                  const fmtMon = (iso: string) => monthYear(localDate(iso), true)
                   const mktColor = r.market === 'down' ? 'text-rose-700 dark:text-rose-400' : r.market === 'up' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-800 dark:text-amber-400'
                   return (
                     <tr key={r.name} className="border-b border-line/60 last:border-0">
