@@ -43,8 +43,9 @@ export default function Wishlist() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-fg">My Wishlist</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="page-kicker">Saved funds</p>
+          <h1 className="page-title mt-2">My Wishlist</h1>
+          <p className="page-lede mt-2">
             {funds.length} fund{funds.length !== 1 ? 's' : ''} saved. Tap any row to view details.
           </p>
         </div>

@@ -245,7 +245,7 @@ export default function CategoryDetail() {
         <div>
           <div className="flex items-center gap-3">
             <span className={`inline-block h-8 w-1.5 rounded-full ${catColor.bg}`} />
-            <h1 className="text-3xl font-bold text-fg">{catInfo.display}</h1>
+            <h1 className="page-title">{catInfo.display}</h1>
           </div>
           <p className="mt-2 text-sm text-muted">
             {catInfo.fundCount} funds &middot; Typical for category: {catInfo.riskLevel} risk &middot; Data as of{' '}

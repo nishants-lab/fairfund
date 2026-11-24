@@ -54,7 +54,7 @@ export default function VerdictCard({ fund }: { fund: Fund }) {
 
       {/* score bar - blue intensity by band, not a red/green verdict */}
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
-        <div className={`h-full rounded-full ${b.bar}`} style={{ width: `${v.score}%` }} />
+        <div className={`bar-grow h-full rounded-full ${b.bar}`} style={{ width: `${v.score}%` }} />
       </div>
 
       <p className="mt-3 text-muted">{v.oneLiner}</p>
@@ -215,7 +215,7 @@ function DebtVerdictCard({ fund }: { fund: Fund }) {
 
       {v.score != null && (
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface2">
-          <div className={`h-full rounded-full ${DTONE_BAR[v.tone]}`} style={{ width: `${v.score}%` }} />
+          <div className={`bar-grow h-full rounded-full ${DTONE_BAR[v.tone]}`} style={{ width: `${v.score}%` }} />
         </div>
       )}
 

@@ -11,8 +11,9 @@ export default function Methodology() {
   )
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-fg">How FairFund works</h1>
-      <p className="mt-2 max-w-prose text-muted leading-relaxed">
+      <p className="page-kicker">Method</p>
+      <h1 className="page-title mt-2">How FairFund works</h1>
+      <p className="page-lede mt-3">
         FairFund compares mutual funds within their categories using NAV history and published portfolio data.
         This page explains the calculations, ranking rules and data limitations for the {data.totalFunds} funds we cover.
       </p>

@@ -499,7 +499,7 @@ function AnalysisView({ analysis, portfolio }: { analysis: PortfolioAnalysis; po
                 <div className="flex-1">
                   <div className="h-5 overflow-hidden rounded-full bg-surface2">
                     <div
-                      className="h-full rounded-full bg-brand-500 transition-all"
+                      className="bar-grow h-full rounded-full bg-brand-500 transition-all"
                       style={{ width: `${Math.min(s.weight * 2, 100)}%` }}
                     />
                   </div>
@@ -621,9 +621,9 @@ export default function Portfolio() {
           <div className="flex items-center gap-2">
             <Link to="/my" className="text-sm text-muted hover:text-fg">My FairFund</Link>
             <span className="text-faint">/</span>
-            <h1 className="text-2xl font-bold text-fg">Portfolio</h1>
+            <h1 className="page-title">Portfolio</h1>
           </div>
-          <p className="mt-1 text-sm text-muted">
+          <p className="page-lede mt-2">
             {portfolio ? 'Saved in this browser, so you can check back any day to see how you did. Open FairFund on another device, or clear your browser data, and you will need to upload again.' : 'Upload your CAMS statement to see your portfolio through FairFund\'s lens.'}
           </p>
         </div>

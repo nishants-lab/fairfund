@@ -133,11 +133,12 @@ export default function NfoPage() {
   const total = nfoData.nfos.length
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold text-fg">New fund offers</h1>
+      <p className="page-kicker">Launches</p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <h1 className="page-title">New fund offers</h1>
         <ShareButton title="New fund offers" text="New fund offers in FairFund's categories, next to the funds that already track the same index" className="mt-0.5 shrink-0" />
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="page-lede mt-2">
         Offers opening in the next {nfoData.window.lookaheadDays} days or opened in the last {nfoData.window.lookbackDays}, in the categories FairFund covers (Direct plan, growth option).
         Each is shown with the funds that already exist, because a new fund has no performance record of its own.
       </p>

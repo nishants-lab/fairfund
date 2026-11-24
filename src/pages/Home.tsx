@@ -142,7 +142,7 @@ function Spotlight({ fund }: { fund: Fund }) {
       <p className="text-sm leading-relaxed text-muted">Beat the category median in <strong className="font-semibold text-fg">{Math.round(consistency.pct)}%</strong> of measured 3-year periods.{' '}
         <InfoTip label="About spotlight consistency" width={280}>Based on {consistency.n} measured periods. {CONSISTENCY_EXPLANATION}</InfoTip>
       </p>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface2" aria-hidden="true"><div className="h-full rounded-full bg-brand-500" style={{width: `${consistency.pct}%`}} /></div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface2" aria-hidden="true"><div className="bar-grow h-full rounded-full bg-brand-500" style={{width: `${consistency.pct}%`}} /></div>
       {consistency.limited && <p className="mt-2 text-xs text-muted">Limited history.</p>}
     </div>}
     <p className="mt-4 text-xs leading-relaxed text-muted">Featured for exploration, not a recommendation. Returns through {fmtNavDate(data.anchor)}.</p>

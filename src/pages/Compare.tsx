@@ -349,14 +349,16 @@ export default function Compare() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       {funds.some(f => navIssues[f.code] || f.dataQuality?.status === 'quarantined') && <p role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">NAV source verification is needed for {funds.filter(f => navIssues[f.code] || f.dataQuality?.status === 'quarantined').map(f => f.name).join(', ')}. Return and risk calculations are withheld for these funds.</p>}
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-3xl font-bold text-fg">Compare Funds</h1>
+      <p className="page-kicker">Side by side</p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <h1 className="page-title">Compare Funds</h1>
         <ShareButton title="Fund comparison" text="Compare funds side by side on FairFund" className="mt-1 shrink-0" />
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="page-lede mt-2">
         Compare up to 5 funds over a period you choose.
         <InfoTip label="How to read the comparison" align="left" width={290}>
           Green highlights the leading value on each row. The figure below is the gap to that value.
+          The thin bar shows each value's size against the largest in the row. On volatility, max drawdown and worst month a longer bar means more risk. Rows that mix gains and losses have no bars.
           A row highlight is not an investment recommendation.
         </InfoTip>
       </p>
@@ -506,6 +508,11 @@ export default function Compare() {
                   const winner = bestIdx(row.key, row.better)
                   const leaderV =
                     winner >= 0 ? (effective(funds[winner]).m?.[row.key] as number | undefined) : undefined
+                  // Each value's size against the largest in the row, drawn in that fund's colour. A row that mixes
+                  // gains and losses gets no bars: a -20% and a +20% would draw the same length.
+                  const rowVals = funds.map(f => effective(f).m?.[row.key] as number | undefined).filter((x): x is number => typeof x === 'number' && Number.isFinite(x))
+                  const oneSign = rowVals.every(x => x >= 0) || rowVals.every(x => x <= 0)
+                  const rowMax = oneSign ? Math.max(0, ...rowVals.map(Math.abs)) : 0
                   return (
                     <tr key={row.label} className="border-b border-line">
                       <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-muted">{row.label}</td>
@@ -544,6 +551,11 @@ export default function Compare() {
                                     </div>
                                   )}
                                 {period && <div className="mt-0.5 text-xs leading-tight text-faint">{period}</div>}
+                                {funds.length > 1 && rowMax > 0 && (
+                                  <div className="ml-auto mt-1.5 h-1 w-full max-w-[96px] overflow-hidden rounded-full bg-surface2" aria-hidden="true">
+                                    <div className="bar-grow ml-auto h-full rounded-full" style={{ width: `${Math.max(4, (Math.abs(v as number) / rowMax) * 100)}%`, backgroundColor: COLORS[i], transformOrigin: 'right center' }} />
+                                  </div>
+                                )}
                               </>
                             )}
                           </td>

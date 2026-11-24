@@ -203,11 +203,12 @@ export default function Movers() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold text-fg">Movers</h1>
+      <p className="page-kicker">Flows and portfolio moves</p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <h1 className="page-title">Movers</h1>
         <ShareButton title="Movers" text="Fund flows, size, rank, costs, manager changes and portfolio moves on FairFund" className="mt-0.5 shrink-0" />
       </div>
-      <p className="mt-1 text-sm text-muted">{BLURB[s.view]}</p>
+      <p className="page-lede mt-2">{BLURB[s.view]}</p>
       {reportLead && (
         <Link to="/fund-buying" className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm transition-colors hover:border-brand-300">
           <span className="min-w-0"><span className="font-semibold text-fg">What funds bought in {reportLead}</span> <span className="text-muted">· most bought and sold stocks, by sector and fund house</span></span>

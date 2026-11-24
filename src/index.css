@@ -125,6 +125,12 @@ h1.uppercase, h2.uppercase, h3.uppercase {
   background: rgb(var(--text-faint));
 }
 
+/* Bars grow from their start once, when they first render. Pure CSS, so pages that use it load no animation
+   code; nothing moves when the reader asks for reduced motion. */
+@keyframes bar-grow { from { transform: scaleX(0); } }
+.bar-grow { transform-origin: left center; animation: bar-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .bar-grow { animation: none; } }
+
 /* An inverted band (home page fund buying): dark on light themes, raised surface on dark. */
 .band { --band-bg: var(--text-base); --band-fg: var(--canvas); background: rgb(var(--band-bg)); color: rgb(var(--band-fg)); }
 .dark .band { --band-bg: var(--surface); --band-fg: var(--text-base); }
@@ -136,6 +142,15 @@ h1.uppercase, h2.uppercase, h3.uppercase {
 }
 
 @layer components {
+  /* Page headers share the fund buying report's look: a brand kicker line, a large serif title, a calm lede. */
+  .page-kicker {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    letter-spacing: 0.06em;
+    @apply text-xs font-semibold uppercase text-brand-700 dark:text-brand-300;
+  }
+  .page-title { @apply font-display text-[1.75rem] font-semibold leading-[1.1] text-fg sm:text-4xl; }
+  .page-lede { @apply max-w-2xl text-sm leading-relaxed text-muted sm:text-base; }
+
   .card {
     @apply bg-surface rounded-2xl border border-line shadow-sm;
   }

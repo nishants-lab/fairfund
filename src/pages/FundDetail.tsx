@@ -28,6 +28,8 @@ import ShareButton from '../components/ShareButton'
 import TaxCard from '../components/TaxCard'
 import WishlistButton from '../components/WishlistButton'
 import { usePageMeta } from '../lib/usePageMeta'
+import reportSummary from '../data/holdings_summary.json'
+import { monthLabel as reportMonthLabel } from '../lib/holdingsReport'
 
 // Regime data imported from auto-generated regimes.json (pipeline/detect_regimes.py)
 import { fallReason, riseContext } from '../lib/regimes'
@@ -36,6 +38,9 @@ import { dayMonthYear, monthYear } from '../lib/dates'
 function catSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
+
+// The month of the latest fund buying report, for the link under this fund's portfolio moves.
+const reportLead = (reportSummary as { lead: string | null }).lead ? reportMonthLabel((reportSummary as { lead: string }).lead) : null
 
 export default function FundDetail() {
   const { code, slug } = useParams()
@@ -328,7 +333,7 @@ export default function FundDetail() {
               </span>
             )}
           </div>
-          <h1 className="mt-2 text-2xl font-bold text-fg md:text-3xl">{fund.name}</h1>
+          <h1 className="page-title mt-3 text-[1.6rem] sm:text-[2.1rem]">{fund.name}</h1>
           <div className="text-sm text-muted">{fund.amc} · Direct · Growth</div>
           <Link to={`/category/${catSlug(fund.category)}`} className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">See all {fund.metrics['3Y']?.catSize ?? ''} {categoryFundsLabel(fund.categoryDisplay)} →</Link>
           <div className='text-xs text-faint'>Data as of {dayMonthYear(localDate(data.generatedAt))}</div>
@@ -657,7 +662,14 @@ export default function FundDetail() {
           <div id='sectors'><SectorBreakdown fund={fund} /></div>
 
           {/* Portfolio changes (stock-picking intelligence) */}
-          <div id='moves'><PortfolioMoves fund={fund} /></div>
+          <div id='moves'>
+            <PortfolioMoves fund={fund} />
+            {reportLead && !!(fund.stockMoves?.added.length || fund.stockMoves?.exited.length) && (
+              <Link to="/fund-buying" className="mt-2 inline-block text-sm font-medium text-brand-700 hover:underline dark:text-brand-300">
+                What all funds bought in {reportLead} →
+              </Link>
+            )}
+          </div>
 
           {/* Management quality */}
           <div id='management'><ManagementCard fund={fund} /></div>

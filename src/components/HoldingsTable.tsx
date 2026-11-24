@@ -121,7 +121,7 @@ export default function HoldingsTable({ fund, peerCode }: { fund: Fund; peerCode
                   <div className="flex items-center justify-end gap-2">
                     <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-surface2 sm:block">
                       <div
-                        className="h-full rounded-full bg-brand-500"
+                        className="bar-grow h-full rounded-full bg-brand-500"
                         style={{ width: `${Math.min(100, (h.pct / (holdings[0]?.pct || 1)) * 100)}%` }}
                       />
                     </div>

@@ -46,8 +46,9 @@ export default function MyDashboard() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-fg">My FairFund</h1>
-      <p className="mt-1 text-sm text-muted">
+      <p className="page-kicker">Your account</p>
+      <h1 className="page-title mt-2">My FairFund</h1>
+      <p className="page-lede mt-2">
         Your portfolio and saved funds.
       </p>
 

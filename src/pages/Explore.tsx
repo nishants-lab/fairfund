@@ -226,11 +226,12 @@ export default function Explore() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-3xl font-bold text-fg">Explore Funds by Category</h1>
+      <p className="page-kicker">Research</p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <h1 className="page-title">Explore Funds by Category</h1>
         <ShareButton title="Explore funds by category" text="Funds ranked by risk-adjusted score within each category on FairFund" className="mt-1 shrink-0" />
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="page-lede mt-2">
         Compare funds within each category. Select a column header to sort.
       </p>
 
@@ -453,7 +454,7 @@ export default function Explore() {
                     {!isDebtCat && (
                     <td className="px-4 py-3 text-right">
                       <div className="ml-auto h-1.5 w-16 overflow-hidden rounded-full bg-surface2">
-                        <div className="h-full rounded-full bg-brand-500" style={{ width: `${m.score * 100}%` }} />
+                        <div className="bar-grow h-full rounded-full bg-brand-500" style={{ width: `${m.score * 100}%` }} />
                       </div>
                     </td>
                     )}
