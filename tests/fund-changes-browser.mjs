@@ -57,6 +57,16 @@ try {
   await page.reload()
   await panel.getByText('Expense ratio', { exact: true }).waitFor()
   await panel.getByText('Source date unavailable · Observed', { exact: false }).waitFor()
+  // Review and observation dates read '24 Nov 2026', never the stored '2026-11-24'.
+  const shown = await page.evaluate(async ({ key, code }) => {
+    const { fmtDate } = await import('/src/lib/metrics.ts')
+    const entry = JSON.parse(localStorage.getItem(key)).funds[code]
+    return { reviewed: fmtDate(entry.reviewedOn), observed: fmtDate(entry.changes[0].observedOn) }
+  }, { key, code })
+  const panelText = await panel.innerText()
+  assert.doesNotMatch(panelText, /\d{4}-\d{2}-\d{2}/, 'raw ISO date in the saved-fund panel')
+  assert.ok(panelText.includes(`Baseline / last reviewed: ${shown.reviewed}`), panelText)
+  assert.ok(panelText.includes(`Observed ${shown.observed}`), panelText)
   const recorded = await page.evaluate(({ key, code }) => JSON.parse(localStorage.getItem(key)).funds[code], { key, code })
   assert.equal(recorded.changes.length, 1)
   assert.equal(recorded.changes[0].before, `${(cost + 0.1).toFixed(2)}%`)

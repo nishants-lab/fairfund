@@ -6,6 +6,7 @@ import {
   observeFundChanges, readFundChanges, snapshotFund, writeFundChanges,
 } from '../lib/fundChanges'
 import type { FundChangesState, FundSnapshot } from '../lib/fundChanges'
+import { fmtDate } from '../lib/metrics'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const labels = { cost: 'Expense ratio', managers: 'Reported managers', holdings: 'Disclosed holdings' }
@@ -118,7 +119,7 @@ export default function FundChanges({ funds, savedCodes }: { funds: Fund[]; save
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h3 className="break-words text-sm font-semibold text-fg">{fund.name}</h3>
-                <p className="mt-1 text-xs text-muted">Baseline / last reviewed: <time dateTime={entry.reviewedOn}>{entry.reviewedOn}</time></p>
+                <p className="mt-1 text-xs text-muted">Baseline / last reviewed: <time dateTime={entry.reviewedOn}>{fmtDate(entry.reviewedOn)}</time></p>
               </div>
               {entry.changes.length > 0 && <button type="button" disabled={loading} onClick={() => review(fund.code)}
                 aria-label={`Mark ${fund.name} reviewed`}
@@ -130,8 +131,8 @@ export default function FundChanges({ funds, savedCodes }: { funds: Fund[]; save
               : <ul className="mt-3 space-y-3">{entry.changes.map((change, index) => <li key={index} className="rounded-lg bg-surface2 p-3 text-sm">
                 <p className="font-medium text-fg">{labels[change.kind]}</p>
                 <p className="mt-1 text-xs text-muted">{change.toDate
-                  ? `Portfolio reports: ${change.fromDate} to ${change.toDate}`
-                  : 'Source date unavailable'} · Observed {change.observedOn}</p>
+                  ? `Portfolio reports: ${fmtDate(change.fromDate!)} to ${fmtDate(change.toDate)}`
+                  : 'Source date unavailable'} · Observed <time dateTime={change.observedOn}>{fmtDate(change.observedOn)}</time></p>
                 {change.kind === 'holdings' ? <details className="mt-2">
                   <summary className="min-h-11 cursor-pointer py-2 text-fg">View disclosed-list comparison</summary>
                   <p className="break-words text-muted">Earlier list: {change.before}</p>

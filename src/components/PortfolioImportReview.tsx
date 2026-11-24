@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { getUniverseFund, universeFunds } from '../lib/matcherUniverse'
 import { isIsoDate } from '../lib/marketDate'
 import type { FundSummary, ParsedPortfolio } from '../lib/portfolio'
+import { fmtDate } from '../lib/metrics'
 
 const inr = (value: number) => `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+/** Statement dates read '20 Nov 2026'; anything that is not a real calendar date is shown as given. */
+export const blockDate = (value: string | null | undefined) => isIsoDate(value) ? fmtDate(value) : value || 'Unknown'
 const planLabel = (name: string) => /\bdirect\b/i.test(name) ? 'Direct' : /\bregular\b/i.test(name) ? 'Regular' : 'Not explicit (parser assumes Regular)'
 
 export function correctPortfolioScheme(portfolio: ParsedPortfolio, statementName: string, code: number): ParsedPortfolio {
@@ -137,7 +140,7 @@ export default function PortfolioImportReview({ portfolio, replacing, onConfirm,
           <p className="mt-1 text-xs text-muted">Statement plan: {planLabel(name)} · {blocks.length} block(s)</p>
           <p className="mt-2 text-sm text-fg">{corrected.has(name) ? 'Your selection' : 'Suggested match (needs review)'}: <strong>{matched ? `${matched.name} · ${matched.planType === 'direct' ? 'Direct' : 'Regular'} · ${matched.optionType} · AMFI ${matched.code}` : 'Unmatched'}</strong></p>
           <ul className="mt-2 space-y-1 text-xs text-muted">{blocks.map((s, i) => <li key={i}>
-            Block {i + 1}: {s.closingUnits.toLocaleString('en-IN')} units · {inr(statementValue(s))} · valuation date {s.marketValue > 0 ? s.marketValueDate || 'Unknown' : s.navDate || 'Unknown'}{s.closingUnits <= 0.001 ? ' · Closed, excluded from holdings' : ''}
+            Block {i + 1}: {s.closingUnits.toLocaleString('en-IN')} units · {inr(statementValue(s))} · valuation date {blockDate(s.marketValue > 0 ? s.marketValueDate : s.navDate)}{s.closingUnits <= 0.001 ? ' · Closed, excluded from holdings' : ''}
           </li>)}</ul>
           {warnings.length > 0 && <ul className="mt-2 list-disc pl-4 text-sm text-amber-800 dark:text-amber-300">{warnings.map(w => <li key={w}>{w}</li>)}</ul>}
           <SchemeCorrection name={name} code={summary.fundCode} onChange={code => correct(name, code)} />

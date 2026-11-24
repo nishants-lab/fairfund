@@ -4,11 +4,19 @@
 import type { Fund } from '../types'
 import InfoTip from './InfoTip'
 import { signedPct } from '../lib/format'
+import { fmtDate } from '../lib/metrics'
 
 function fmtAum(cr: number): string {
   if (cr >= 100000) return `₹${(cr / 100000).toFixed(1)}L Cr`
   if (cr >= 1000) return `₹${(cr / 1000).toFixed(1)}K Cr`
   return `₹${cr.toFixed(0)} Cr`
+}
+
+/** AUM help text with readable dates ('31 Oct 2026', never '2026-10-31'). */
+export function aumNote(aum: NonNullable<Fund['aum']>): string {
+  const size = aum.asOf ? `Total fund size as of ${fmtDate(aum.asOf)}.` : 'Total fund size (latest available; disclosure date not published).'
+  const before = aum.asOf && aum.previous != null && aum.prevDate ? ` Was ${fmtAum(aum.previous)} on ${fmtDate(aum.prevDate)}.` : ''
+  return `${size}${before} Very large AUM can limit agility in small/mid-cap strategies.`
 }
 
 function monthLabel(iso: string): string {
@@ -130,9 +138,7 @@ export default function FundMeta({ fund }: { fund: Fund }) {
               </span>
             )}
             <InfoTip label="Assets Under Management" width={220}>
-              {aum.asOf ? `Total fund size as of ${aum.asOf}.` : 'Total fund size (latest available; disclosure date not published).'}
-              {aum.asOf && aum.previous != null && ` Was ${fmtAum(aum.previous)} in ${aum.prevDate}.`}
-              {' '}Very large AUM can limit agility in small/mid-cap strategies.
+              {aumNote(aum)}
             </InfoTip>
           </div>
         )}
