@@ -3,6 +3,9 @@ import { data } from '../lib/data'
 import { useNavFreshness, fmtNavDate } from '../lib/navFreshness'
 import { resetOnboarding } from './Onboarding'
 
+const INSTAGRAM_HANDLE = 'fairfund_mutualfunds'
+const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}/`
+
 export default function Footer() {
   const navDate = useNavFreshness()
   // Count business days (Mon-Fri) since last NAV to handle weekends + holidays fairly
@@ -27,7 +30,7 @@ export default function Footer() {
     <footer className="mt-20 border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4">
         {/* Top: wordmark + nav columns */}
-        <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <div className="font-display text-2xl font-bold tracking-tight text-fg">
               <span className="text-brand-600 dark:text-brand-400">Fair</span>Fund
@@ -64,6 +67,21 @@ export default function Footer() {
               <button onClick={resetOnboarding} className="text-left text-muted transition-colors hover:text-fg">
                 Take the tour
               </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="eyebrow text-faint">Follow</div>
+            <div className="mt-3 flex flex-col gap-2.5 text-sm">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="footer-instagram"
+                className="text-muted transition-colors hover:text-fg"
+              >
+                Instagram <span className="text-faint">@{INSTAGRAM_HANDLE}</span>
+              </a>
             </div>
           </div>
         </div>

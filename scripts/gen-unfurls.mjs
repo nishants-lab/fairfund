@@ -185,7 +185,7 @@ ${head(title, desc, url, image, jsonld)}
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="${SITE}/"><span class="brand-mark" aria-hidden="true" style="background-image:url(${SITE}/favicon.svg)"></span>FairFund</a><nav aria-label="Research pages"><a href="${SITE}/s/fund-buying/">Fund buying</a><a href="${SITE}/s/explore/">Browse categories</a><a href="${SITE}/s/stocks/">Stocks</a><a href="${SITE}/s/methodology/">Methodology</a></nav></div></header>
 <main>${themeInline(fallback)}${themeInline(asOf)}</main>
-<footer class="foot"><div class="wrap"><a href="${SITE}/">FairFund home</a> &middot; Indian mutual fund research. Data for research only, not investment advice.</div></footer>
+<footer class="foot"><div class="wrap"><a href="${SITE}/">FairFund home</a> &middot; <a href="https://www.instagram.com/fairfund_mutualfunds/" rel="noopener">Instagram @fairfund_mutualfunds</a> &middot; Indian mutual fund research. Data for research only, not investment advice.</div></footer>
 </body>
 </html>
 `
